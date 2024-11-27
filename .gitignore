@@ -19,3 +19,4 @@ api/migrations
 
 # Pytest cache
 .pytest_cache/
+backend/api/migrations/0001_initial.py
