@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta 
-from env import load_dotenv
+from dotenv import load_dotenv
 import os
 
 load_dotenv() # Load environment variable for database credentials, etc.
@@ -40,6 +40,7 @@ REST_FRAMEWORK = { # Necessary for JWT token (for secure authorization)
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
 
 SIMPLE_JWT = { # JWT Auth. Config
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30), # Access token lifetime (set to 30 minutes),

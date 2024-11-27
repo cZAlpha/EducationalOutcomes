@@ -1,1 +1,21 @@
-env
+# Python-related ignores
+*.pyc
+*.pyo
+__pycache__/
+
+# Django-related ignores
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+
+# Virtual environment directories
+venv/
+env/
+
+# Migrations
+api/migrations
+
+# Pytest cache
+.pytest_cache/
