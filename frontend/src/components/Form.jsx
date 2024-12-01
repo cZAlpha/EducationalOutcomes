@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 import "../styles/Form.css"
 import LoadingIndicator from "./LoadingIndicator";
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 
 
 function Form({ route, method }) {
@@ -37,24 +39,39 @@ function Form({ route, method }) {
    return (
       <form onSubmit={handleSubmit} className="form-container">
          <h1>{name}</h1>
-         <input
-               className="form-input"
-               type="text"
-               value={username}
-               onChange={(e) => setUsername(e.target.value)}
-               placeholder="Username"
+         <TextField 
+            className="form-input"
+            label="Username" 
+            variant="outlined" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
+            fullWidth // Ensures it takes the full width
+            sx={{
+               width: '90%',
+               paddingBottom: '10px',
+            }}
          />
-         <input
-               className="form-input"
-               type="password"
-               value={password}
-               onChange={(e) => setPassword(e.target.value)}
-               placeholder="Password"
+         <TextField 
+            className="form-input"
+            label="Password" 
+            variant="outlined" 
+            type="password"
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            fullWidth 
+            sx={{
+               width: '90%',
+               paddingBottom: '30px',
+            }}
          />
          {loading && <LoadingIndicator />}
-         <button className="form-button" type="submit">
-               {name}
-         </button>
+         <div>
+            {!loading && (
+               <Button className="form-button" type="submit" variant="contained">
+                  {name}
+               </Button>
+            )}
+         </div>
       </form>
    );
 }
