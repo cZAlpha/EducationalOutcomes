@@ -13,7 +13,7 @@ class CreateUserView(generics.CreateAPIView):
    permission_classes = [AllowAny] # Allow anyone to call this view, even if they aren't signed in
 
 
-class NoteListCreate(generics.ListCreateAPIView):
+class NoteListCreate(generics.ListCreateAPIView): # Database function that allows for the creation of a note
    serializer_class = NoteSerializer # set the serializer to be used
    permission_classes = [IsAuthenticated] # Only allow this view to be accessed when the user is authenticated already
 
@@ -28,7 +28,7 @@ class NoteListCreate(generics.ListCreateAPIView):
          print(serializer.errors) # Print the errors
 
 
-class NoteDelete(generics.DestroyAPIView):
+class NoteDelete(generics.DestroyAPIView): # Database function that allows for the deletion of a given note
    serializer_class = NoteSerializer
    permission_classes = [IsAuthenticated]
 

@@ -5,8 +5,9 @@ from .models import Note
 
 # NOTE:
 # - ALL MODELS MUST HAVE A SERIALIZER!!!!
-# - Maps python objects to corresponding code to make changes to the database
+# - Maps python objects (from Models.py) to corresponding JSON code
 # - With our API, we will be using JSON, so we must serialize and deserialize information to make data flow correctly and efficiently
+
 
 class UserSerializer(serializers.ModelSerializer):
    class Meta: # Metadata

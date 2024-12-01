@@ -2,7 +2,18 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-class Note(models.Model):
+# NOTE: This is where API-compatible database tables are defined
+# Each class in this file dictates the creation of a Django 'Model', 
+# this is just a fancy way to call a table, or an object within
+# a relational database. The name of the class dictates the name of
+# the table within the database. Each internal variable dictates a 
+# column within the table. The thing you set the variables equal to
+# dictates the datatype of that column. You can also override 
+# functions to meet your needs like in the Note table's usage of
+# overriding the Python equivalent of Java's toString method.
+
+
+class Note(models.Model): # Note Table Object 
    title = models.CharField(max_length=100) 
    content = models.TextField(max_length=1000)
    created_at = models.DateTimeField(auto_now_add=True) # Sets the time that the note was created at
