@@ -36,6 +36,14 @@ function Form({ route, method }) {
       }
    };
 
+   const handleSwitchPage = () => { // Function that handles switching between the login and register pages
+      if (method === "login") {
+         navigate("/register"); // Navigate to register page if it's login
+      } else {
+         navigate("/login"); // Navigate to login page if it's register
+      }
+   };
+
    return (
       <form onSubmit={handleSubmit} className="form-container">
          <h1>{name}</h1>
@@ -65,11 +73,23 @@ function Form({ route, method }) {
             }}
          />
          {loading && <LoadingIndicator />}
-         <div>
+         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {!loading && (
-               <Button className="form-button" type="submit" variant="contained">
-                  {name}
-               </Button>
+               <>
+                  <Button className="form-button" type="submit" variant="contained">
+                     {name}
+                  </Button>
+                  <Button
+                     variant="text"
+                     onClick={handleSwitchPage}
+                     style={{ 
+                        textTransform: 'none', 
+                        paddingTop: "20px"
+                     }}
+                  >
+                     {method === "login" ? "Register" : "Or login"}
+                  </Button>
+               </>
             )}
          </div>
       </form>
