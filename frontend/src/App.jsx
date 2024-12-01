@@ -6,23 +6,21 @@ import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute"
 
-function Logout() {
-  localStorage.clear()
-  return <Navigate to="/login" />
+function Logout() { 
+  localStorage.clear() // Clears browser cache
+  return <Navigate to="/login" /> // Goes to the login page thru routing
 }
 
 function RegisterAndLogout() {
-  localStorage.clear()
-  return <Register />
+  localStorage.clear() // Clears browser cache
+  return <Register /> // Goes back to the register page
 }
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={
+        <Route path="/" element={
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>

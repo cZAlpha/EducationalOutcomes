@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ACCESS_TOKEN } from "./constants";
 
-const apiUrl = 'http://localhost:8000/';
+const apiUrl = 'http://localhost:8000/'; // Use this for development, unsure why he uses the choreo apis url in the line below but check the tutorial: 
 //const apiUrl = "/choreo-apis/awbo/backend/rest-api-be2/v1.0";
 
 
