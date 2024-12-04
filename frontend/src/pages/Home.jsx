@@ -3,7 +3,7 @@ import api from "../api";
 import Note from "../components/Note"
 import "../styles/Home.css"
 import { Link } from 'react-router-dom';
-
+import Button from '@mui/material/Button';
 
 
 function Home() {
@@ -53,9 +53,11 @@ function Home() {
 
    return (
       <div>
-         <nav>
+         <nav style={{ display: "flex", flexDirection: "row", justifyContent: "flex-end", padding: "10px" }}>
             <Link to="/logout">
-               <button>Log out</button>
+               <Button variant="contained">
+                  Logout
+               </Button>
             </Link>
          </nav>
          <div>
