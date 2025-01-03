@@ -37,7 +37,9 @@ class User(AbstractBaseUser, PermissionsMixin):
    username = models.CharField(max_length=150, unique=True)
    email = models.EmailField(unique=True, null=False)  # Email field added here
    role = models.ForeignKey('UserRole', on_delete=models.SET_NULL, null=True, blank=True)
-   date_joined = models.DateTimeField(auto_now_add=True)
+   user_start_date = models.DateTimeField(auto_now_add=True) # Auto sets the start date upon creation
+   first_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
+   last_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
 
    # Custom related_name to avoid conflict with default User model
    groups = models.ManyToManyField(
@@ -62,12 +64,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class UserRole(models.Model):
    ROLE_CHOICES = [ # These role choices are in order of power, admins can read and write anything, users can only read and write to certian fields and clients are READ ONLY for most things
-      ('Admin', 'Admin'),
-      ('User', 'User'),
-      ('Client', 'Client')
+      ('root', 'root'), # For Dr. Rasamny ONLY (or other applicable super administrator)
+      ('Admin', 'Admin'), # For Dr. Smolenski and other high-ranking professors
+      ('User', 'User'), # For general users such as normal professors
    ]
    role_name = models.CharField(max_length=50, unique=True, choices=ROLE_CHOICES)
-   role_description = models.TextField(blank=True)
+   role_description = models.TextField(null=True, blank=True)
    permissions = models.CharField(max_length=50, choices=ROLE_CHOICES)
 
    def __str__(self):
