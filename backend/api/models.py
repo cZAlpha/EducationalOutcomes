@@ -99,3 +99,99 @@ class Log(models.Model):
    
    def __str__(self):
       return f"{self.user} - {self.action} - {self.timestamp}"
+
+
+# ABET Specific Models
+
+# ABET Versions
+class ABETVersion(models.Model):
+   year = models.PositiveIntegerField()
+   
+   def __str__(self): # To string method returns the given ABET Version's year
+      return str(self.year)
+
+
+# ABET Learning Objectives
+class ABETLearningObjective(models.Model):
+   abet_version = models.ForeignKey(ABETVersion, on_delete=models.CASCADE)
+   designation = models.CharField(max_length=10) # What letter is used to designate a given LO
+   description = models.CharField(max_length=100, null=True, blank=True) # Optional description
+   
+   def __str__(self):
+      return f"{self.designation}: {self.description} | ABET Version: {self.abet_version}"
+
+
+# Courses
+class Course(models.Model):
+   crn_id = models.CharField(max_length=20, primary_key=True) # The CRN of a given course IS ITS PK, e.g. CRN would be: 'CSCI 361-01'
+   name = models.CharField(max_length=255) # The name of the given course
+   description = models.TextField(max_length=1000, null=True, blank=True) # Optional course description
+   
+   def __str__(self):
+      return self.name
+
+
+# Semesters
+class Semester(models.Model):
+   name = models.CharField(max_length=30)
+   
+   def __str__(self):
+      return self.name
+
+
+# Sections
+class Section(models.Model):
+   course = models.ForeignKey(Course, on_delete=models.CASCADE)
+   abet_version = models.ForeignKey(ABETVersion, on_delete=models.CASCADE)
+   semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
+   instructor = models.ForeignKey(User, on_delete=models.CASCADE) # Users are instructors
+   year = models.PositiveIntegerField()
+   
+   def __str__(self):
+      return f"Section {self.id} - {self.course.name} ({self.year})"
+
+
+# Assignment Templates
+class AssignmentTemplate(models.Model):
+   instructor = models.ForeignKey(User, on_delete=models.CASCADE)
+   name = models.CharField(max_length=255)
+   description = models.TextField(max_length=1000, null=True, blank=True)
+   date_created = models.DateField(auto_now_add=True)
+   
+   def __str__(self):
+      return self.name
+
+
+# Assignments
+class Assignment(models.Model):
+   section = models.ForeignKey(Section, on_delete=models.CASCADE)
+   template = models.ForeignKey(AssignmentTemplate, on_delete=models.CASCADE)
+   name = models.CharField(max_length=255)
+   description = models.TextField(max_length=1000, null=True, blank=True)
+   csv_filepath = models.CharField(max_length=500, null=True, blank=True)
+   date_created = models.DateField(auto_now_add=True)
+   
+   def __str__(self):
+      return self.name
+
+
+# Assignment Questions
+class AssignmentQuestion(models.Model):
+   assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
+   question_number = models.PositiveIntegerField()
+   text = models.TextField(max_length=500, null=True, blank=True) # If your assignment's question is longer than 500 words, that's on you!
+   average_grade = models.FloatField() # Average grade is not optional
+   
+   def __str__(self):
+      return f"Q{self.question_number} - {self.assignment.name} had an average grade of: {self.average_grade}"
+
+
+# Assignment Question Mappings
+class AssignmentQuestionMapping(models.Model):
+   question = models.ForeignKey(AssignmentQuestion, on_delete=models.CASCADE)
+   learning_objective = models.ForeignKey(ABETLearningObjective, on_delete=models.CASCADE)
+   
+   def __str__(self):
+      return f"Mapping {self.id} maps Q{self.question.id} -> LO {self.learning_objective.id}"
+
+
