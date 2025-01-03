@@ -13,4 +13,7 @@ urlpatterns = [
       # Log object routing
    path("logs/", LogListCreate.as_view(), name="log-list"), # Route that returns all logs
    path("logs/<int:pk>/", LogDetail.as_view(), name="log-detail"),  # Retrieve, update, or delete a log
+
+   # TODO:
+   # All ABET Related URL Patterns
 ]

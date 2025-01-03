@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.hashers import make_password
 
 # User-made imports
-from .serializers import UserSerializer, LogSerializer # Import serializers
-from .models import User, Log # Import models
+from .serializers import * # Import serializers
+from .models import * # Import models
 
 
 # START - USERS
@@ -121,3 +121,62 @@ class LogDetail(generics.RetrieveUpdateDestroyAPIView):
       """
       instance.delete()
 # STOP - LOGS
+
+
+#
+# ABET Related Views
+#
+
+
+# START - ABETVersion
+# Log List Create 
+# Retrives all ABETVersions, also handles creating ABETVersions
+class ABETVersionListCreate(APIView):
+   """
+   A view for retrieving a list of all instances, or to create a new instance.
+   """
+   def get(self): # Return the list
+      ABETVersions = ABETVersion.objects.all()
+      serializer = ABETVersionSerializer(ABETVersions, many=True)
+      return Response(serializer.data)
+
+   def post(self, request): # Create the instance using the request
+      print(request.data)
+      serializer = ABETVersionSerializer(data=request.data)
+      if serializer.is_valid():
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# ABETVersion Detail View
+# Allows for: Edit, Create, Specific instance retrieval
+class ABETVersionDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific ABETVersion instance.
+   """
+   queryset = ABETVersion.objects.all()  # Define queryset for the view
+   serializer_class = ABETVersionSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the log instance
+
+   def get_queryset(self):
+      return ABETVersion.objects.all()
+
+   def perform_update(self, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      serializer.save()
+
+   def perform_destroy(self, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the log.
+      """
+      instance.delete()
+# STOP - ABETVersion
+
+
+
+# TODO: Do the rest of the views for the other remaining ABET related models

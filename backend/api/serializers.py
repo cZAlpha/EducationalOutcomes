@@ -1,5 +1,5 @@
 from rest_framework import serializers # Import the REST framework serializer
-from .models import User, UserRole, Log # Import custom models
+from .models import Course, User, UserRole, ABETLearningObjective, ABETVersion, Section, Semester, AssignmentTemplate, Assignment, AssignmentQuestion, AssignmentQuestionMapping, Log
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import ValidationError
 
@@ -59,3 +59,69 @@ class LogSerializer(serializers.ModelSerializer):
    class Meta:
       model = Log
       fields = ['id', 'user', 'action', 'timestamp', 'description']
+
+
+# ABET Serializers
+
+
+# ABETVersion Serializer
+class ABETVersionSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = ABETVersion
+      fields = ['id', 'year']
+
+
+# ABETLearningObjective Serializer
+class ABETLearningObjectiveSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = ABETLearningObjective
+      fields = ['id', 'abet_version', 'designation', 'description']
+
+
+# Course Serializer
+class CourseSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = Course
+      fields = ['crn_id', 'name', 'description']
+
+
+# Semester Serializer
+class SemesterSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = Semester
+      fields = ['id', 'name']
+
+
+# Section Serializer
+class SectionSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = Section
+      fields = ['id', 'course', 'abet_version', 'semester', 'instructor', 'year']
+
+
+# AssignmentTemplate Serializer
+class AssignmentTemplateSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = AssignmentTemplate
+      fields = ['id', 'instructor', 'name', 'description', 'date_created', 'templateData']
+
+
+# Assignment Serializer
+class AssignmentSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = Assignment
+      fields = ['id', 'section', 'template', 'name', 'description', 'csv_filepath', 'date_created']
+
+
+# AssignmentQuestion Serializer
+class AssignmentQuestionSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = AssignmentQuestion
+      fields = ['id', 'assignment', 'question_number', 'text', 'average_grade']
+
+
+# AssignmentQuestionMapping
+class AssignmentQuestionMappingSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = AssignmentQuestionMapping
+      fields = ['id', 'question', 'learning_objective']

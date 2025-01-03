@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings  # Use this to refer to the custom User model
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone # For verifying time validity
+from django.core.exceptions import ValidationError # For throwing validation errors
 
 
 # NOTE: This is where API-compatible database tables are defined
@@ -107,6 +109,16 @@ class Log(models.Model):
 class ABETVersion(models.Model):
    year = models.PositiveIntegerField()
    
+   def clean(self):
+      # Ensure the year is not in the future
+      current_year = timezone.now().year
+      if self.year > current_year:
+         raise ValidationError(f"The year {self.year} cannot be in the future.")
+      
+      # Optionally, add further custom validation, such as a minimum year:
+      if self.year < 2000:  # Adjust this according to your requirements
+         raise ValidationError("The year must be greater than or equal to 2000.")
+   
    def __str__(self): # To string method returns the given ABET Version's year
       return str(self.year)
 
@@ -133,7 +145,14 @@ class Course(models.Model):
 
 # Semesters
 class Semester(models.Model):
-   name = models.CharField(max_length=30)
+   SEMESTER_CHOICES = [ # These are the only choices for semesters
+      ('Spring', 'Spring'), 
+      ('Fall', 'Fall'), 
+      ('Winter', 'Winter'), 
+      ('Summer', 'Summer')
+   ]
+
+   name = models.CharField(max_length=30, choices=SEMESTER_CHOICES)
    
    def __str__(self):
       return self.name
@@ -147,6 +166,17 @@ class Section(models.Model):
    instructor = models.ForeignKey(User, on_delete=models.CASCADE) # Users are instructors
    year = models.PositiveIntegerField()
    
+   def clean(self):
+      # Ensure the year is not in the future
+      current_year = timezone.now().year
+      if self.year > current_year:
+         raise ValidationError(f"The year {self.year} cannot be in the future.")
+      
+      # Optionally, add further custom validation, such as a minimum year:
+      if self.year < 2000:  # Adjust this according to your requirements
+         raise ValidationError("The year must be greater than or equal to 2000.")
+
+   
    def __str__(self):
       return f"Section {self.id} - {self.course.name} ({self.year})"
 
@@ -157,6 +187,21 @@ class AssignmentTemplate(models.Model):
    name = models.CharField(max_length=255)
    description = models.TextField(max_length=1000, null=True, blank=True)
    date_created = models.DateField(auto_now_add=True)
+   templateData = models.JSONField()
+   
+   def clean(self):
+      # Insert templateData verification here
+      # JSON data should look like:
+      # {
+      #     ABETVersion: must be an entry in the ABETVersion table
+      #     QuestionMappings {
+      #        1: string with a lowercase letter (if uppercase, lowercase it before saving)
+      #        2: ...
+      #        ...
+      #     }
+      #    
+      # }
+      pass
    
    def __str__(self):
       return self.name
@@ -165,7 +210,7 @@ class AssignmentTemplate(models.Model):
 # Assignments
 class Assignment(models.Model):
    section = models.ForeignKey(Section, on_delete=models.CASCADE)
-   template = models.ForeignKey(AssignmentTemplate, on_delete=models.CASCADE)
+   template = models.ForeignKey(AssignmentTemplate, on_delete=models.CASCADE, null=True, blank=True)
    name = models.CharField(max_length=255)
    description = models.TextField(max_length=1000, null=True, blank=True)
    csv_filepath = models.CharField(max_length=500, null=True, blank=True)
