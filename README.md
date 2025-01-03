@@ -1,19 +1,16 @@
-# React Django Webapp Template V2
+# Educational Outcomes Web Application
 
 
 # Purpose
-### The purpose of this application is to provide a starting point for enterprise-level web applications. This template only includes the absolute minimum as far as models:
-- Users (admin, regular users, and client users)
-- User roles (permission roles)
-- Logs (logging actions)
+### The purpose of this application is to provide educators at Delaware State University with an application where they can upload their grades, map the questions to ABET learning outcomes and then automatically receive information on their student performance on the aforementioned learning outcomes. This will also include statistical analysis to some degree for insightful information
 
 <br>
-#### These two models allow for logging into an authorization-protected dashboard.
-<br>
+
+# Database Schema ![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/WhiteBG_CapstoneProjectDatabaseSchema.svg)
 
 <br>
 #### IMPORTANT NOTE: The user roles model exists but the actual entries into the corresponding database table have not been implemented. Once you copy this template, you MUST use Django's manage.py shell to enter these roles into the database ('admin', and 'user' are the only required roles but more may be added and used like 'client', etc.). ALSO: Automatic logging has not been implemented on purpose. You must add log events to all wanted actions, though the model does exist in this template and so does the api route.
-<br>
+<br><br><br>
 
 # Initial Setup Required
 1. ### Must have Python 3.11.9 & corresponding Python Virtual Environment called 'env' within the parent directory.
