@@ -1,5 +1,9 @@
 # Educational Outcomes Web Application
+<br>
 
+# Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/HomePagePreview.png)
+
+# Admin Dashboard Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/AdminDashboardPreview.png)
 
 # Purpose
 ### The purpose of this application is to provide educators at Delaware State University with an application where they can upload their grades, map the questions to ABET learning outcomes and then automatically receive information on their student performance on the aforementioned learning outcomes. This will also include statistical analysis to some degree for insightful information
@@ -7,10 +11,6 @@
 <br>
 
 # Database Schema ![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/WhiteBG_CapstoneProjectDatabaseSchema.svg)
-
-<br>
-#### IMPORTANT NOTE: The user roles model exists but the actual entries into the corresponding database table have not been implemented. Once you copy this template, you MUST use Django's manage.py shell to enter these roles into the database ('admin', and 'user' are the only required roles but more may be added and used like 'client', etc.). ALSO: Automatic logging has not been implemented on purpose. You must add log events to all wanted actions, though the model does exist in this template and so does the api route.
-<br><br><br>
 
 # Initial Setup Required
 1. ### Must have Python 3.11.9 & corresponding Python Virtual Environment called 'env' within the parent directory.
@@ -73,3 +73,6 @@ This will, in turn, start up the Node JS development server. Use the provided lo
 
 # Tutorial Used
 https://www.youtube.com/watch?v=c-QsfbznSXI&t=3487s
+
+# Note from Author
+The content of this project may not be copied or re-used in any way without explicity written (or typed) permission from me. This project was created using a webapp template I created under Sage Advisory DE LLC, all rights reserved. Special permission has been given for the faculty and staff at DSU to use this webapp as a tool for the further of education and therefore is free for them to use, modify, and/or change in any way that they may need to in the future.
