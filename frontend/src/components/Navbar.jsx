@@ -105,7 +105,7 @@ const Navbar = () => {
       <AppBar
          position="sticky"
          sx={{
-            backgroundColor: 'rgb(13, 97, 43)',
+            backgroundColor: 'rgb(28, 76, 113)',
          }}
       >
          <Toolbar className="flex flex-row align-center justify-between md:justify-start gap-x-8">
@@ -115,24 +115,24 @@ const Navbar = () => {
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6">
                <Link to="/">
-                  <div className="flex flex-row align-center gap-x-1">
-                     <HomeIcon />
+                  <div className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1">
+                     <HomeIcon className="text-inherit" />
                      <p>Home</p>
                   </div>
                </Link>
                <div
                   onClick={() => handleScroll("about")}
-                  className="cursor-pointer flex flex-row align-center gap-x-1"
+                  className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1"
                >
-                  <InfoIcon />
+                  <InfoIcon className="text-inherit" />
                   <p>About</p>
                </div>
                <div
                   onClick={() => handleScroll("contact")}
-                  className="cursor-pointer flex flex-row align-center gap-x-1"
+                  className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1"
                >
-                  <ContactMailIcon />
-                  <p>Contact</p>
+                  <ContactMailIcon className="text-inherit" />
+                  <p className="pl-1">Contact</p>
                </div>
             </div>
             

@@ -79,29 +79,29 @@ function Dashboard() {
          <div className="bg-transparent min-h-screen p-2"> {/* Page Background*/}
             {/* Navigation Section */}
             <nav className="flex justify-start p-4">
-               <h1 className="text-green-900 text-2xl font-bold">
+               <h1 className="text-white text-2xl font-bold">
                   {currentUser?.username ? `Welcome, ${currentUser.username}` : ""}
                </h1>
             </nav>
             
             <div className="flex flex-row gap-4 justify-start p-4">
                {/* Flex Row/Col for all Icons*/}
-               <div className="flex flex-row md:flex-col gap-6 p-4 border-green-800 border-2 rounded-lg bg-white shadow-lg h-full items-center overflow-hidden">
+               <div className="flex flex-row md:flex-col gap-6 p-4 border-[#1c4c71] border-2 rounded-lg bg-white shadow-lg h-full items-center overflow-hidden">
                   <Tooltip title="Users" arrow popper={{ modifiers: [{ name: 'flip', enabled: false }] }} placement="right">
                      <AccountCircleIcon // Users icon
                         onClick={() => setSelectedSection("users")} 
-                        className="text-green-800 transition-all duration-300 transform hover:text-green-600 hover:scale-110" 
+                        className="text-[#1c4c71] transition-all duration-300 transform hover:text-[#419cd6] hover:scale-110" 
                      />
                   </Tooltip>
                   <Tooltip title="Logs" arrow popper={{ modifiers: [{ name: 'flip', enabled: false }] }} placement="right">
                      <ListIcon // Logs icon
                         onClick={() => setSelectedSection("logs")} 
-                        className="text-green-800 transition-all duration-300 transform hover:text-green-600 hover:scale-110" 
+                        className="text-[#1c4c71] transition-all duration-300 transform hover:text-[#419cd6] hover:scale-110" 
                      />
                   </Tooltip>
                </div>
                {/* Content */}
-               <div className="w-full bg-green-200/50 backdrop-blur-md border border-green-300/50 rounded-lg shadow-lg p-4">
+               <div className="w-full bg-blue-400/60 backdrop-blur-md border border-blue-800/60 rounded-lg shadow-lg p-4">
                   {selectedSection === "users" && <UsersSection currentUser={currentUser} />} 
                   {selectedSection === "logs" && <LogsSection currentUser={currentUser} />}
                </div>

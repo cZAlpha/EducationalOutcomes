@@ -34,9 +34,9 @@ const PersistentGradient = () => (
     <ShaderGradient
       type="plane"
       control="props"
-      color1="#cfe7d0"
-      color2="#a9d1a1"
-      color3="#87bc8a"
+      color1="#419cd6"
+      color2="#1c4c71"
+      color3="#c23232"
       bgColor1="#000000"
       bgColor2="#000000"
       rotationX={0}

@@ -147,23 +147,17 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
    }, []);
    
    return (
-      <div className="my-2 mx-8 text-black"> {/* Top Navbar For Logs Section */}
+      <div className="my-2 mx-8 text-white"> {/* Top Navbar For Logs Section */}
          <div className="flex flex-row items-center space-x-8 mb-4">
             <div className="flex flex-row items-center space-x-4" title='Logs from the server will be displayed in the table below'>
                <ListIcon 
                   fontSize="large" 
                   sx={{
                      marginTop: '2px',
-                     color: "rgb(16, 115, 52)",
-                     '&:hover': {
-                        color: "rgb(22 163 74)"
-                     }
+                     color: "rgb(28, 76, 113)",
                   }}
                />
-               <h2 
-                  className="text-3xl font-semibold"
-                  
-               >
+               <h2 className="text-3xl font-semibold">
                   Logs - {logs.length}
                </h2>
             </div>
@@ -172,7 +166,6 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                rotateTimeInSeconds={1}
                onClick={getLogs}
             />
-            
             {!showLogForm && ( // Only shows the add log button when you aren't adding a log to ensure no double click
             <Button
                onClick={toggleLogForm}
@@ -180,10 +173,10 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                   padding: '0px',
                   fontSize: '1rem',
                   color: 'rgb(250 250 250)',
-                  backgroundColor: 'rgb(22 163 74)',
+                  backgroundColor: "rgb(28, 76, 113)",
                   '&:hover': {
-                  backgroundColor: 'rgb(34 197 94)',
-                  },
+                     backgroundColor: "rgb(65, 156, 214)"
+                  }
                }}
             >
                +
@@ -193,7 +186,7 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
          
          <TableContainer sx={{ maxWidth: '100%'}}>
             <Table sx={{ width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-               <TableHead sx={{ background: 'rgb(22 163 74)'}}>
+               <TableHead sx={{ background: 'rgb(28, 76, 113)'}}>
                   <TableRow>
                      <TableCell sx={{ fontWeight: 'bold', color: '#FFF', width:"16%" }}>Log ID</TableCell>
                      <TableCell sx={{ fontWeight: 'bold', color: '#FFF', width:"16%" }}>USER ID</TableCell>
@@ -205,7 +198,7 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                </TableHead>
                <TableBody>
                   {paginateLogs().map((log) => (
-                     <TableRow key={log.id} sx={{ '&:hover': { backgroundColor: '#d5f0dd' } }}>
+                     <TableRow key={log.id} sx={{ '&:hover': { backgroundColor: '#74c1f2' } }}>
                         <TableCell>{log.id}</TableCell>
                         <TableCell>{log?.user ? log.user : "N/A"}</TableCell>
                         <TableCell>{log.action}</TableCell>
@@ -261,7 +254,7 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                      color: '#000', // Initial icon color
                      '&:hover': {
                         color: '#FFF', // Hover icon color
-                        background: 'rgb(22 163 74)', // Hover bg color
+                        background: 'rgb(28, 76, 113', // Hover bg color
                      }
                   }}
                >
@@ -280,7 +273,7 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                      color: '#000', // Initial icon color
                      '&:hover': {
                         color: '#FFF', // Hover icon color
-                        background: 'rgb(22 163 74)', // Hover bg color
+                        background: 'rgb(28, 76, 113', // Hover bg color
                      }
                   }}
                >
@@ -338,7 +331,7 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
          {showLogForm && (
          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white w-4/5 max-w-3xl p-8 rounded-md shadow-lg">
-               <h2 className="text-3xl font-semibold text-green-800 mb-6 text-center">
+               <h2 className="text-3xl font-semibold text-[#1c4c71] mb-6 text-center">
                {selectedLog ? `Edit Log ${selectedLog.id}` : "Create Log"}
                </h2>
                <form
@@ -384,9 +377,9 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                            paddingBottom: '0px',
                            fontSize: '1rem', // Text size: Tailwind's text-sm equivalent
                            color: 'rgb(250 250 250)', // White Text
-                           backgroundColor: 'rgb(22 163 74)', // Tailwind's green-600
+                           backgroundColor: "rgb(28, 76, 113)",
                            '&:hover': {
-                              backgroundColor: 'rgb(34 197 94)', // Tailwind's green-500
+                              backgroundColor: "rgb(65, 156, 214)"
                            },
                            minWidth: '32px', // Removes default width restrictions if any
                            maxHeight: '32px', // Set a max height

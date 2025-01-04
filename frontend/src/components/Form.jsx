@@ -72,7 +72,7 @@ function Form({ route, method }) {
          setLoading(false); // Reset the loading state
       }
    };
-
+   
    const handleSwitchPage = () => {
       if (method === "login") {
          navigate("/register"); // Navigate to the registration page if it's login
@@ -80,12 +80,14 @@ function Form({ route, method }) {
          navigate("/login"); // Navigate to the login page if it's register
       }
    };
-
+   
+   
+   // HTML
    return (
       <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md mx-auto">
          <div className="space-y-6">
             <h1 className="text-2xl font-bold text-gray-800 text-center">{name}</h1>
-
+            
             <TextField 
                className="form-input w-full"
                label="Username" 
@@ -94,7 +96,7 @@ function Form({ route, method }) {
                onChange={(e) => setUsername(e.target.value)} 
                fullWidth
             />
-
+            
             {method === "register" && (
                <TextField
                   className="form-input w-full"
@@ -127,9 +129,9 @@ function Form({ route, method }) {
                      type="submit"
                      sx={{
                         color: 'rgb(250 250 250)', // White Text
-                        backgroundColor: 'rgb(22 163 74)', // Tailwind's green-600
+                        backgroundColor: 'rgb(28, 76, 113)', 
                         '&:hover': {
-                           backgroundColor: 'rgb(34 197 94)', // Tailwind's green-500
+                           backgroundColor: 'rgb(65, 156, 214)', 
                         },
                      }}
                   >
@@ -139,9 +141,9 @@ function Form({ route, method }) {
                   <Button
                      variant="text"
                      sx={{
-                        color: 'rgb(22 163 74)', // Tailwind's green-600
+                        color: 'rgb(65, 156, 214)', 
                         '&:hover': {
-                           color: 'rgb(34 197 94)', // Tailwind's green-500
+                           color: 'rgb(28, 76, 113)', 
                         },
                      }}
                      onClick={handleSwitchPage}

@@ -20,9 +20,9 @@ function RefreshButton({ rotateTimeInSeconds, onClick }) {
             paddingBottom: "0px",
             fontSize: "1rem",
             color: "rgb(250 250 250)", // White text
-            backgroundColor: "rgb(22 163 74)", // Tailwind's green-600
+            backgroundColor: "rgb(28, 76, 113)", 
             "&:hover": {
-               backgroundColor: "rgb(34 197 94)", // Tailwind's green-500
+               backgroundColor: "rgb(65, 156, 214)", 
             },
             minWidth: "auto",
             maxHeight: "32px",
