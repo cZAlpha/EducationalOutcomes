@@ -39,15 +39,14 @@ And this command for Windows OS:
 `pip install -r requirements.txt`
 <br><br>
 
-
-
 # Installing Required Node Packages for Local Development
 1. Ensure you have Node.js downloaded AND installed. On Windows, ensure that it is added to the PATH Environment Variables. On UNIX, this should be automatically handled.
 <br><br>
 2. Change directory into the 'frontend' directory and perform the following command:
 `npm install`
 <br><br>
-3. This should automatically download all required Node JS packages. 
+3. This should automatically download all required Node JS packages.
+4. NOTE: This project was set up specificall for UNIX or UNIX-like OS'. Due to weird things about React JS and Tailwind CSS' React JS port that I do not care enough to figure out the why question, you MUST swap the contents of the Tailwind CSS configuration file in the frontend directory. Other than that, you should not run into any issues that are not explicity mentioned in this document.
 <br><br>
 
 # Starting up Local Development Server
