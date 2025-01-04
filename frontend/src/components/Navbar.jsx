@@ -110,7 +110,7 @@ const Navbar = () => {
       >
          <Toolbar className="flex flex-row align-center justify-between md:justify-start gap-x-8">
             {/* Logo */}
-            <div className="text-white font-bold text-lg">Company Name</div>
+            <div className="text-white font-bold text-lg">DSU Educational Outcomes</div>
             
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6">
