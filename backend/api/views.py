@@ -12,6 +12,7 @@ from .models import * # Import models
 
 # TODO:
 # - Rewrite every single <MODEL>Detail View's perform update function to verify input / existance of at least one valid field with better error handling to help with development
+# - Possibly change the lookup field for the ABET related views, as it may make more sense to use other attributes of the models other than their primary key (which is usually an auto-int handled by Django)
 
 
 # START - USERS
