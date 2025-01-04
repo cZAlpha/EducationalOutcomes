@@ -5,8 +5,8 @@
 }
 
 .loader {
-   border: 5px solid #f3f3f3; /* Light grey */
-   border-top: 5px solid #15803d; /* Blue */
+   border: 5px solidrgb(230, 223, 223); /* Off-white */
+   border-top: 5px solid #419cd6; /* Light blue */
    border-radius: 50%;
    width: 50px;
    height: 50px;

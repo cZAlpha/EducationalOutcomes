@@ -11,9 +11,9 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 const UsersSection = ( currentUser ) => {
    // START - User Role Ascertation Code
    const roles = [ // Possible roles for users
-      { id: 1, name: 'Admin' },
-      { id: 2, name: 'User' },
-      { id: 3, name: 'Client' },
+      { id: 1, name: 'root' },
+      { id: 2, name: 'Admin' },
+      { id: 3, name: 'User' },
    ];
 
    const findRoleName = (rolePk) => {
@@ -151,13 +151,12 @@ const UsersSection = ( currentUser ) => {
                fontSize="large" 
                sx={{
                   marginTop: '2px',
-                  color: "rgb(16, 115, 52)",
-                  '&:hover': {
-                     color: "rgb(22 163 74)"
-                  }
+                  color: "rgb(28, 76, 113)",
                }}
             />
-               <h2 className="text-3xl font-semibold">Users - {users.length}</h2>
+               <h2 className="text-3xl text-white font-semibold">
+                  Users - {users.length}
+               </h2>
             </div>
             
             <RefreshButton 
@@ -170,10 +169,10 @@ const UsersSection = ( currentUser ) => {
                   padding: '0px',
                   fontSize: '1rem',
                   color: 'rgb(250 250 250)',
-                  backgroundColor: 'rgb(22 163 74)',
+                  backgroundColor: "rgb(28, 76, 113)",
                   '&:hover': {
-                  backgroundColor: 'rgb(34 197 94)',
-                  },
+                     backgroundColor: "rgb(65, 156, 214)"
+                  }
                }}
             >
                +
@@ -181,7 +180,7 @@ const UsersSection = ( currentUser ) => {
          </div>
          <TableContainer sx={{ maxWidth: '100%'}}>
             <Table sx={{ width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-               <TableHead sx={{ background: 'rgb(22 163 74)' }}>
+               <TableHead sx={{ background: 'rgb(28, 76, 113)' }}>
                   <TableRow>
                      <TableCell sx={{ fontWeight: 'bold', color: '#FFF', width: '20%' }}>User ID</TableCell>
                      <TableCell sx={{ fontWeight: 'bold', color: '#FFF', width: '20%' }}>Username</TableCell>
@@ -198,9 +197,9 @@ const UsersSection = ( currentUser ) => {
                   <TableRow
                      key={user.id}
                      sx={{
-                        backgroundColor: currentUser && currentUser.currentUser && currentUser.currentUser.id === user.id ? '#C2D9B0' : 'transparent',
+                        backgroundColor: currentUser && currentUser.currentUser && currentUser.currentUser.id === user.id ? '#419cd6' : 'transparent',
                         '&:hover': {
-                           backgroundColor: currentUser && currentUser.currentUser && currentUser.currentUser.id === user.id ? '#a3b893' : '#d5f0dd',
+                           backgroundColor: currentUser && currentUser.currentUser && currentUser.currentUser.id === user.id ? '#74c1f2' : '#74c1f2',
                         }
                      }}
                   >
@@ -229,7 +228,7 @@ const UsersSection = ( currentUser ) => {
                </TableBody>
             </Table>
          </TableContainer>
-
+         
          {/* Back and Next Arrows for pages of the Users List */}
          {/* NOTE: These arrows and page indicators will only be shown when there is more than one page worth of users */}
          {totalPages > 1 && 
@@ -244,7 +243,7 @@ const UsersSection = ( currentUser ) => {
                      color: '#000', // Initial icon color
                      '&:hover': {
                         color: '#FFF', // Hover icon color
-                        background: 'rgb(22 163 74)', // Hover bg color
+                        background: 'rgb(28, 76, 113)', // Hover bg color
                      }
                   }}
                >
@@ -263,7 +262,7 @@ const UsersSection = ( currentUser ) => {
                      color: '#000', // Initial icon color
                      '&:hover': {
                         color: '#FFF', // Hover icon color
-                        background: 'rgb(22 163 74)', // Hover bg color
+                        background: 'rgb(28, 76, 113)', // Hover bg color
                      }
                   }}
                >
@@ -395,9 +394,9 @@ const UsersSection = ( currentUser ) => {
                                  paddingBottom: '0px',
                                  fontSize: '1rem', // Text size: Tailwind's text-sm equivalent
                                  color: 'rgb(250 250 250)', // White Text
-                                 backgroundColor: 'rgb(22 163 74)', // Tailwind's green-600
+                                 backgroundColor: "rgb(28, 76, 113)",
                                  '&:hover': {
-                                    backgroundColor: 'rgb(34 197 94)', // Tailwind's green-500
+                                    backgroundColor: "rgb(65, 156, 214)"
                                  },
                                  minWidth: '32px', // Removes default width restrictions if any
                                  maxHeight: '32px', // Set a max height
