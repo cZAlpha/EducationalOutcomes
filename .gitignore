@@ -46,6 +46,8 @@ db.sqlite3
 *.pyo
 *.pyc
 backend/db.sqlite3/
+*/migrations/
+backend/api/migrations/
 
 # Migrations
 **/migrations/*
