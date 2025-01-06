@@ -199,11 +199,11 @@ const LogsSection = ({ currentUser }) => { // Has args of currentUser ONLY so th
                <TableBody>
                   {paginateLogs().map((log) => (
                      <TableRow key={log.id} sx={{ '&:hover': { backgroundColor: '#74c1f2' } }}>
-                        <TableCell>{log.id}</TableCell>
-                        <TableCell>{log?.user ? log.user : "N/A"}</TableCell>
-                        <TableCell>{log.action}</TableCell>
-                        <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-                        <TableCell>{log.description.length > 20 ? `${log.description.slice(0, 20)}...` : log.description}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{log.id}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{log?.user ? log.user : "N/A"}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{log.action}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{new Date(log.timestamp).toLocaleString()}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{log.description.length > 20 ? `${log.description.slice(0, 20)}...` : log.description}</TableCell>
                         <TableCell>
                            <div className="flex opacity-100 md:opacity-0 hover:opacity-100 space-x-2 transition-opacity duration-200">
                               <Button 

@@ -203,10 +203,10 @@ const UsersSection = ( currentUser ) => {
                         }
                      }}
                   >
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{findRoleName(user?.role)}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{user.id}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{user.username}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{user.email}</TableCell>
+                        <TableCell sx={{color: '#FFF'}} >{findRoleName(user?.role)}</TableCell>
                         <TableCell>
                            <div className="flex opacity-100 md:opacity-0 hover:opacity-100 space-x-2 transition-opacity duration-200">
                               <Button
