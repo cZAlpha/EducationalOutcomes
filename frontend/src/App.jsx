@@ -65,7 +65,7 @@ const PersistentGradient = () => (
 function App() {
   return (
     <BrowserRouter>
-      <PersistentGradient /* Adds a persistent gradient that is on every page other than protected routes (those pages must implement their own) */ />
+      <PersistentGradient /* Adds a persistent gradient that is on every page */ />
       <Routes>
         <Route path="/dashboard" element={ // On the "/" route establish a protected route and place the Dashboard page component inside
             <ProtectedRoute>
