@@ -8,6 +8,20 @@ import TextField from '@mui/material/TextField';
 import '../index.css'; // Tailwind import
 
 function Form({ route, method }) {
+   // START - User Role Ascertation Code
+   const roles = [ // Possible roles for users (Lowercased the values for each key for simplicity, which differs from the same usage of this code in the UsersSection.jsx file)
+      { id: 1, name: 'root' },
+      { id: 2, name: 'admin' },
+      { id: 3, name: 'user' },
+   ];
+
+   const findRoleName = (rolePk) => {
+      const role = roles.find(r => r.id === rolePk);
+      return role ? role.name : 'Unassigned';
+   };
+   // STOP - User Role Ascertation Code
+
+
    const [username, setUsername] = useState("");
    const [email, setEmail] = useState("");
    const [password, setPassword] = useState("");
@@ -36,14 +50,15 @@ function Form({ route, method }) {
             if (userRes.data && typeof userRes.data === 'object') {
                localStorage.setItem(USER, JSON.stringify(userRes.data));  // Stringify the object before storing
             } else {
+               // TODO: Fix error handling here. Never encountered an error but this definitely is missing error handling!!!
               localStorage.setItem(USER, userRes.data);  // If it's already a string, store as is
             }
             
-
             // Printing the object to the console
-            const storedUser = localStorage.getItem(USER);
-            console.log("Stored User:", storedUser);
+            const storedUser = localStorage.getItem(USER); // DO NOT DELETE THIS LINE!!!!
+            console.log("Stored User:", storedUser); // REMOVE BEFORE PRODUCTION!!!
 
+            // REMOVE BEFORE PRODUCTION!!! (this is just for debugging, serves no important function)
             if (storedUser) {
             try {
                const user = JSON.parse(storedUser);
@@ -53,11 +68,22 @@ function Form({ route, method }) {
             }
             } else {
             console.log("No data found in localStorage for USER");
+            } // End of debugging code block (safe to delete this section)
+
+            if (storedUser) { // If there is a stored user and it has a role
+               const user = JSON.parse(storedUser); // Parse the user from the local storage
+               const userRole = findRoleName(user?.role)
+               if (userRole == 'root' || userRole == 'admin') { // If the user's role is that of an administrative nature, bring them to the admin dashboard (/dashboard)
+                  navigate("/dashboard"); // Navigate to the dashboard
+               } else if (userRole == 'user') {
+                  navigate("/userdashboard"); // Navigate to the user dashboard
+               } else {
+                  console.log("Unknown role which was: ", userRole)
+               }
+            } else { // If there is no stored user (if there was no successful login)
+               navigate("/login"); // Go back to login page (stay on it)
             }
-
-
-            navigate("/dashboard"); // Navigate to the dashboard
-         } else {
+         } else { // If the user was using the registration form (or any form not with method 'login')
             navigate("/login"); // If registration was successful, navigate to the login page
          }
       } catch (error) {

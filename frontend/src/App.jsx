@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do it all in one line because React is retarded)
+import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do it all in one line because React is dumb)
+import UserDashboard from "./pages/UserDashboard"
 import Login from "./pages/Login" 
 import Register from "./pages/Register"
 import Home from "./pages/Home"
@@ -70,6 +71,12 @@ function App() {
         <Route path="/dashboard" element={ // On the "/" route establish a protected route and place the Dashboard page component inside
             <ProtectedRoute>
               <Dashboard /> 
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/userdashboard" element={ // User dashboard
+            <ProtectedRoute>
+              <UserDashboard /> 
             </ProtectedRoute>
           }
         />
