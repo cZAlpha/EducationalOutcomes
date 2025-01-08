@@ -1,7 +1,3 @@
-// Copyright: SageAdvisory DE LLC 
-// Author: Noah Klaus
-
-
 // React Imports
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom'; // For routing with hashes and stuff
@@ -17,8 +13,6 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ListIcon from "@mui/icons-material/List";
    // Misc. MUI Import(s)
 import Tooltip from '@mui/material/Tooltip';
-   // Shader Gradient Imports
-import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react'
 
 // Misc. Component Import(s)
 import Navbar from "../components/Navbar";
@@ -29,6 +23,19 @@ import LogsSection from '../components/LogsSection';
 
 
 function Dashboard() {
+   // START - User Role Ascertation Code
+   const roles = [ // Possible roles for users
+      { id: 1, name: 'root' },
+      { id: 2, name: 'admin' },
+      { id: 3, name: 'user' },
+   ];
+
+   const findRoleName = (rolePk) => {
+      const role = roles.find(r => r.id === rolePk);
+      return role ? role.name : 'Unassigned';
+   };
+   // STOP - User Role Ascertation Code
+
    // Navigation 
    const navigate = useNavigate();
    
@@ -45,6 +52,12 @@ function Dashboard() {
          //console.log("DASHBOARD | user is now: ", user);
          if (user) {
             setCurrentUser(user); // Update state with the username
+            if (user.role) { // User role ascertation to handle not allowing regular users into the admin dashboard
+               const userRole = findRoleName(user.role);
+               if (userRole !== "admin" && userRole !== "root") { // If the user is NOT an admin or root user, navigate to the user dashboard
+                  useNavigate("/userdashboard");
+               }
+            }
          } else {
             setCurrentUser(null);
          }

@@ -3,8 +3,6 @@
 
 # To Do List:
 - Fix schema to match what Dr. Rasamny said about class learning objectives as well as ABET learning objective mappings
-- Fix Navbar component dashboard button to only allow users to access the dashboard with which their role allows (root and Admins can access Dashboard.jsx and UserDashboard.jsx but users can only access the UserDashboard.jsx).
-- Fix each dashboard component to defensively allow the right kinds of users (based on their role) to access the dashboard, otherwise boot them to the home page or their correct dashboard.
 
 <br>
 

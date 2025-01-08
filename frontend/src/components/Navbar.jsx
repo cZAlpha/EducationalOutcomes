@@ -16,9 +16,9 @@ import { USER } from "../constants";
 const Navbar = () => {
    // START - Role Handling
    const roles = [ // Possible roles for users
-      { id: 1, name: 'Admin' },
-      { id: 2, name: 'User' },
-      { id: 3, name: 'Client' },
+      { id: 1, name: 'Root' },
+      { id: 2, name: 'Admin' },
+      { id: 3, name: 'User' },
    ];
 
    const findRoleName = (rolePk) => {
@@ -38,6 +38,7 @@ const Navbar = () => {
    // State for loggedIn status
    const [loggedIn, setLoggedIn] = React.useState(false);
    const [currentUser, setCurrentUser] = useState(null);
+   const [isRootOrAdmin, setIsRootOrAdmin] = useState(false); // Variable used to track if the current user is a root or admin user
    const [isLoading, setIsLoading] = useState(true);
 
    // START - Navigation Section
@@ -83,6 +84,12 @@ const Navbar = () => {
       if (userData && userData.id) {
          setCurrentUser(userData);  // If user exists, set to state
          setLoggedIn(true)
+         if (userData.role) { // Set the is root or admin variable
+            const userRole = findRoleName(userData.role)
+            if (userRole === "Root" || userRole === "Admin") { // If the user is a root or admin user
+               setIsRootOrAdmin(true); // Set the is root or admin variable to true
+            } 
+         }
       } else {
          setCurrentUser(null); // No user found, set as null
       }
@@ -181,14 +188,26 @@ const Navbar = () => {
                            </div>
                         </div>
                      </MenuItem>
-                     <Link to="/dashboard">
-                        <MenuItem onClick={handleAccountMenuClose}>
-                           <div className="flex flex-row align-center gap-x-2">
-                              <DashboardIcon/> 
-                              <p>Dashboard</p>
-                           </div>
-                        </MenuItem>
-                     </Link>
+                     {isRootOrAdmin && // Admin dashboard button
+                        <Link to="/dashboard">
+                           <MenuItem onClick={handleAccountMenuClose}>
+                              <div className="flex flex-row align-center gap-x-2">
+                                 <DashboardIcon/> 
+                                 <p>Dashboard</p>
+                              </div>
+                           </MenuItem>
+                        </Link>
+                     }
+                     {!isRootOrAdmin && // User dashboard button
+                        <Link to="/userdashboard">
+                           <MenuItem onClick={handleAccountMenuClose}>
+                              <div className="flex flex-row align-center gap-x-2">
+                                 <DashboardIcon/> 
+                                 <p>Dashboard</p>
+                              </div>
+                           </MenuItem>
+                        </Link>
+                     }
                      <Link to="/logout">
                         <MenuItem onClick={handleAccountMenuClose} >
                            <div className="flex flex-row align-center gap-x-2">
