@@ -15,7 +15,9 @@
 
 <br>
 
-# Database Schema ![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/WhiteBG_CapstoneProjectDatabaseSchema.svg)
+# Database Schema 
+SUBJECT TO CHANGE!
+![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/WhiteBG_CapstoneProjectDatabaseSchema.svg)
 
 # Initial Setup Required
 1. ### Must have Python 3.11.9 & corresponding Python Virtual Environment called 'env' within the parent directory.
