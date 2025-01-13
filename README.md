@@ -4,6 +4,9 @@
 # To Do List:
 - Fix schema to match what Dr. Rasamny said about class learning objectives as well as ABET learning objective mappings
 
+# To Do For Components:
+- 
+
 <br>
 
 # Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/HomePagePreview.png)
