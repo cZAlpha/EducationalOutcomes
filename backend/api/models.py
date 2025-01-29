@@ -3,6 +3,7 @@ from django.conf import settings  # Use this to refer to the custom User model
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone # For verifying time validity
 from django.core.exceptions import ValidationError # For throwing validation errors
+from django.contrib.auth.password_validation import validate_password # For validating passwords
 
 
 # NOTE: This is where API-compatible database tables are defined
@@ -17,51 +18,58 @@ from django.core.exceptions import ValidationError # For throwing validation err
 
 
 class UserManager(BaseUserManager):
-   def create_user(self, username, email, password=None, **extra_fields):
+   # Purpose: The user manager is used to manage the creation of users
+   # Q: Why not just use a user view to do this, like all other models??
+   # A: Django expects a manager if you override the User model, plus it keeps some logic out of the views file, which can simplify things in some regards
+   def create_user(self, d_number, email, password=None, **extra_fields): # This creates a normal user
       if not email:
-         raise ValueError('The Email field must be set')
-      email = self.normalize_email(email)
-      user = self.model(username=username, email=email, **extra_fields)
-      extra_fields.setdefault('is_active', True)
-
-      user.set_password(password)
-      user.save(using=self._db)
+         raise ValueError("The Email field must be set")
+      if not d_number or len(d_number) != 9:
+         raise ValueError("D_Number must be exactly 9 characters long")
+      
+      email = self.normalize_email(email) # Normalize the email
+      extra_fields.setdefault("is_active", True) # Set the is_active attr. to true
+      
+      # Validate password before setting
+      if password:
+         try:
+               validate_password(password)
+         except ValidationError as e:
+               raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+      
+      user = self.model(d_number=d_number, email=email, **extra_fields) # Creates a new user object
+      user.set_password(password) # Hashes AND sets the user's password
+      user.save(using=self._db) # Saves the user object to the database
       return user
 
-   def create_superuser(self, username, email, password=None, **extra_fields):
-      extra_fields.setdefault('is_active', True)
-      extra_fields.setdefault('is_staff', True)
-      extra_fields.setdefault('is_superuser', True)
-      return self.create_user(username, email, password, **extra_fields)
+   def create_superuser(self, d_number, email, password=None, **extra_fields):
+      extra_fields.setdefault("is_staff", True) # Sets admin to true
+      extra_fields.setdefault("is_superuser", True) # Sets root to true
+      return self.create_user(d_number, email, password, **extra_fields) # Calls normal constructor
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-   username = models.CharField(max_length=150, unique=True)
-   email = models.EmailField(unique=True, null=False)  # Email field added here
-   role = models.ForeignKey('UserRole', on_delete=models.SET_NULL, null=True, blank=True)
-   user_start_date = models.DateTimeField(auto_now_add=True) # Auto sets the start date upon creation
-   first_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
-   last_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
+   user_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number
+   role = models.ForeignKey("UserRole", on_delete=models.SET_NULL, null=True, blank=True)
+   email = models.EmailField(unique=True)
+   password = models.CharField(max_length=128)  # Handled by Django's hashing system
+   first_name = models.CharField(max_length=20)
+   last_name = models.CharField(max_length=40)
+   employee_id = models.CharField(max_length=20, null=True, blank=True) # State-related employee ID, optional due to some adjuncts may not have it
+   date_created = models.DateTimeField(auto_now_add=True)
 
-   # Custom related_name to avoid conflict with default User model
-   groups = models.ManyToManyField(
-      'auth.Group',
-      related_name='api_user_set',  # Custom related_name to avoid collision
-      blank=True
-   )
-   user_permissions = models.ManyToManyField(
-      'auth.Permission',
-      related_name='api_user_permissions_set',  # Custom related_name to avoid collision
-      blank=True
-   )
+   # Permissions fields
+   is_active = models.BooleanField(default=True)
+   is_staff = models.BooleanField(default=False)
 
    objects = UserManager()
 
-   USERNAME_FIELD = 'username'  # Update this to 'email' to allow login via email
-   REQUIRED_FIELDS = ['email']  # 'email' is required for creating a user
+   USERNAME_FIELD = "d_number"  # D_Number IS the username
+   REQUIRED_FIELDS = ["email"]
 
    def __str__(self):
-      return self.username
+      return self.d_number
 
 
 class UserRole(models.Model):
@@ -70,9 +78,9 @@ class UserRole(models.Model):
       ('Admin', 'Admin'), # For Dr. Smolenski and other high-ranking professors
       ('User', 'User'), # For general users such as normal professors
    ]
-   role_name = models.CharField(max_length=50, unique=True, choices=ROLE_CHOICES)
+   role_name = models.CharField(max_length=20, unique=True, choices=ROLE_CHOICES)
    role_description = models.TextField(null=True, blank=True)
-   permissions = models.CharField(max_length=50, choices=ROLE_CHOICES)
+   permissions = models.JSONField(max_length=1000, null=True, blank=True) # Optional JSON object containing 'list' of permissions
 
    def __str__(self):
       return self.role_name
