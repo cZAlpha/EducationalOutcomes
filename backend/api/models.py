@@ -18,6 +18,7 @@ from django.contrib.auth.password_validation import validate_password # For vali
 
 # TODO:
 # - If needed (test first before doing the work), use the Meta method to define pseudo-composite primary keys for all models
+# - Before using META, use composite key method if not too many attributes are part of the primary key
 
 
 class UserManager(BaseUserManager):
@@ -190,11 +191,15 @@ class ProgramCourseMapping(models.Model):
    program_course_mapping_id = models.BigAutoField(primary_key=True)  # Explicitly state the ID as PK, then use a constraint to act as a pseudo PK
    program = models.ForeignKey(Program, on_delete=models.CASCADE)
    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-
+   
    class Meta:  # Allows for a pseudo-composite primary key to be used
       constraints = [
          models.UniqueConstraint(fields=['program', 'course'], name='unique_program_course')
       ]
+   
+   def __str__(self):
+      return f"ID: {self.program_course_mapping_id} | Program: {self.program} | Course: {self.course}"
+
 
 # Semesters
 class Semester(models.Model):
@@ -300,7 +305,15 @@ class Student(models.Model):
 # Student Task Mapping
 class StudentTaskMapping(models.Model):  # This is basically just a gradebook disguised as a mapping model
    student_task_mapping_id = models.BigAutoField(primary_key=True)
-   task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)  # When the associated task is deleted, delete all grades associated with it
    student = models.ForeignKey(Student, on_delete=models.CASCADE)  # When the associated student is deleted, delete all grades of theirs
-   score = models.FloatField  # The student's score on the given task
-   total_possible_score = models.FloatField  # The total possible points attainable on the task (this allows us to do calculations later and lets us easily handle non-normalized scores)
+   task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)  # When the associated task is deleted, delete all grades associated with it
+   score = models.FloatField()  # The student's score on the given task
+   total_possible_score = models.FloatField()  # The total possible points attainable on the task (this allows us to do calculations later and lets us easily handle non-normalized scores)
+
+   class Meta:  # Allows for a pseudo-composite primary key to be used
+      constraints = [
+         models.UniqueConstraint(fields=['student', 'task'], name='unique_student_task')
+      ]
+   
+   def __str__(self):
+      return f"ID: {self.plo_clo_mapping_id} | PLO: {self.plo} | CLO: {self.clo}"
