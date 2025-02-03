@@ -158,12 +158,12 @@ class LogDetail(generics.RetrieveUpdateDestroyAPIView):
 # START - AccreditationOrganization
 class AccreditationOrganizationListCreate(generics.ListCreateAPIView):
    """
-   API endpoint for listing all logs and creating a new Accreditation Organization.
+   API endpoint for listing all Accreditation Organizations and creating a new Accreditation Organization.
    """
    serializer_class = AccreditationOrganizationSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-
-   def get(self, request):
+   
+   def get(self):
       accreditation_organizations = AccreditationOrganization.objects.all()
       serializer = AccreditationOrganizationSerializer(accreditation_organizations, many=True)
       return Response(serializer.data)
@@ -171,7 +171,7 @@ class AccreditationOrganizationListCreate(generics.ListCreateAPIView):
    def post(self, request):
       if not request.user.is_superuser:  # Checks for superuser status
             return Response({"error": "Only superusers can create new Accreditation Organizations."}, status=status.HTTP_403_FORBIDDEN)
-      serializer = LogSerializer(data=request.data)
+      serializer = AccreditationOrganizationSerializer(data=request.data)
       if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -210,82 +210,193 @@ class AccreditationOrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-
-
-
-# START - ABETLearningObjective
-# ABETLearningObjective List Create 
-# Retrives all ABETLearningObjective, also handles creating ABETLearningObjective
-class ABETLearningObjectiveListCreate(APIView):
+# START - AccreditationVersion
+class AccreditationVersionListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Accreditation Version.
    """
-   def get(self): # Return the list
-      ABETLearningObjectives = ABETLearningObjective.objects.all()
-      serializer = ABETLearningObjectiveSerializer(ABETLearningObjectives, many=True)
+   serializer_class = AccreditationVersionSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      accreditation_versions = AccreditationVersion.objects.all()
+      serializer = AccreditationVersionSerializer(accreditation_versions, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = ABETLearningObjectiveSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Accreditation Versions."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = AccreditationVersionSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# ABETLearningObjective Detail View
-# Allows for: Edit, Create, Specific instance retrieval
-class ABETLearningObjectiveDetail(generics.RetrieveUpdateDestroyAPIView):
+class AccreditationVersionDetail(generics.RetrieveUpdateDestroyAPIView):
    """
-   A view for retrieving, updating, and deleting a specific ABETLearningObjective instance.
+   A view for retrieving, updating, and deleting a specific Accreditation Version instance.
    """
-   queryset = ABETLearningObjective.objects.all()  # Define queryset for the view
-   serializer_class = ABETLearningObjectiveSerializer
+   queryset = AccreditationVersion.objects.all()  # Define queryset for the view
+   serializer_class = AccreditationVersionSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the log instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
-      return ABETLearningObjective.objects.all()
-
-   def perform_update(self, serializer):
+      return AccreditationVersion.objects.all()
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Accreditation Versions."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Accreditation Versions."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
-# STOP - ABETLearningObjective
+# STOP - AccreditationVersion
 
 
 
-# START - Course
-# Course List Create 
-# Retrives all Courses, also handles creating Courses
-class CourseListCreate(APIView):
+# START - ProgramLearningObjective (PLO)
+class ProgramLearningObjectiveListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Program Learning Objectives.
    """
-   def get(self): # Return the list
-      Courses = Course.objects.all()
-      serializer = CourseSerializer(Courses, many=True)
+   serializer_class = ProgramLearningObjectiveSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      program_learning_objectives = ProgramLearningObjective.objects.all()
+      serializer = ProgramLearningObjectiveSerializer(program_learning_objectives, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = CourseSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Program Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = ProgramLearningObjectiveSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Course Detail View
-# Allows for: Edit, Create, Specific instance retrieval
+class ProgramLearningObjectiveDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Program Learning Objective instance.
+   """
+   queryset = ProgramLearningObjective.objects.all()  # Define queryset for the view
+   serializer_class = ProgramLearningObjectiveSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return ProgramLearningObjective.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Program Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Program Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - ProgramLearningObjective (PLO)
+
+
+
+# START - Program
+class ProgramListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Program instance.
+   """
+   serializer_class = ProgramSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      programs = Program.objects.all()
+      serializer = ProgramSerializer(programs, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Programs."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = ProgramSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProgramDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Program instance.
+   """
+   queryset = Program.objects.all()  # Define queryset for the view
+   serializer_class = ProgramSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return Program.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Programs."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Programs."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - Program
+
+
+
+# START - Course
+class CourseListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Course instance.
+   """
+   serializer_class = CourseSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      courses = Course.objects.all()
+      serializer = CourseSerializer(courses, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = CourseSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    """
    A view for retrieving, updating, and deleting a specific Course instance.
@@ -293,50 +404,109 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    queryset = Course.objects.all()  # Define queryset for the view
    serializer_class = CourseSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
       return Course.objects.all()
-
-   def perform_update(self, serializer):
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
 # STOP - Course
 
 
 
-# START - Semester
-# Semester List Create 
-# Retrives all Semesters, also handles creating Semesters
-class SemesterListCreate(APIView):
+# START - ProgramCourseMapping
+class ProgramCourseMappingListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Program Course Mapping instance.
    """
-   def get(self): # Return the list
-      Semesters = Semester.objects.all()
-      serializer = SemesterSerializer(Semesters, many=True)
+   serializer_class = ProgramCourseMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      program_course_mappings = ProgramCourseMapping.objects.all()
+      serializer = ProgramCourseMappingSerializer(program_course_mappings, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = SemesterSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Program Course Mappings."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = ProgramCourseMappingSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Semester Detail View
-# Allows for: Edit, Create, Specific instance retrieval
+class ProgramCourseMappingDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Program Course Mapping instance.
+   """
+   queryset = ProgramCourseMapping.objects.all()  # Define queryset for the view
+   serializer_class = ProgramCourseMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return ProgramCourseMapping.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Program Course Mappings."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Program Course Mappings."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - ProgramCourseMapping
+
+
+
+# START - Semester
+class SemesterListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Semester instance.
+   """
+   serializer_class = SemesterSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      semesters = Semester.objects.all()
+      serializer = SemesterSerializer(semesters, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Semesters."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = SemesterSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class SemesterDetail(generics.RetrieveUpdateDestroyAPIView):
    """
    A view for retrieving, updating, and deleting a specific Semester instance.
@@ -344,26 +514,34 @@ class SemesterDetail(generics.RetrieveUpdateDestroyAPIView):
    queryset = Semester.objects.all()  # Define queryset for the view
    serializer_class = SemesterSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
       return Semester.objects.all()
-
-   def perform_update(self, serializer):
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Semesters."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Semesters."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
 # STOP - Semester
 
+
+
+# NOTE: 
+# Anything below this has not been touched, and needs to be worked on.
 
 
 # START - Section
