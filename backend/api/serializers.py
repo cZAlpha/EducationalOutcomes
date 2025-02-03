@@ -1,5 +1,5 @@
 from rest_framework import serializers # Import the REST framework serializer
-from .models import User, UserRole, Log, AccreditationOrganization, AccreditationVersion, ProgramLearningObjective, Program, Course, ProgramCourseMapping, Semester, Section, EvaluationType, EvaluationInstrument, EmbeddedTask, CourseLearningObjective, TaskCLOMapping, PLOCLOMapping, Student, StudentTaskMapping
+from .models import * # Import models
 from django.core.exceptions import ValidationError
 from datetime import datetime
 
