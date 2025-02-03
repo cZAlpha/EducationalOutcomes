@@ -246,13 +246,12 @@ class EvaluationInstrument(models.Model):
 # Embedded Task
 class EmbeddedTask(models.Model):
    embedded_task_id = models.BigAutoField(primary_key=True)
-   assignment = models.ForeignKey(EvaluationInstrument, on_delete=models.CASCADE) # If the associated eval. instrument is deleted, delete the tasks associated with it too
+   evaluation_instrument = models.ForeignKey(EvaluationInstrument, on_delete=models.CASCADE) # If the associated eval. instrument is deleted, delete the tasks associated with it too
    task_number = models.PositiveIntegerField(null=True, blank=True)  # The task number (optional)
    task_text = models.TextField(max_length=500, null=True, blank=True) # If your eval. instrument's text is longer than 500 words, that's on you!
-   # TODO: fix this | average_grade = models.FloatField() # Average grade is not optional
    
    def __str__(self):
-      return f"Q{self.question_number} - {self.assignment.name} had an average grade of: {self.average_grade}"
+      return f"Q{self.task_number} - from Eval. Instrument: {self.evaluation_instrument.name} | Description: {self.task_text[:20]}"
 
 
 # Course Learning Objective
@@ -262,6 +261,10 @@ class CourseLearningObjective(models.Model):
    designation = models.CharField(max_length=20)  # Required designation
    description = models.CharField(max_length=500, null=True, blank=True)  # Optional description
    created_by = models.ForeignKey(User, on_delete=models.SET_NULL)  # If the creator user is deleted, set this to null
+   
+   def __str__(self):
+      return f"CLO ID: {self.clo_id} | Course: {self.course} | Designation: {self.designation}"
+
 
 
 # Task CLO Mapping
