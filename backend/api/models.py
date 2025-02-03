@@ -3,6 +3,7 @@ from django.conf import settings  # Use this to refer to the custom User model
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone # For verifying time validity
 from django.core.exceptions import ValidationError # For throwing validation errors
+from django.contrib.auth.password_validation import validate_password # For validating passwords
 
 
 # NOTE: This is where API-compatible database tables are defined
@@ -15,54 +16,9 @@ from django.core.exceptions import ValidationError # For throwing validation err
 # functions to meet your needs like in the Note table's usage of
 # overriding the Python equivalent of Java's toString method.
 
-
-class UserManager(BaseUserManager):
-   def create_user(self, username, email, password=None, **extra_fields):
-      if not email:
-         raise ValueError('The Email field must be set')
-      email = self.normalize_email(email)
-      user = self.model(username=username, email=email, **extra_fields)
-      extra_fields.setdefault('is_active', True)
-
-      user.set_password(password)
-      user.save(using=self._db)
-      return user
-
-   def create_superuser(self, username, email, password=None, **extra_fields):
-      extra_fields.setdefault('is_active', True)
-      extra_fields.setdefault('is_staff', True)
-      extra_fields.setdefault('is_superuser', True)
-      return self.create_user(username, email, password, **extra_fields)
-
-
-class User(AbstractBaseUser, PermissionsMixin):
-   username = models.CharField(max_length=150, unique=True)
-   email = models.EmailField(unique=True, null=False)  # Email field added here
-   role = models.ForeignKey('UserRole', on_delete=models.SET_NULL, null=True, blank=True)
-   user_start_date = models.DateTimeField(auto_now_add=True) # Auto sets the start date upon creation
-   first_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
-   last_name = models.CharField(max_length=30, null=True, blank=True) # Optional for now
-
-   # Custom related_name to avoid conflict with default User model
-   groups = models.ManyToManyField(
-      'auth.Group',
-      related_name='api_user_set',  # Custom related_name to avoid collision
-      blank=True
-   )
-   user_permissions = models.ManyToManyField(
-      'auth.Permission',
-      related_name='api_user_permissions_set',  # Custom related_name to avoid collision
-      blank=True
-   )
-
-   objects = UserManager()
-
-   USERNAME_FIELD = 'username'  # Update this to 'email' to allow login via email
-   REQUIRED_FIELDS = ['email']  # 'email' is required for creating a user
-
-   def __str__(self):
-      return self.username
-
+# TODO:
+# - If needed (test first before doing the work), use the Meta method to define pseudo-composite primary keys for all models
+# - Before using META, use composite key method if not too many attributes are part of the primary key
 
 class UserRole(models.Model):
    ROLE_CHOICES = [ # These role choices are in order of power, admins can read and write anything, users can only read and write to certian fields and clients are READ ONLY for most things
@@ -70,12 +26,67 @@ class UserRole(models.Model):
       ('Admin', 'Admin'), # For Dr. Smolenski and other high-ranking professors
       ('User', 'User'), # For general users such as normal professors
    ]
-   role_name = models.CharField(max_length=50, unique=True, choices=ROLE_CHOICES)
+   role_name = models.CharField(max_length=20, unique=True, choices=ROLE_CHOICES)
    role_description = models.TextField(null=True, blank=True)
-   permissions = models.CharField(max_length=50, choices=ROLE_CHOICES)
+   permissions = models.JSONField(max_length=1000, null=True, blank=True) # Optional JSON object containing 'list' of permissions
 
    def __str__(self):
       return self.role_name
+
+
+class UserManager(BaseUserManager):
+   # Purpose: The user manager is used to manage the creation of users
+   # Q: Why not just use a user view to do this, like all other models??
+   # A: Django expects a manager if you override the User model, plus it keeps some logic out of the views file, which can simplify things in some regards
+   def create_user(self, d_number, email, password=None, **extra_fields): # This creates a normal user
+      if not email:
+         raise ValueError("The Email field must be set")
+      if not d_number or len(d_number) != 9:
+         raise ValueError("D_Number must be exactly 9 characters long")
+      
+      email = self.normalize_email(email) # Normalize the email
+      extra_fields.setdefault("is_active", True) # Set the is_active attr. to true
+      
+      # Validate password before setting
+      if password:
+         try:
+               validate_password(password)
+         except ValidationError as e:
+               raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+      
+      user = self.model(d_number=d_number, email=email, **extra_fields) # Creates a new user object
+      user.set_password(password) # Hashes AND sets the user's password
+      user.save(using=self._db) # Saves the user object to the database
+      return user
+
+   def create_superuser(self, d_number, email, password=None, **extra_fields):
+      extra_fields.setdefault("is_staff", True) # Sets admin to true
+      extra_fields.setdefault("is_superuser", True) # Sets root to true
+      return self.create_user(d_number, email, password, **extra_fields) # Calls normal constructor
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+   user_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number
+   role = models.ForeignKey("UserRole", on_delete=models.SET_NULL, null=True, blank=True)
+   email = models.EmailField(unique=True)
+   password = models.CharField(max_length=128)  # Handled by Django's hashing system
+   first_name = models.CharField(max_length=20)
+   last_name = models.CharField(max_length=40)
+   employee_id = models.CharField(max_length=20, null=True, blank=True) # State-related employee ID, optional due to some adjuncts may not have it
+   date_created = models.DateTimeField(auto_now_add=True)
+
+   # Permissions fields
+   is_active = models.BooleanField(default=True)
+   is_staff = models.BooleanField(default=False)
+
+   objects = UserManager()
+
+   USERNAME_FIELD = "d_number"  # D_Number IS the username
+   REQUIRED_FIELDS = ["email"]
+
+   def __str__(self):
+      return self.d_number
 
 
 class Log(models.Model):
@@ -88,6 +99,7 @@ class Log(models.Model):
       ('ERROR', 'Error'),
    ]
 
+   log_id = models.BigAutoField(primary_key=True)
    user = models.ForeignKey( # The user who caused the log
       settings.AUTH_USER_MODEL,
       on_delete=models.SET_NULL,
@@ -100,20 +112,35 @@ class Log(models.Model):
    description = models.TextField(blank=True) # The description of the log, usually blank
    
    def __str__(self):
-      return f"{self.user} - {self.action} - {self.timestamp}"
+      return f"{self.user} | {self.action} | {self.timestamp}"
 
 
-# ABET Specific Models
+#
+# Accreditation Specific Models
+#
 
-# ABET Versions
-class ABETVersion(models.Model):
+
+# Accreditation Organization
+class AccreditationOrganization(models.Model):
+   a_organization_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   name = models.CharField(max_length=100, blank=False, null=False)  # The name of the organization
+   description = models.CharField(max_length=100, blank=True, null=False)  # A description of the organization
+
+   def __str__(self): # To string metod
+      return f"{self.name} | {self.description[:20]}"  # Shows the name and first 20 chars of the description of the organization
+
+
+# Accreditation Version
+class AccreditationVersion(models.Model):
+   a_version_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   a_organization = models.ForeignKey(AccreditationOrganization, on_delete=models.CASCADE)  # Dictates the organization from which the version comes from
    year = models.PositiveIntegerField()
    
-   def clean(self):
+   def clean(self):  # The reason this isn't EXPLICITLY called is because on .save(), Django will automatically call this function thankfully
       # Ensure the year is not in the future
       current_year = timezone.now().year
-      if self.year > current_year:
-         raise ValidationError(f"The year {self.year} cannot be in the future.")
+      if self.year > current_year + 1:
+         raise ValidationError(f"The year {self.year} cannot be in the future by more than one year.")
       
       # Optionally, add further custom validation, such as a minimum year:
       if self.year < 2000:  # Adjust this according to your requirements
@@ -123,120 +150,172 @@ class ABETVersion(models.Model):
       return str(self.year)
 
 
-# ABET Learning Objectives
-class ABETLearningObjective(models.Model):
-   abet_version = models.ForeignKey(ABETVersion, on_delete=models.CASCADE)
-   designation = models.CharField(max_length=10) # What letter is used to designate a given LO
-   description = models.CharField(max_length=100, null=True, blank=True) # Optional description
+# Program Learning Objective (PLO)
+class ProgramLearningObjective(models.Model):
+   plo_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   a_version = models.ForeignKey(AccreditationVersion, on_delete=models.CASCADE)  # Dictates the accreditation version that the given PLO uses
+   designation = models.CharField(max_length=10)  # What letter is used to designate a given LO
+   description = models.CharField(max_length=100, null=True, blank=True)  # Optional description
    
    def __str__(self):
-      return f"{self.designation}: {self.description} | ABET Version: {self.abet_version}"
+      return f"{self.designation}: {self.description[:20]} | Accreditation Version: {self.abet_version} | From Organization: {self.a_version.a_organization}"
+
+
+# Program
+class Program(models.Model):
+   program_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   designation = models.CharField(max_length=20) # The 'name' of the program such as "CSCI" or "IT"
+   description = models.CharField(max_length=100, null=True, blank=True)  # Optional description
+
+   def __str__(self):
+         return f"Program: {self.designation} | {self.description[:20]}"  # Gives program designation and description
 
 
 # Courses
 class Course(models.Model):
-   crn_id = models.CharField(max_length=20, primary_key=True) # The CRN of a given course IS ITS PK, e.g. CRN would be: 'CSCI 361-01'
+   course_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
+   a_version = models.ForeignKey(AccreditationVersion, on_delete=models.CASCADE)  # Dictates the accreditation version that the course makes use of 
+   course_number = models.IntegerField(max_length=10)  # The course number for the course
    name = models.CharField(max_length=255) # The name of the given course
    description = models.TextField(max_length=1000, null=True, blank=True) # Optional course description
+   date_added = models.DateField(auto_now=True)  # Sets the date added to the current date upon instantiation
+   date_removed = models.DateField(blank=True, null=True)  # The date that the course was removed, set to null by default for obvious reasons
    
    def __str__(self):
-      return self.name
+      return f"Course: {self.name} | {self.course_number} | {self.description[:20]}"  # Gives the course name, number and description
+
+
+# Program Course Mapping
+class ProgramCourseMapping(models.Model):  
+   program_course_mapping_id = models.BigAutoField(primary_key=True)  # Explicitly state the ID as PK, then use a constraint to act as a pseudo PK
+   program = models.ForeignKey(Program, on_delete=models.CASCADE)
+   course = models.ForeignKey(Course, on_delete=models.CASCADE)
+   
+   class Meta:  # Allows for a pseudo-composite primary key to be used
+      constraints = [
+         models.UniqueConstraint(fields=['program', 'course'], name='unique_program_course')
+      ]
+   
+   def __str__(self):
+      return f"ID: {self.program_course_mapping_id} | Program: {self.program} | Course: {self.course}"
 
 
 # Semesters
 class Semester(models.Model):
-   SEMESTER_CHOICES = [ # These are the only choices for semesters
-      ('Spring', 'Spring'), 
-      ('Fall', 'Fall'), 
-      ('Winter', 'Winter'), 
-      ('Summer', 'Summer')
-   ]
-
-   name = models.CharField(max_length=30, choices=SEMESTER_CHOICES)
+   semester_id = models.BigAutoField(primary_key=True)
+   designation = models.IntegerField(max_length=10)  # Holds the designation/'name' of the semester, e.g.: 202501 is Fall Semester of 2024
    
    def __str__(self):
-      return self.name
+      return self.designation
 
 
 # Sections
 class Section(models.Model):
-   course = models.ForeignKey(Course, on_delete=models.CASCADE)
-   abet_version = models.ForeignKey(ABETVersion, on_delete=models.CASCADE)
+   section_id = models.BigAutoField(primary_key=True)
+   course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Associated course for the given section
    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-   instructor = models.ForeignKey(User, on_delete=models.CASCADE) # Users are instructors
-   year = models.PositiveIntegerField()
-   
-   def clean(self):
-      # Ensure the year is not in the future
-      current_year = timezone.now().year
-      if self.year > current_year:
-         raise ValidationError(f"The year {self.year} cannot be in the future.")
-      
-      # Optionally, add further custom validation, such as a minimum year:
-      if self.year < 2000:  # Adjust this according to your requirements
-         raise ValidationError("The year must be greater than or equal to 2000.")
-
+   crn = models.CharField(max_length=20)
+   instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # Users are instructors, optional (at first)
    
    def __str__(self):
-      return f"Section {self.id} - {self.course.name} ({self.year})"
+      return f"Section {self.section_id} - {self.course.name} - ({self.semester})"
 
 
-# Assignment Templates
-class AssignmentTemplate(models.Model):
-   instructor = models.ForeignKey(User, on_delete=models.CASCADE)
+# Evaluation Type
+class EvaluationType(models.Model):
+   evaluation_type_id = models.BigAutoField(primary_key=True)
+   type_name = models.CharField(max_length=30)  # The name of the type of evaluation
+   description = models.CharField(max_length=250, null=True, blank=True)
+
+   def __str__(self):
+      return f"{self.type_name} | {self.description[:20]}"
+
+
+# Evaluation Instrument
+class EvaluationInstrument(models.Model):
+   evaluation_instrument_id = models.BigAutoField(primary_key=True)
+   section = models.ForeignKey(Section, on_delete=models.CASCADE) # If the associated section is deleted, so will any associated evaluation instrument
+   evaluation_type = models.ForeignKey(EvaluationType, on_delete=models.SET_NULL)  # If the associated type is deleted, it will default to NULL instead of deleting the record
    name = models.CharField(max_length=255)
    description = models.TextField(max_length=1000, null=True, blank=True)
-   date_created = models.DateField(auto_now_add=True)
-   templateData = models.JSONField()
-   
-   def clean(self):
-      # Insert templateData verification here
-      # JSON data should look like:
-      # {
-      #     ABETVersion: must be an entry in the ABETVersion table
-      #     QuestionMappings {
-      #        1: string with a lowercase letter (if uppercase, lowercase it before saving)
-      #        2: ...
-      #        ...
-      #     }
-      #    
-      # }
-      pass
    
    def __str__(self):
-      return self.name
+      return f"{self.name} | {self.evaluation_type} | {self.description[:20]}"
 
 
-# Assignments
-class Assignment(models.Model):
-   section = models.ForeignKey(Section, on_delete=models.CASCADE)
-   template = models.ForeignKey(AssignmentTemplate, on_delete=models.CASCADE, null=True, blank=True)
-   name = models.CharField(max_length=255)
-   description = models.TextField(max_length=1000, null=True, blank=True)
-   csv_filepath = models.CharField(max_length=500, null=True, blank=True)
-   date_created = models.DateField(auto_now_add=True)
+# Embedded Task
+class EmbeddedTask(models.Model):
+   embedded_task_id = models.BigAutoField(primary_key=True)
+   evaluation_instrument = models.ForeignKey(EvaluationInstrument, on_delete=models.CASCADE) # If the associated eval. instrument is deleted, delete the tasks associated with it too
+   task_number = models.PositiveIntegerField(null=True, blank=True)  # The task number (optional)
+   task_text = models.TextField(max_length=500, null=True, blank=True) # If your eval. instrument's text is longer than 500 words, that's on you!
    
    def __str__(self):
-      return self.name
+      return f"Q{self.task_number} - from Eval. Instrument: {self.evaluation_instrument.name} | Description: {self.task_text[:20]}"
 
 
-# Assignment Questions
-class AssignmentQuestion(models.Model):
-   assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
-   question_number = models.PositiveIntegerField()
-   text = models.TextField(max_length=500, null=True, blank=True) # If your assignment's question is longer than 500 words, that's on you!
-   average_grade = models.FloatField() # Average grade is not optional
+# Course Learning Objective
+class CourseLearningObjective(models.Model):
+   clo_id = models.BigAutoField(primary_key=True)
+   course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Deletes course-specific learning objectives if the associated course was deleted
+   designation = models.CharField(max_length=20)  # Required designation
+   description = models.CharField(max_length=500, null=True, blank=True)  # Optional description
+   created_by = models.ForeignKey(User, on_delete=models.SET_NULL)  # If the creator user is deleted, set this to null
    
    def __str__(self):
-      return f"Q{self.question_number} - {self.assignment.name} had an average grade of: {self.average_grade}"
+      return f"CLO ID: {self.clo_id} | Course: {self.course} | Designation: {self.designation}"
 
 
-# Assignment Question Mappings
-class AssignmentQuestionMapping(models.Model):
-   question = models.ForeignKey(AssignmentQuestion, on_delete=models.CASCADE)
-   learning_objective = models.ForeignKey(ABETLearningObjective, on_delete=models.CASCADE)
+
+# Task CLO Mapping
+class TaskCLOMapping(models.Model):
+   task_clo_mapping_id = models.BigAutoField(primary_key=True)  # Explicitly state the ID as PK, then use a constraint to act as a pseudo PK
+   task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)
+   clo = models.ForeignKey(CourseLearningObjective, on_delete=models.CASCADE)
+   
+   class Meta:  # Allows for a pseudo-composite primary key to be used
+      constraints = [
+         models.UniqueConstraint(fields=['task', 'clo'], name='unique_task_clo')
+      ]
    
    def __str__(self):
-      return f"Mapping {self.id} maps Q{self.question.id} -> LO {self.learning_objective.id}"
+      return f"ID: {self.task_clo_mapping_id} | Task: {self.task} | CLO: {self.clo}"
 
 
+# PLO CLO Mapping
+class PLOCLOMapping(models.Model):
+   plo_clo_mapping_id = models.BigAutoField(primary_key=True)  # Explicitly state the ID as PK, then use a constraint to act as a pseudo PK
+   plo = models.ForeignKey(ProgramLearningObjective, on_delete=models.CASCADE)
+   clo = models.ForeignKey(CourseLearningObjective, on_delete=models.CASCADE)
+   
+   class Meta:  # Allows for a pseudo-composite primary key to be used
+      constraints = [
+         models.UniqueConstraint(fields=['plo', 'clo'], name='unique_plo_clo')
+      ]
+   
+   def __str__(self):
+      return f"ID: {self.plo_clo_mapping_id} | PLO: {self.plo} | CLO: {self.clo}"
+
+
+# Student
+class Student(models.Model):
+   d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number (ID)
+   first_name = models.CharField(max_length=20)  # First name
+   last_name = models.CharField(max_length=40)  # Last name
+
+
+# Student Task Mapping
+class StudentTaskMapping(models.Model):  # This is basically just a gradebook disguised as a mapping model
+   student_task_mapping_id = models.BigAutoField(primary_key=True)
+   student = models.ForeignKey(Student, on_delete=models.CASCADE)  # When the associated student is deleted, delete all grades of theirs
+   task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)  # When the associated task is deleted, delete all grades associated with it
+   score = models.FloatField()  # The student's score on the given task
+   total_possible_score = models.FloatField()  # The total possible points attainable on the task (this allows us to do calculations later and lets us easily handle non-normalized scores)
+
+   class Meta:  # Allows for a pseudo-composite primary key to be used
+      constraints = [
+         models.UniqueConstraint(fields=['student', 'task'], name='unique_student_task')
+      ]
+   
+   def __str__(self):
+      return f"ID: {self.plo_clo_mapping_id} | PLO: {self.plo} | CLO: {self.clo}"

@@ -1,7 +1,7 @@
 from rest_framework import serializers # Import the REST framework serializer
-from .models import Course, User, UserRole, ABETLearningObjective, ABETVersion, Section, Semester, AssignmentTemplate, Assignment, AssignmentQuestion, AssignmentQuestionMapping, Log
-from django.contrib.auth.password_validation import validate_password
-from rest_framework.exceptions import ValidationError
+from .models import User, UserRole, Log, AccreditationOrganization, AccreditationVersion, ProgramLearningObjective, Program, Course, ProgramCourseMapping, Semester, Section, EvaluationType, EvaluationInstrument, EmbeddedTask, CourseLearningObjective, TaskCLOMapping, PLOCLOMapping, Student, StudentTaskMapping
+from django.core.exceptions import ValidationError
+from datetime import datetime
 
 
 # NOTE:
@@ -10,41 +10,8 @@ from rest_framework.exceptions import ValidationError
 # - With our API, we will be using JSON, so we must serialize and deserialize information to make data flow correctly and efficiently
 
 
-# User Serializer
-class UserSerializer(serializers.ModelSerializer):
-   class Meta:
-      model = User
-      fields = ["id", "username", "email", "password", "role"]
-      extra_kwargs = {
-         "password": {"write_only": True},
-      }
-
-   def validate_password(self, value):
-      try:
-         validate_password(value)
-      except ValidationError as e:
-         raise serializers.ValidationError(e.messages)
-      return value
-   
-   def create(self, validated_data):
-      password = validated_data.pop("password")
-      role = validated_data.pop("role", None)
-      
-      # Create the user with the hashed password
-      user = User.objects.create_user(
-         username=validated_data["username"],
-         email=validated_data["email"],
-         password=password
-      )
-      
-      # Assign the role if provided
-      if role:
-         user.role = role
-      
-      # Save the user, ensuring they are stored in the database
-      user.save()
-      
-      return user
+# All serializers should contain a create and update method (if required). Creation and updating should be handled at the serializer layer
+# rather than the views layer.
 
 
 # UserRole Serializer
@@ -52,76 +19,213 @@ class UserRoleSerializer(serializers.ModelSerializer):
    class Meta:
       model = UserRole
       fields = ["id", "role_name", "role_description", "permissions"]
+   # Purposefully does not contain methods here. Records in this table should be set up manually upon startup.
+
+
+# User Serializer
+class UserSerializer(serializers.ModelSerializer):
+   role = UserRoleSerializer(read_only=True)  # Include role data in the serialized response
+   role_id = serializers.PrimaryKeyRelatedField(queryset=UserRole.objects.all(), write_only=True)  # For creating/updating a user, use the role ID
+   
+   class Meta:
+      model = User
+      fields = [
+            'user_id', 'd_number', 'role', 'role_id', 'email', 'first_name', 'last_name', 
+            'employee_id', 'date_created', 'is_active', 'is_staff'
+      ]
+      read_only_fields = ['user_id', 'date_created']  # These fields are auto-managed by Django and should be read-only
+
+      extra_kwargs = {
+         "password": {"write_only": True},
+      }
+
+   def create(self, validated_data):
+      role_id = validated_data.pop('role_id', None)
+      password = validated_data.pop('password')  # Extract password
+      user = User.objects.create(**validated_data)
+      user.set_password(password)  # Hash the password
+      if role_id:
+         user.role = UserRole.objects.get(id=role_id)
+         user.save()
+      return user
+
+   def update(self, instance, validated_data):
+      role_id = validated_data.pop('role_id', None)
+      password = validated_data.pop('password', None)  # Extract password if present
+      for attr, value in validated_data.items():
+         setattr(instance, attr, value)
+      if password:
+         instance.set_password(password)  # Hash the password when updating | The "set_password" function hashes the password, FYI
+      if role_id:
+         instance.role = UserRole.objects.get(id=role_id)
+      instance.save()
+      return instance
 
 
 # Log Serializer
 class LogSerializer(serializers.ModelSerializer):
+   user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   
    class Meta:
       model = Log
-      fields = ['id', 'user', 'action', 'timestamp', 'description']
+      fields = ['log_id', 'user', 'action', 'timestamp', 'description']
 
 
-# ABET Serializers
-
-
-# ABETVersion Serializer
-class ABETVersionSerializer(serializers.ModelSerializer):
+# Accreditation Organization Serializer
+class AccreditationOrganizationSerializer(serializers.ModelSerializer):
+   # Top level model does not have FK and doesn't need FK validation
    class Meta:
-      model = ABETVersion
-      fields = ['id', 'year']
+      model = AccreditationOrganization
+      fields = ['a_organization_id', 'name', 'description']
 
 
-# ABETLearningObjective Serializer
-class ABETLearningObjectiveSerializer(serializers.ModelSerializer):
+# Accreditation Version Serializer
+class AccreditationVersionSerializer(serializers.ModelSerializer):
+   a_organization = serializers.PrimaryKeyRelatedField(queryset=AccreditationOrganization.objects.all())  # Explicit FK validation
+   
    class Meta:
-      model = ABETLearningObjective
-      fields = ['id', 'abet_version', 'designation', 'description']
+      model = AccreditationVersion
+      fields = ['a_version_id', 'a_organization', 'year']
+
+
+# Program Learning Objective Serializer
+class ProgramLearningObjectiveSerializer(serializers.ModelSerializer):
+   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all())  # Explicit FK validation
+   
+   class Meta:
+      model = ProgramLearningObjective
+      fields = ['plo_id', 'a_version', 'designation', 'description']
+
+
+# Program Serializer
+class ProgramSerializer(serializers.ModelSerializer):
+   # Top level model does not have FK and doesn't need FK validation
+   class Meta:
+      model = Program
+      fields = ['program_id', 'designation', 'description']
 
 
 # Course Serializer
 class CourseSerializer(serializers.ModelSerializer):
+   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all())  # Explicit FK validation
+   
    class Meta:
       model = Course
-      fields = ['crn_id', 'name', 'description']
+      fields = ['course_id', 'a_version', 'course_number', 'name', 'description', 'date_added', 'date_removed']
+   
+   # Custom validation for date_added and date_removed
+   def validate_date_added(self, value):
+      if value > datetime.now():
+         raise ValidationError(f"The date_added cannot be in the future. Args you passed: {value}")
+      return value
+   
+   def validate_date_removed(self, value):
+      if value and value < self.initial_data.get('date_added'):
+         raise ValidationError("The date_removed cannot be earlier than the date_added.")
+      return value
+
+
+# Program Course Mapping Serializer
+class ProgramCourseMappingSerializer(serializers.ModelSerializer):
+   # Mapping models require double FK validation (at minimum)
+   program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())  # Explicit FK validation
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
+
+   class Meta:
+      model = ProgramCourseMapping
+      fields = ['program_course_mapping_id', 'program', 'course']
 
 
 # Semester Serializer
 class SemesterSerializer(serializers.ModelSerializer):
    class Meta:
       model = Semester
-      fields = ['id', 'name']
+      fields = ['semester_id', 'designation']
+   # Could add some semester designation validation but probably isn't necessary
 
 
 # Section Serializer
 class SectionSerializer(serializers.ModelSerializer):
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
+   semester = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
+   instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   
    class Meta:
       model = Section
-      fields = ['id', 'course', 'abet_version', 'semester', 'instructor', 'year']
+      fields = ['section_id', 'course', 'semester', 'crn', 'instructor']
 
 
-# AssignmentTemplate Serializer
-class AssignmentTemplateSerializer(serializers.ModelSerializer):
+# Evaluation Type Serializer
+class EvaluationTypeSerializer(serializers.ModelSerializer):
    class Meta:
-      model = AssignmentTemplate
-      fields = ['id', 'instructor', 'name', 'description', 'date_created', 'templateData']
+      model = EvaluationType
+      fields = ['evaluation_type_id', 'type_name', 'description']
 
 
-# Assignment Serializer
-class AssignmentSerializer(serializers.ModelSerializer):
+# Evaluation Instrument Serializer
+class EvaluationInstrumentSerializer(serializers.ModelSerializer):
+   section = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
+   evaluation_type = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
+
    class Meta:
-      model = Assignment
-      fields = ['id', 'section', 'template', 'name', 'description', 'csv_filepath', 'date_created']
+      model = EvaluationInstrument
+      fields = ['evaluation_instrument_id', 'section', 'evaluation_type', 'name', 'description']
 
 
-# AssignmentQuestion Serializer
-class AssignmentQuestionSerializer(serializers.ModelSerializer):
+# Embedded Task Serializer
+class EmbeddedTaskSerializer(serializers.ModelSerializer):
+   evaluation_instrument = serializers.PrimaryKeyRelatedField(queryset=EvaluationInstrument.objects.all())  # Explicit FK validation
+
    class Meta:
-      model = AssignmentQuestion
-      fields = ['id', 'assignment', 'question_number', 'text', 'average_grade']
+      model = EmbeddedTask
+      fields = ['embedded_task_id', 'evaluation_instrument', 'task_number', 'task_text']
 
 
-# AssignmentQuestionMapping
-class AssignmentQuestionMappingSerializer(serializers.ModelSerializer):
+# Course Learning Objective Serializer
+class CourseLearningObjectiveSerializer(serializers.ModelSerializer):
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
+   created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   
    class Meta:
-      model = AssignmentQuestionMapping
-      fields = ['id', 'question', 'learning_objective']
+      model = CourseLearningObjective
+      fields = ['clo_id', 'course', 'designation', 'description', 'created_by']
+
+
+# Task CLO Mapping Serializer
+class TaskCLOMappingSerializer(serializers.ModelSerializer):
+   # Mapping model requires both FK to be validated
+   task = serializers.PrimaryKeyRelatedField(queryset=EmbeddedTask.objects.all())  # Explicit FK validation
+   clo = serializers.PrimaryKeyRelatedField(queryset=CourseLearningObjective.objects.all())  # Explicit FK validation
+   
+   class Meta:
+      model = TaskCLOMapping
+      fields = ['task_clo_mapping_id', 'task', 'clo']
+
+
+# PLO CLO Mapping Serializer
+class PLOCLOMappingSerializer(serializers.ModelSerializer):
+   # Mapping model requires both FK to be validated
+   plo = serializers.PrimaryKeyRelatedField(queryset=ProgramLearningObjective.objects.all())  # Explicit FK validation
+   clo = serializers.PrimaryKeyRelatedField(queryset=CourseLearningObjective.objects.all())  # Explicit FK validation
+   
+   class Meta:
+      model = PLOCLOMapping
+      fields = ['plo_clo_mapping_id', 'plo', 'clo']
+
+
+# Student Serializer
+class StudentSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = Student
+      fields = ['d_number', 'first_name', 'last_name']
+
+
+# Student Task Mapping Serializer
+class StudentTaskMappingSerializer(serializers.ModelSerializer):
+   # Mapping model requires both FK to be validated
+   task = serializers.PrimaryKeyRelatedField(queryset=EmbeddedTask.objects.all())  # Explicit FK validation
+   student = serializers.PrimaryKeyRelatedField(queryset=Student.objects.all())  # Explicit FK validation
+   
+   class Meta:
+      model = StudentTaskMapping
+      fields = ['task_clo_mapping_id', 'student', 'task']
