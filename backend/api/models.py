@@ -175,7 +175,7 @@ class Program(models.Model):
 class Course(models.Model):
    course_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    a_version = models.ForeignKey(AccreditationVersion, on_delete=models.CASCADE)  # Dictates the accreditation version that the course makes use of 
-   course_number = models.IntegerField(max_length=10)  # The course number for the course
+   course_number = models.IntegerField()  # The course number for the course
    name = models.CharField(max_length=255) # The name of the given course
    description = models.TextField(max_length=1000, null=True, blank=True) # Optional course description
    date_added = models.DateField(auto_now=True)  # Sets the date added to the current date upon instantiation
@@ -203,7 +203,7 @@ class ProgramCourseMapping(models.Model):
 # Semesters
 class Semester(models.Model):
    semester_id = models.BigAutoField(primary_key=True)
-   designation = models.IntegerField(max_length=10)  # Holds the designation/'name' of the semester, e.g.: 202501 is Fall Semester of 2024
+   designation = models.IntegerField()  # Holds the designation/'name' of the semester, e.g.: 202501 is Fall Semester of 2024
    
    def __str__(self):
       return self.designation
@@ -235,7 +235,7 @@ class EvaluationType(models.Model):
 class EvaluationInstrument(models.Model):
    evaluation_instrument_id = models.BigAutoField(primary_key=True)
    section = models.ForeignKey(Section, on_delete=models.CASCADE) # If the associated section is deleted, so will any associated evaluation instrument
-   evaluation_type = models.ForeignKey(EvaluationType, on_delete=models.SET_NULL)  # If the associated type is deleted, it will default to NULL instead of deleting the record
+   evaluation_type = models.ForeignKey(EvaluationType, null=True, on_delete=models.SET_NULL)  # If the associated type is deleted, it will default to NULL instead of deleting the record
    name = models.CharField(max_length=255)
    description = models.TextField(max_length=1000, null=True, blank=True)
    
@@ -260,11 +260,10 @@ class CourseLearningObjective(models.Model):
    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Deletes course-specific learning objectives if the associated course was deleted
    designation = models.CharField(max_length=20)  # Required designation
    description = models.CharField(max_length=500, null=True, blank=True)  # Optional description
-   created_by = models.ForeignKey(User, on_delete=models.SET_NULL)  # If the creator user is deleted, set this to null
+   created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)  # If the creator user is deleted, set this to null
    
    def __str__(self):
       return f"CLO ID: {self.clo_id} | Course: {self.course} | Designation: {self.designation}"
-
 
 
 # Task CLO Mapping
