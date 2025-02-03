@@ -540,32 +540,26 @@ class SemesterDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-# NOTE: 
-# Anything below this has not been touched, and needs to be worked on.
-
-
 # START - Section
-# Section List Create 
-# Retrives all Sections, also handles creating Sections
-class SectionListCreate(APIView):
+class SectionListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Section instance.
    """
-   def get(self): # Return the list
-      Sections = Section.objects.all()
-      serializer = SectionSerializer(Sections, many=True)
+   serializer_class = SectionSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      sections = Section.objects.all()
+      serializer = SectionSerializer(sections, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = SemesterSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      serializer = SectionSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Section Detail View
-# Allows for: Edit, Create, Specific instance retrieval
 class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    """
    A view for retrieving, updating, and deleting a specific Section instance.
@@ -573,226 +567,456 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    queryset = Section.objects.all()  # Define queryset for the view
    serializer_class = SectionSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
       return Section.objects.all()
-
-   def perform_update(self, serializer):
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
       instance.delete()
 # STOP - Section
 
 
 
-# START - AssignmentTemplate
-# AssignmentTemplate List Create 
-# Retrives all AssignmentTemplates, also handles creating AssignmentTemplates
-class AssignmentTemplateListCreate(APIView):
+# START - EvaluationType
+class EvaluationTypeListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   XAPI endpoint for listing all instances of and creating a new Evaluation Type instance.
    """
-   def get(self): # Return the list
-      AssignmentTemplates = AssignmentTemplate.objects.all()
-      serializer = AssignmentTemplateSerializer(AssignmentTemplates, many=True)
+   serializer_class = EvaluationTypeSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      evaluation_types = EvaluationType.objects.all()
+      serializer = EvaluationTypeSerializer(evaluation_types, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = AssignmentTemplateSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Evaluation Types."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = EvaluationTypeSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# AssignmentTemplate Detail View
-# Allows for: Edit, Create, Specific instance retrieval
-class AssignmentTemplateDetail(generics.RetrieveUpdateDestroyAPIView):
+class EvaluationTypeDetail(generics.RetrieveUpdateDestroyAPIView):
    """
-   A view for retrieving, updating, and deleting a specific AssignmentTemplate instance.
+   A view for retrieving, updating, and deleting a specific Evaluation Types instance.
    """
-   queryset = AssignmentTemplate.objects.all()  # Define queryset for the view
-   serializer_class = AssignmentTemplateSerializer
+   queryset = EvaluationType.objects.all()  # Define queryset for the view
+   serializer_class = EvaluationTypeSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
-      return AssignmentTemplate.objects.all()
-
-   def perform_update(self, serializer):
+      return EvaluationType.objects.all()
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Evaluation Types."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Evaluation Types."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
 # STOP - AssignmentTemplate
 
 
 
-# START - Assignment
-# Assignment List Create 
-# Retrives all Assignments, also handles creating Assignments
-class AssignmentListCreate(APIView):
+# START - EvaluationInstrument
+class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Evaluation Instrument instance.
    """
-   def get(self): # Return the list
-      Assignments = Assignment.objects.all()
-      serializer = AssignmentSerializer(Assignments, many=True)
+   serializer_class = EvaluationInstrumentSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      evaluation_instruments = EvaluationInstrument.objects.all()
+      serializer = EvaluationInstrumentSerializer(evaluation_instruments, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = AssignmentSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = EvaluationInstrumentSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Assignment Detail View
-# Allows for: Edit, Create, Specific instance retrieval
-class AssignmentDetail(generics.RetrieveUpdateDestroyAPIView):
+class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    """
-   A view for retrieving, updating, and deleting a specific Assignment instance.
+   A view for retrieving, updating, and deleting a specific Evaluation Instrument instance.
    """
-   queryset = Assignment.objects.all()  # Define queryset for the view
-   serializer_class = AssignmentSerializer
+   queryset = EvaluationInstrument.objects.all()  # Define queryset for the view
+   serializer_class = EvaluationInstrumentSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
-      return Assignment.objects.all()
+      return EvaluationInstrument.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - EvaluationInstrument
 
+
+
+# START - EmbeddedTask
+class EmbeddedTaskListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Embedded Task instance.
+   """
+   serializer_class = EmbeddedTaskSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      embedded_tasks = EmbeddedTask.objects.all()
+      serializer = EmbeddedTaskSerializer(embedded_tasks, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Embedded Tasks."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = EmbeddedTaskSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class EmbeddedTaskDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Embedded Task instance.
+   """
+   queryset = EmbeddedTask.objects.all()  # Define queryset for the view
+   serializer_class = EmbeddedTaskSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return EmbeddedTask.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Embedded Tasks."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Embedded Tasks."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - EmbeddedTask
+
+
+
+# START - CourseLearningObjective
+class CourseLearningObjectiveListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Course Learning Objective instance.
+   """
+   serializer_class = CourseLearningObjectiveSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      course_learning_objectives = CourseLearningObjective.objects.all()
+      serializer = CourseLearningObjectiveSerializer(course_learning_objectives, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = CourseLearningObjectiveSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CourseLearningObjectiveDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Embedded Task instance.
+   """
+   queryset = CourseLearningObjective.objects.all()  # Define queryset for the view
+   serializer_class = CourseLearningObjectiveSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return CourseLearningObjective.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+            return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - CourseLearningObjective
+
+
+
+# START - TaskCLOMapping
+class TaskCLOMappingListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Task CLO Mapping instance.
+   """
+   serializer_class = TaskCLOMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      task_CLO_mappings = TaskCLOMapping.objects.all()
+      serializer = TaskCLOMappingSerializer(task_CLO_mappings, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      serializer = CourseLearningObjectiveSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class TaskCLOMappingDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Task CLO Mapping instance.
+   """
+   queryset = TaskCLOMapping.objects.all()  # Define queryset for the view
+   serializer_class = TaskCLOMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return TaskCLOMapping.objects.all()
+   
    def perform_update(self, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
       serializer.save()
-
+   
    def perform_destroy(self, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
       instance.delete()
-# STOP - Assignment
+# STOP - TaskCLOMapping
 
 
 
-# START - AssignmentQuestion
-# AssignmentQuestion List Create 
-# Retrives all AssignmentQuestions, also handles creating AssignmentQuestions
-class AssignmentQuestionListCreate(APIView):
+# START - PLOCLOMapping
+class PLOCLOMappingListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new PLO CLO Mapping instance.
    """
-   def get(self): # Return the list
-      AssignmentQuestions = AssignmentQuestion.objects.all()
-      serializer = AssignmentQuestionSerializer(AssignmentQuestions, many=True)
+   serializer_class = PLOCLOMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      plo_clo_mappings = PLOCLOMapping.objects.all()
+      serializer = PLOCLOMappingSerializer(plo_clo_mappings, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = AssignmentQuestionSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = PLOCLOMappingSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# AssignmentQuestion Detail View
-# Allows for: Edit, Create, Specific instance retrieval
-class AssignmentQuestionDetail(generics.RetrieveUpdateDestroyAPIView):
+class PLOCLOMappingDetail(generics.RetrieveUpdateDestroyAPIView):
    """
-   A view for retrieving, updating, and deleting a specific AssignmentQuestion instance.
+   A view for retrieving, updating, and deleting a specific PLO CLO Mapping instance.
    """
-   queryset = AssignmentQuestion.objects.all()  # Define queryset for the view
-   serializer_class = AssignmentQuestionSerializer
+   queryset = PLOCLOMapping.objects.all()  # Define queryset for the view
+   serializer_class = PLOCLOMappingSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
-      return AssignmentQuestion.objects.all()
-
-   def perform_update(self, serializer):
+      return PLOCLOMapping.objects.all()
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Course Learning Objectives."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
-# STOP - AssignmentQuestion
+# STOP - PLOCLOMapping
 
 
 
-# START - AssignmentQuestionMapping
-# AssignmentQuestionMapping List Create 
-# Retrives all AssignmentQuestionMappings, also handles creating AssignmentQuestionMappings
-class AssignmentQuestionMappingListCreate(APIView):
+# START - Student
+class StudentListCreate(generics.ListCreateAPIView):
    """
-   A view for retrieving a list of all instances, or to create a new instance.
+   API endpoint for listing all instances of and creating a new Student instance.
    """
-   def get(self): # Return the list
-      AssignmentQuestionMappings = AssignmentQuestionMapping.objects.all()
-      serializer = AssignmentQuestionMappingSerializer(AssignmentQuestionMappings, many=True)
+   serializer_class = StudentSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      students = Student.objects.all()
+      serializer = StudentSerializer(students, many=True)
       return Response(serializer.data)
-
-   def post(self, request): # Create the instance using the request
-      print(request.data)
-      serializer = AssignmentQuestionMappingSerializer(data=request.data)
-      if serializer.is_valid():
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Students."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = StudentSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# AssignmentQuestionMapping Detail View
-# Allows for: Edit, Create, Specific instance retrieval
-class AssignmentQuestionMappingDetail(generics.RetrieveUpdateDestroyAPIView):
+class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
    """
-   A view for retrieving, updating, and deleting a specific AssignmentQuestionMapping instance.
+   A view for retrieving, updating, and deleting a specific Student instance.
    """
-   queryset = AssignmentQuestionMapping.objects.all()  # Define queryset for the view
-   serializer_class = AssignmentQuestionMappingSerializer
+   queryset = Student.objects.all()  # Define queryset for the view
+   serializer_class = StudentSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the Course instance
-
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
    def get_queryset(self):
-      return AssignmentQuestionMapping.objects.all()
-
-   def perform_update(self, serializer):
+      return Student.objects.all()
+   
+   def perform_update(self, request, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Students."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
-
-   def perform_destroy(self, instance):
+   
+   def perform_destroy(self, request, instance):
       """
       This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the log.
+      We can perform any custom logic before actually deleting the instance.
       """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Students."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
-# STOP - AssignmentQuestionMapping
+# STOP - Student
+
+
+
+# START - StudentTaskMapping
+class StudentTaskMappingListCreate(generics.ListCreateAPIView):
+   """
+   API endpoint for listing all instances of and creating a new Student Task Mapping instance.
+   """
+   serializer_class = StudentTaskMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   
+   def get(self):
+      student_task_mappings = StudentTaskMapping.objects.all()
+      serializer = StudentSerializer(student_task_mappings, many=True)
+      return Response(serializer.data)
+   
+   def post(self, request):
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Student Task Mappings."}, status=status.HTTP_403_FORBIDDEN)
+      serializer = StudentTaskMappingSerializer(data=request.data)
+      if serializer.is_valid():  # Checks for valid serializer
+         serializer.save()
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class StudentTaskMappingDetail(generics.RetrieveUpdateDestroyAPIView):
+   """
+   A view for retrieving, updating, and deleting a specific Student Task Mapping instance.
+   """
+   queryset = StudentTaskMapping.objects.all()  # Define queryset for the view
+   serializer_class = StudentTaskMappingSerializer
+   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
+   lookup_field = "pk"  # Use the primary key to find the instance
+   
+   def get_queryset(self):
+      return StudentTaskMapping.objects.all()
+   
+   def perform_update(self, request, serializer):
+      """
+      This method is called when an update (PUT) request is made.
+      It allows us to add custom behavior during the update (e.g., adding more info).
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Student Task Mapping."}, status=status.HTTP_403_FORBIDDEN)
+      serializer.save()
+   
+   def perform_destroy(self, request, instance):
+      """
+      This method is called when a delete (DELETE) request is made.
+      We can perform any custom logic before actually deleting the instance.
+      """
+      if not request.user.is_superuser:  # Checks for superuser status
+         return Response({"error": "Only superusers can create new Student Task Mapping."}, status=status.HTTP_403_FORBIDDEN)
+      instance.delete()
+# STOP - StudentTaskMapping
