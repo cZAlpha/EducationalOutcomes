@@ -20,6 +20,19 @@ from django.contrib.auth.password_validation import validate_password # For vali
 # - If needed (test first before doing the work), use the Meta method to define pseudo-composite primary keys for all models
 # - Before using META, use composite key method if not too many attributes are part of the primary key
 
+class UserRole(models.Model):
+   ROLE_CHOICES = [ # These role choices are in order of power, admins can read and write anything, users can only read and write to certian fields and clients are READ ONLY for most things
+      ('root', 'root'), # For Dr. Rasamny ONLY (or other applicable super administrator)
+      ('Admin', 'Admin'), # For Dr. Smolenski and other high-ranking professors
+      ('User', 'User'), # For general users such as normal professors
+   ]
+   role_name = models.CharField(max_length=20, unique=True, choices=ROLE_CHOICES)
+   role_description = models.TextField(null=True, blank=True)
+   permissions = models.JSONField(max_length=1000, null=True, blank=True) # Optional JSON object containing 'list' of permissions
+
+   def __str__(self):
+      return self.role_name
+
 
 class UserManager(BaseUserManager):
    # Purpose: The user manager is used to manage the creation of users
@@ -74,20 +87,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
    def __str__(self):
       return self.d_number
-
-
-class UserRole(models.Model):
-   ROLE_CHOICES = [ # These role choices are in order of power, admins can read and write anything, users can only read and write to certian fields and clients are READ ONLY for most things
-      ('root', 'root'), # For Dr. Rasamny ONLY (or other applicable super administrator)
-      ('Admin', 'Admin'), # For Dr. Smolenski and other high-ranking professors
-      ('User', 'User'), # For general users such as normal professors
-   ]
-   role_name = models.CharField(max_length=20, unique=True, choices=ROLE_CHOICES)
-   role_description = models.TextField(null=True, blank=True)
-   permissions = models.JSONField(max_length=1000, null=True, blank=True) # Optional JSON object containing 'list' of permissions
-
-   def __str__(self):
-      return self.role_name
 
 
 class Log(models.Model):

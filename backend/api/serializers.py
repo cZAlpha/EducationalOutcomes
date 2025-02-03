@@ -10,11 +10,26 @@ from rest_framework.exceptions import ValidationError
 # - With our API, we will be using JSON, so we must serialize and deserialize information to make data flow correctly and efficiently
 
 
+# UserRole Serializer
+class UserRoleSerializer(serializers.ModelSerializer):
+   class Meta:
+      model = UserRole
+      fields = ["id", "role_name", "role_description", "permissions"]
+
+
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
+   role = UserRoleSerializer(read_only=True)  # Include role data in the serialized response
+   role_id = serializers.PrimaryKeyRelatedField(queryset=UserRole.objects.all(), write_only=True)  # For creating/updating a user, use the role ID
+    
    class Meta:
       model = User
-      fields = ["id", "username", "email", "password", "role"]
+      fields = [
+            'user_id', 'd_number', 'role', 'role_id', 'email', 'first_name', 'last_name', 
+            'employee_id', 'date_created', 'is_active', 'is_staff'
+      ]
+      read_only_fields = ['user_id', 'date_created']  # These fields are auto-managed by Django and should be read-only
+
       extra_kwargs = {
          "password": {"write_only": True},
       }
@@ -45,13 +60,6 @@ class UserSerializer(serializers.ModelSerializer):
       user.save()
       
       return user
-
-
-# UserRole Serializer
-class UserRoleSerializer(serializers.ModelSerializer):
-   class Meta:
-      model = UserRole
-      fields = ["id", "role_name", "role_description", "permissions"]
 
 
 # Log Serializer
