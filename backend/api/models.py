@@ -20,6 +20,8 @@ from django.contrib.auth.password_validation import validate_password # For vali
 # - If needed (test first before doing the work), use the Meta method to define pseudo-composite primary keys for all models
 # - Before using META, use composite key method if not too many attributes are part of the primary key
 
+
+# User Role
 class UserRole(models.Model):
    ROLE_CHOICES = [ # These role choices are in order of power, admins can read and write anything, users can only read and write to certian fields and clients are READ ONLY for most things
       ('root', 'root'), # For Dr. Rasamny ONLY (or other applicable super administrator)
@@ -34,6 +36,7 @@ class UserRole(models.Model):
       return self.role_name
 
 
+# User Manager (Django quirk but required)
 class UserManager(BaseUserManager):
    # Purpose: The user manager is used to manage the creation of users
    # Q: Why not just use a user view to do this, like all other models??
@@ -65,6 +68,7 @@ class UserManager(BaseUserManager):
       return self.create_user(d_number, email, password, **extra_fields) # Calls normal constructor
 
 
+# User
 class User(AbstractBaseUser, PermissionsMixin):
    user_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number
@@ -89,6 +93,7 @@ class User(AbstractBaseUser, PermissionsMixin):
       return self.d_number
 
 
+# Log 
 class Log(models.Model):
    ACTION_CHOICES = [ # Log action types
       ('CREATE', 'Create'),
@@ -113,11 +118,6 @@ class Log(models.Model):
    
    def __str__(self):
       return f"{self.user} | {self.action} | {self.timestamp}"
-
-
-#
-# Accreditation Specific Models
-#
 
 
 # Accreditation Organization
