@@ -2,7 +2,8 @@
 <br>
 
 # To Do List:
-- Fix schema to match what Dr. Rasamny said about class learning objectives as well as ABET learning objective mappings
+- Test DB
+- Start frontend work (Figma first, then implementation)
 
 # To Do For Components:
 - 
@@ -19,8 +20,7 @@
 <br>
 
 # Database Schema 
-SUBJECT TO CHANGE!
-![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/WhiteBG_CapstoneProjectDatabaseSchema.svg)
+![Capstone Project Database Schema](frontend/src/assets/DatabaseSchema/CapstoneProjectDatabasSchema_FourthIteration.png)
 
 # Initial Setup Required
 1. ### Must have Python 3.11.9 & corresponding Python Virtual Environment called 'env' within the parent directory.
@@ -118,4 +118,4 @@ This will, in turn, start up the Node JS development server. Use the provided lo
 https://www.youtube.com/watch?v=c-QsfbznSXI&t=3487s
 
 # Note from Author
-The content of this project may not be copied or re-used in any way without explicity written (or typed) permission from me. This project was created using a webapp template I created under Sage Advisory DE LLC, all rights reserved. Special permission has been given for the faculty and staff at DSU to use this webapp as a tool for the further of education and therefore is free for them to use, modify, and/or change in any way that they may need to in the future.
+The content of this project may not be copied or re-used in any way without explicity written (or typed) permission from me. This project was created using a webapp template I created under Sage Advisory DE LLC, all rights reserved. Special permission has been given for the faculty and staff at DSU to use this webapp as a tool for the further of education and therefore is free for them to use, modify, and/or change in any way that they may need to in the future. They are also free to claim it as theirs, and license it as they wish for commercial, educational, or any other use.
