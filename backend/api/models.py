@@ -31,7 +31,7 @@ class UserRole(models.Model):
    role_name = models.CharField(max_length=20, unique=True, choices=ROLE_CHOICES)
    role_description = models.TextField(null=True, blank=True)
    permissions = models.JSONField(max_length=1000, null=True, blank=True) # Optional JSON object containing 'list' of permissions
-
+   
    def __str__(self):
       return self.role_name
 
@@ -79,16 +79,16 @@ class User(AbstractBaseUser, PermissionsMixin):
    last_name = models.CharField(max_length=40)
    employee_id = models.CharField(max_length=20, null=True, blank=True) # State-related employee ID, optional due to some adjuncts may not have it
    date_created = models.DateTimeField(auto_now_add=True)
-
+   
    # Permissions fields
    is_active = models.BooleanField(default=True)
    is_staff = models.BooleanField(default=False)
-
+   
    objects = UserManager()
-
+   
    USERNAME_FIELD = "d_number"  # D_Number IS the username
    REQUIRED_FIELDS = ["email"]
-
+   
    def __str__(self):
       return self.d_number
 
@@ -155,7 +155,7 @@ class ProgramLearningObjective(models.Model):
    plo_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    a_version = models.ForeignKey(AccreditationVersion, on_delete=models.CASCADE)  # Dictates the accreditation version that the given PLO uses
    designation = models.CharField(max_length=10)  # What letter is used to designate a given LO
-   description = models.CharField(max_length=100, null=True, blank=True)  # Optional description
+   description = models.CharField(max_length=1200, null=True, blank=True)  # Optional description
    
    def __str__(self):
       return f"{self.designation}: {self.description[:20]} | Accreditation Version: {self.abet_version} | From Organization: {self.a_version.a_organization}"
