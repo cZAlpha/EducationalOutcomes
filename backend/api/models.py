@@ -147,7 +147,7 @@ class AccreditationVersion(models.Model):
          raise ValidationError("The year must be greater than or equal to 2000.")
    
    def __str__(self): # To string method returns the given ABET Version's year
-      return str(self.year)
+      return f"{self.a_organization} - {self.year}"
 
 
 # Program Learning Objective (PLO)
@@ -158,7 +158,7 @@ class ProgramLearningObjective(models.Model):
    description = models.CharField(max_length=1200, null=True, blank=True)  # Optional description
    
    def __str__(self):
-      return f"{self.designation}: {self.description[:20]} | Accreditation Version: {self.abet_version} | From Organization: {self.a_version.a_organization}"
+      return f"{self.designation}: {self.description[:20]} | Accreditation Version: {self.a_version} | From Organization: {self.a_version.a_organization}"
 
 
 # Program
@@ -206,7 +206,7 @@ class Semester(models.Model):
    designation = models.IntegerField()  # Holds the designation/'name' of the semester, e.g.: 202501 is Fall Semester of 2024
    
    def __str__(self):
-      return self.designation
+      return str(self.designation)
 
 
 # Sections
@@ -301,6 +301,9 @@ class Student(models.Model):
    d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number (ID)
    first_name = models.CharField(max_length=20)  # First name
    last_name = models.CharField(max_length=40)  # Last name
+   
+   def __str__(self):
+      return f"Student: {self.first_name} {self.last_name}"
 
 
 # Student Task Mapping
@@ -317,4 +320,4 @@ class StudentTaskMapping(models.Model):  # This is basically just a gradebook di
       ]
    
    def __str__(self):
-      return f"ID: {self.plo_clo_mapping_id} | PLO: {self.plo} | CLO: {self.clo}"
+      return f"Student: {self.student.first_name} {self.student.last_name} | Score: {(self.score / self.total_possible_score)} | Task: {self.task}"
