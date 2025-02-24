@@ -44,6 +44,7 @@ REST_FRAMEWORK = { # Necessary for JWT token (for secure authorization)
 SIMPLE_JWT = { # JWT Auth. Config
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30), # Access token lifetime (set to 30 minutes),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1), # Refresh token lifetime (set to one day)
+    "USER_ID_FIELD": "d_number",
 }
 
 

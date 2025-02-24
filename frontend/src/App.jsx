@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do it all in one line because React is dumb)
 import UserDashboard from "./pages/UserDashboard"
 import Login from "./pages/Login" 
-import Register from "./pages/Register"
 import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
@@ -12,11 +11,6 @@ import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react'
 function Logout() { 
   localStorage.clear() // Clears browser cache
   return <Navigate to="/login" /> // Goes to the login page thru routing
-}
-
-function RegisterAndLogout() {
-  localStorage.clear() // Clears browser cache
-  return <Register /> // Goes back to the register page
 }
 
 // Define a shared gradient component
@@ -83,7 +77,6 @@ function App() {
         <Route path="/" element={<Home />} />                         {/* Home page / landing page */}
         <Route path="/login" element={<Login />} />                   {/* Login page */}
         <Route path="/logout" element={<Logout />} />                 {/* Logout 'page' */}
-        <Route path="/register" element={<RegisterAndLogout />} />    {/* Login page */}
         <Route path="*" element={<NotFound />}></Route>               {/* Notfound page (404 page) */}
       </Routes>
     </BrowserRouter>

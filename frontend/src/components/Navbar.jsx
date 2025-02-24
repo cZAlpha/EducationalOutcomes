@@ -1,47 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from 'react-router-dom'; // For routing with hashes and stuff
-import { AppBar, Toolbar, IconButton, Menu, MenuItem } from "@mui/material"; // MUI Imports
-import MenuIcon from "@mui/icons-material/Menu";
+import { Link, useNavigate } from 'react-router-dom';
+import { Drawer, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import InfoIcon from "@mui/icons-material/Info";
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import LoginIcon from '@mui/icons-material/Login';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ContactMailIcon from "@mui/icons-material/ContactMail";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import SubjectIcon from "@mui/icons-material/Subject"; // Courses
+import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
+import BuildIcon from "@mui/icons-material/Build";
 import { USER } from "../constants";
 
-
 const Navbar = () => {
-   // START - Role Handling
-   const roles = [ // Possible roles for users
-      { id: 1, name: 'Root' },
-      { id: 2, name: 'Admin' },
-      { id: 3, name: 'User' },
+   const roles = [
+      { id: 1, name: 'user' },
+      { id: 2, name: 'admin' },
+      { id: 3, name: 'root' },
    ];
-
+   
    const findRoleName = (rolePk) => {
       const role = roles.find(r => r.id === rolePk);
-      return role ? role.name : 'Unknown Role';
+      return role ? role.name : 'Unassigned';
    };
-   // STOP - Role Handling
-
-   // State for mobile menu
-   const [anchorEl, setAnchorEl] = React.useState(null);
-   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
    
-   // State for account dropdown menu
-   const [accountMenuAnchorEl, setAccountMenuAnchorEl] = React.useState(null);
-   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
-   
-   // State for loggedIn status
-   const [loggedIn, setLoggedIn] = React.useState(false);
+   const [loggedIn, setLoggedIn] = useState(false);
    const [currentUser, setCurrentUser] = useState(null);
-   const [isRootOrAdmin, setIsRootOrAdmin] = useState(false); // Variable used to track if the current user is a root or admin user
+   const [isRootOrAdmin, setIsRootOrAdmin] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
 
-   // START - Navigation Section
    const navigate = useNavigate();
 
    const handleScroll = (id) => {
@@ -49,237 +37,108 @@ const Navbar = () => {
       if (element) {
          element.scrollIntoView({ behavior: "smooth", block: "start" });
       } else {
-         // Navigate to home and allow the effect to occur there
          navigate(`/#${id}`);
       }
    };
-   // STOP - Navigation Section
-   
-   // Handle mobile menu opening
-   const handleMobileMenuOpen = (event) => {
-      setAnchorEl(event.currentTarget);
-      setMobileMenuOpen(true);
-   };
-   
-   const handleMobileMenuClose = () => {
-      setAnchorEl(null);
-      setMobileMenuOpen(false);
-   };
-   
-   // Handle account menu opening
-   const handleAccountMenuOpen = (event) => {
-      setAccountMenuAnchorEl(event.currentTarget);
-      setAccountMenuOpen(true);
-   };
-   
-   const handleAccountMenuClose = () => {
-      setAccountMenuAnchorEl(null);
-      setAccountMenuOpen(false);
-   };
-   
-   // Fetch user data from localStorage
+
    const getUserData = () => {
       try {
-      const userData = JSON.parse(localStorage.getItem(USER)); // Grabs user object from localstorage
-      if (userData && userData.id) {
-         setCurrentUser(userData);  // If user exists, set to state
-         setLoggedIn(true)
-         if (userData.role) { // Set the is root or admin variable
-            const userRole = findRoleName(userData.role)
-            if (userRole === "Root" || userRole === "Admin") { // If the user is a root or admin user
-               setIsRootOrAdmin(true); // Set the is root or admin variable to true
-            } 
+         const userData = JSON.parse(localStorage.getItem(USER));
+         if (userData) {
+            setCurrentUser(userData);
+            setLoggedIn(true);
+            if (userData.role) {
+               const userRole = findRoleName(userData?.role?.id);
+               if (userRole === "root" || userRole === "admin") {
+                  setIsRootOrAdmin(true);
+               } 
+            }
+         } else {
+            setCurrentUser(null);
          }
-      } else {
-         setCurrentUser(null); // No user found, set as null
-      }
       } catch (error) {
-      console.error("Navbar Component | Error loading user from localStorage:", error);
-      setCurrentUser(null);
+         console.error("Navbar Component | Error loading user from localStorage:", error);
+         setCurrentUser(null);
       } finally {
-      setIsLoading(false); // Finished loading
+         setIsLoading(false);
       }
    };
 
-   // Effect to load user data when the component mounts
    useEffect(() => {
       getUserData();
    }, []);
    
-   
-   // HTML
    return (
-      <AppBar
-         position="sticky"
+      <Drawer
+         variant="permanent"
          sx={{
-            backgroundColor: 'rgb(28, 76, 113)',
+            width: 240,
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box', backgroundColor: '#122441', color: 'white' },
          }}
       >
-         <Toolbar className="flex flex-row align-center justify-between md:justify-start gap-x-8">
-            {/* Logo */}
-            <div className="text-white font-bold text-lg">DSU Educational Outcomes</div>
+         <List>
+            <ListItem>
+               <ListItemText
+                  primary={<span className="font-bold text-2xl">DSU Educational Outcomes</span>}
+               />
+            </ListItem>
+            <Link to="/">
+               <ListItem button>
+                  <ListItemIcon><HomeIcon className="text-white" /></ListItemIcon>
+                  <ListItemText primary="Home" />
+               </ListItem>
+            </Link>
+
+            {loggedIn && ( // ONLY SHOW ACCOUNT OPTION: if logged in 
+               <ListItem>
+                  <ListItemIcon>
+                     <AccountCircleIcon className="text-white" />
+                  </ListItemIcon>
+                  <ListItemText
+                     primary={loggedIn ? currentUser?.first_name : "Account"}
+                     className="font-bold text-lg"
+                  />
+               </ListItem>
+            )}
+
+            <Link to="/courses">
+               <ListItem button>
+                  <ListItemIcon><ViewAgendaIcon className="text-white" /></ListItemIcon>
+                  <ListItemText primary="Courses" />
+               </ListItem>
+            </Link>
+            <Link to="/sections">
+               <ListItem button>
+                  <ListItemIcon><SubjectIcon className="text-white" /></ListItemIcon>
+                  <ListItemText primary="Sections" />
+               </ListItem>
+            </Link>
+            <Link to="/tools">
+               <ListItem button>
+                  <ListItemIcon><BuildIcon className="text-white" /></ListItemIcon>
+                  <ListItemText primary="Tools" />
+               </ListItem>
+            </Link>
             
-            {/* Desktop Menu */}
-            <div className="hidden md:flex space-x-6">
-               <Link to="/">
-                  <div className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1">
-                     <HomeIcon className="text-inherit" />
-                     <p>Home</p>
-                  </div>
+            {loggedIn && ( // If logged in
+               <Link to="/logout">
+                  <ListItem button>
+                     <ListItemIcon><ExitToAppIcon className="text-red-500" /></ListItemIcon>
+                     <ListItemText primary="Logout" className="text-red-500" />
+                  </ListItem>
                </Link>
-               <div
-                  onClick={() => handleScroll("about")}
-                  className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1"
-               >
-                  <InfoIcon className="text-inherit" />
-                  <p>About</p>
-               </div>
-               <div
-                  onClick={() => handleScroll("contact")}
-                  className="text-gray-300 hover:text-white transition-colors duration-300 cursor-pointer flex flex-row items-center gap-x-1"
-               >
-                  <ContactMailIcon className="text-inherit" />
-                  <p className="pl-1">Contact</p>
-               </div>
-            </div>
-            
-            {/* Account Icon with Dropdown */}
-            <div className="text-white ml-auto">
-               {loggedIn && // If the user IS logged in, show dashboard and user info.
-               <>
-                  <IconButton edge="end" color="inherit" onClick={handleAccountMenuOpen}>
-                     <AccountCircleIcon />
-                  </IconButton>
-                  <Menu
-                     anchorEl={accountMenuAnchorEl}
-                     open={accountMenuOpen}
-                     onClose={handleAccountMenuClose}
-                     sx={{
-                        '& .MuiPaper-root': {
-                           minWidth: '170px', // Adjust this to your desired width
-                           maxWidth: '240px', // Optional: Set a max-width
-                        },
-                     }}
-                  >
-                     {/* TODO: REPLACE ONCLICK TO ROUTE TO EDIT ACCOUNT PAGE, OR OPEN EDIT USER FORM TO YOUR USER */}
-                     <MenuItem 
-                        onClick={() => {}} // Update this if you need specific functionality
-                        sx={{
-                           background: 'transparent',
-                           '&:hover': {
-                              background: 'transparent',
-                           },
-                           '&:focus': {
-                              background: 'transparent',
-                           },
-                           '&.Mui-selected': {
-                              background: 'transparent',
-                              '&:hover': {
-                                 background: 'transparent',
-                              },
-                           },
-                        }}
-                     > 
-                        <div className="flex flex-row items-center justify-center mt-1 mb-2">
-                           <AccountCircleIcon style={{ fontSize: 40 }} />
-                           <div className="flex flex-col ml-3">
-                              <p className="font-bold text-lg">{currentUser?.username ? currentUser.username : "N/A"}</p>
-                              <p className="text-gray-400 text-md italic">{findRoleName(currentUser?.role)}</p>
-                           </div>
-                        </div>
-                     </MenuItem>
-                     {isRootOrAdmin && // Admin dashboard button
-                        <Link to="/dashboard">
-                           <MenuItem onClick={handleAccountMenuClose}>
-                              <div className="flex flex-row align-center gap-x-2">
-                                 <DashboardIcon/> 
-                                 <p>Dashboard</p>
-                              </div>
-                           </MenuItem>
-                        </Link>
-                     }
-                     {!isRootOrAdmin && // User dashboard button
-                        <Link to="/userdashboard">
-                           <MenuItem onClick={handleAccountMenuClose}>
-                              <div className="flex flex-row align-center gap-x-2">
-                                 <DashboardIcon/> 
-                                 <p>Dashboard</p>
-                              </div>
-                           </MenuItem>
-                        </Link>
-                     }
-                     <Link to="/logout">
-                        <MenuItem onClick={handleAccountMenuClose} >
-                           <div className="flex flex-row align-center gap-x-2">
-                              <ExitToAppIcon className="text-red-500" /> 
-                              <p className="text-red-500">Logout</p>
-                           </div>
-                        </MenuItem>
-                     </Link>
-                  </Menu>
-               </>
-               }
-               {!loggedIn && // If the user is NOT logged in, show default
-               <>
-                  <IconButton edge="end" color="inherit" onClick={handleAccountMenuOpen}>
-                     <AccountCircleIcon />
-                  </IconButton>
-                  <Menu
-                     anchorEl={accountMenuAnchorEl}
-                     open={accountMenuOpen}
-                     onClose={handleAccountMenuClose}
-                  >
-                     <Link to="/login">
-                        <MenuItem onClick={handleAccountMenuClose}>
-                           <div className="flex flex-row align-center gap-x-2">
-                              <LoginIcon/> 
-                              <p>Login</p>
-                           </div>
-                        </MenuItem>
-                     </Link>
-                     <Link to="/register">
-                        <MenuItem onClick={handleAccountMenuClose}>
-                           <div className="flex flex-row align-center gap-x-2">
-                              <PersonAddIcon/>
-                              <p>Register</p>
-                           </div>
-                        </MenuItem>
-                     </Link>
-                  </Menu>
-               </>
-               }
-            </div>
-            
-            {/* Mobile Menu */}
-            <div className="md:hidden">
-               <IconButton edge="start" color="inherit" onClick={handleMobileMenuOpen}>
-                  <MenuIcon />
-               </IconButton>
-               <Menu
-                  anchorEl={anchorEl}
-                  open={mobileMenuOpen}
-                  onClose={handleMobileMenuClose}
-                  className="md:hidden"
-               >
-                  <Link to="/">
-                     <MenuItem onClick={handleMobileMenuClose}>
-                        <HomeIcon className="mr-2" /> Home
-                     </MenuItem>
-                  </Link>
-                  <Link to="/about">
-                     <MenuItem onClick={handleMobileMenuClose}>
-                        <InfoIcon className="mr-2" /> About
-                     </MenuItem>
-                  </Link>
-                  <Link to="/contact">
-                     <MenuItem onClick={handleMobileMenuClose}>
-                        <ContactMailIcon className="mr-2" /> Contact
-                     </MenuItem>
-                  </Link>
-               </Menu>
-            </div>
-         </Toolbar>
-      </AppBar>
+            )}
+            {!loggedIn && ( // IF NOT LOGGED IN
+               <Link to="/login">
+                  <ListItem button>
+                     <ListItemIcon><LoginIcon className="text-white" /></ListItemIcon>
+                     <ListItemText primary="Login" />
+                  </ListItem>
+               </Link>
+            )}
+         </List>
+      </Drawer>
    );
 };
 

@@ -12,16 +12,16 @@ import { USER } from "../constants";
 
 function UserDashboard() {
    // START - User Role Ascertation Code
-   const roles = [ // Possible roles for users
-      { id: 1, name: 'root' },
+   const roles = [
+      { id: 1, name: 'user' },
       { id: 2, name: 'admin' },
-      { id: 3, name: 'user' },
+      { id: 3, name: 'root' },
    ];
-
+   
    const findRoleName = (rolePk) => {
       const role = roles.find(r => r.id === rolePk);
-      return role ? role.name : 'Unassigned';
-   };
+      return role ? role.name : 'Unassigned';  // ✔️ Changed to role.name
+   };   
    // STOP - User Role Ascertation Code
 
    // Navigation 

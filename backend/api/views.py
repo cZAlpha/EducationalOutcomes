@@ -1,7 +1,6 @@
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, generics
-from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.hashers import make_password
 
@@ -44,7 +43,7 @@ class UserListCreate(generics.ListCreateAPIView):
       user = self.request.user
       if user.is_superuser:
          return User.objects.all()  # Superusers see all users
-      return User.objects.filter(id=user.id)  # Regular users see only themselves
+      return User.objects.filter(user_id=user.user_id) # only returns the same user
    
    def create(self, request, *args, **kwargs):
       """
@@ -71,7 +70,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
       try:
          return get_object_or_404(User, pk=int(user_identifier))  # Try by ID
       except ValueError:
-         return get_object_or_404(User, username=user_identifier)  # Try by username
+         return get_object_or_404(User, d_number=user_identifier) # Try by d number
    
    def perform_update(self, request, serializer):
       """

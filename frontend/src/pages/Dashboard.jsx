@@ -24,16 +24,16 @@ import LogsSection from '../components/LogsSection';
 
 function Dashboard() {
    // START - User Role Ascertation Code
-   const roles = [ // Possible roles for users
-      { id: 1, name: 'root' },
+   const roles = [
+      { id: 1, name: 'user' },
       { id: 2, name: 'admin' },
-      { id: 3, name: 'user' },
+      { id: 3, name: 'root' },
    ];
-
+   
    const findRoleName = (rolePk) => {
       const role = roles.find(r => r.id === rolePk);
-      return role ? role.name : 'Unassigned';
-   };
+      return role ? role.name : 'Unassigned';  // ✔️ Changed to role.name
+   };   
    // STOP - User Role Ascertation Code
 
    // Navigation 
@@ -53,7 +53,7 @@ function Dashboard() {
          if (user) {
             setCurrentUser(user); // Update state with the username
             if (user.role) { // User role ascertation to handle not allowing regular users into the admin dashboard
-               const userRole = findRoleName(user.role);
+               const userRole = findRoleName(user?.role?.id);  // Pass the role ID
                if (userRole !== "admin" && userRole !== "root") { // If the user is NOT an admin or root user, navigate to the user dashboard
                   useNavigate("/userdashboard");
                }

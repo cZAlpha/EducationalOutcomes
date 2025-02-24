@@ -1,9 +1,6 @@
-from django.test import TestCase
 import os
 import sys
 import django
-import random
-from django.db.models import Avg
 
 
 # NOTE:

@@ -1,4 +1,4 @@
-import Form from "../components/Form"
+import LoginForm from "../components/LoginForm"
 import Navbar from "../components/Navbar";
 
 
@@ -7,7 +7,7 @@ function Login() {
       <> {/* Singular parent element required by React*/}
          <Navbar/>
          <div className="p-10">
-            <Form route="/api/token/" method="login" />
+            <LoginForm route="/api/token/" method="login" />
          </div>
       </>
    );
