@@ -1,15 +1,25 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 
-
 function Home() {
    return (
       <> {/* Singular parent element required by React */}
          <Navbar />
-         <div className="flex flex-col items-center justify-center w-full text-center space-y-12">
-            <h1 className="pt-12 pb-8 text-3xl font-bold min-h-[60vh]">Hero Section Placeholder :)</h1>
-            <h1 id="about" className="pb-8 text-3xl font-bold min-h-[60vh]">About Us Section Placeholder</h1>
-            <h1 id="contact" className="pb-8 text-3xl font-bold min-h-[60vh]">Contact Us Section Placeholder</h1>
+         <div className="flex justify-center items-center min-h-screen">
+            <div className="flex flex-row w-[60%] rounded-2xl shadow-lg overflow-hidden">
+               <img
+                  src="https://collegesofdistinction.com/wp-content/uploads/2021/08/delaware-state-university-1.jpeg"
+                  alt="DSU Campus Image"
+                  className="w-4/5 object-cover"
+               />
+               <div className="w-1/5 bg-gray-100 flex flex-col justify-center items-start p-4 space-y-4">
+                  <a href="#" className="text-blue-600 hover:underline">Link One</a>
+                  <a href="#" className="text-blue-600 hover:underline">Link Two</a>
+                  <a href="#" className="text-blue-600 hover:underline">Link Three</a>
+                  <a href="#" className="text-blue-600 hover:underline">Link Four</a>
+                  <a href="#" className="text-blue-600 hover:underline">Link Five</a>
+               </div>
+            </div>
          </div>
       </>
    );

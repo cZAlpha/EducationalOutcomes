@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do 
 import UserDashboard from "./pages/UserDashboard"
 import Login from "./pages/Login" 
 import Home from "./pages/Home"
+import Account from "./pages/Account"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
 import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react'
@@ -62,17 +63,23 @@ function App() {
     <BrowserRouter>
       <PersistentGradient /* Adds a persistent gradient that is on every page */ />
       <Routes>
-        <Route path="/dashboard" element={ // On the "/" route establish a protected route and place the Dashboard page component inside
+        <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
             <ProtectedRoute>
               <Dashboard /> 
             </ProtectedRoute>
           }
         />
-        <Route path="/userdashboard" element={ // User dashboard
+        <Route path="/userdashboard" element={ // MIGHT NOT USE THIS!!!!
             <ProtectedRoute>
               <UserDashboard /> 
             </ProtectedRoute>
           }
+        />
+        <Route path="/account" element={
+          <ProtectedRoute>
+            <Account/>
+          </ProtectedRoute>
+        }
         />
         <Route path="/" element={<Home />} />                         {/* Home page / landing page */}
         <Route path="/login" element={<Login />} />                   {/* Login page */}

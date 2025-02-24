@@ -90,36 +90,41 @@ const Navbar = () => {
                </ListItem>
             </Link>
 
-            {loggedIn && ( // ONLY SHOW ACCOUNT OPTION: if logged in 
-               <ListItem>
-                  <ListItemIcon>
-                     <AccountCircleIcon className="text-white" />
-                  </ListItemIcon>
-                  <ListItemText
-                     primary={loggedIn ? currentUser?.first_name : "Account"}
-                     className="font-bold text-lg"
-                  />
-               </ListItem>
+            {loggedIn && ( // Only show application page options if logged in
+               <>
+                  <Link to="/account">
+                     <ListItem>
+                        <ListItemIcon>
+                           <AccountCircleIcon className="text-white" />
+                        </ListItemIcon>
+                        <ListItemText
+                           primary={loggedIn ? currentUser?.first_name : "Account"}
+                           className="font-bold text-lg"
+                        />
+                     </ListItem>
+                  </Link>
+                  <Link to="/courses">
+                     <ListItem button>
+                        <ListItemIcon><ViewAgendaIcon className="text-white" /></ListItemIcon>
+                        <ListItemText primary="Courses" />
+                     </ListItem>
+                  </Link>
+                  <Link to="/sections">
+                     <ListItem button>
+                        <ListItemIcon><SubjectIcon className="text-white" /></ListItemIcon>
+                        <ListItemText primary="Sections" />
+                     </ListItem>
+                  </Link>
+                  <Link to="/tools">
+                     <ListItem button>
+                        <ListItemIcon><BuildIcon className="text-white" /></ListItemIcon>
+                        <ListItemText primary="Tools" />
+                     </ListItem>
+                  </Link>
+               </>
             )}
 
-            <Link to="/courses">
-               <ListItem button>
-                  <ListItemIcon><ViewAgendaIcon className="text-white" /></ListItemIcon>
-                  <ListItemText primary="Courses" />
-               </ListItem>
-            </Link>
-            <Link to="/sections">
-               <ListItem button>
-                  <ListItemIcon><SubjectIcon className="text-white" /></ListItemIcon>
-                  <ListItemText primary="Sections" />
-               </ListItem>
-            </Link>
-            <Link to="/tools">
-               <ListItem button>
-                  <ListItemIcon><BuildIcon className="text-white" /></ListItemIcon>
-                  <ListItemText primary="Tools" />
-               </ListItem>
-            </Link>
+            
             
             {loggedIn && ( // If logged in
                <Link to="/logout">
