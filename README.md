@@ -10,9 +10,9 @@
 
 <br>
 
-# Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/HomePagePreview.png)
+# Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/homePage.png)
 
-# Admin Dashboard Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/AdminDashboardPreview.png)
+# Courses Page Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/coursesPage.png)
 
 # Purpose
 ### The purpose of this application is to provide educators at Delaware State University with an application where they can upload their grades, map the questions to ABET learning outcomes and then automatically receive information on their student performance on the aforementioned learning outcomes. This will also include statistical analysis to some degree for insightful information
