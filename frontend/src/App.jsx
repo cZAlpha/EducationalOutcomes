@@ -4,6 +4,7 @@ import UserDashboard from "./pages/UserDashboard"
 import Login from "./pages/Login" 
 import Home from "./pages/Home"
 import Account from "./pages/Account"
+import Courses from "./pages/Courses"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
 import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react'
@@ -75,9 +76,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/account" element={
+        <Route path="/account" element={                             /* Account page (Protected) */
           <ProtectedRoute>
             <Account/>
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/courses" element={                             /* Courses page (Protected) */
+          <ProtectedRoute>
+            <Courses/>
           </ProtectedRoute>
         }
         />
