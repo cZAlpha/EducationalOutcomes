@@ -2,12 +2,7 @@
 <br>
 
 # To Do List:
-- Test DB
-- Start frontend work (Figma first, then implementation)
-
-# To Do For Components:
-- 
-
+- Finish Frontend Programming
 <br>
 
 # Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/homePage.png)
