@@ -32,37 +32,37 @@ function Account() {
                <div className="bg-white shadow-lg rounded-2xl p-8 max-w-2xl space-y-6">
                   <div className="flex flex-col gap-y-4 text-left">
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">First Name:</p>
+                        <p className="font-semibold text-gray-800">First Name:</p>
                         <p>{currentUser.first_name}</p>
                      </div>
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">Last Name:</p>
+                        <p className="font-semibold text-gray-800">Last Name:</p>
                         <p>{currentUser.last_name}</p>
                      </div>
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">Email:</p>
+                        <p className="font-semibold text-gray-800">Email:</p>
                         <p>{currentUser.email}</p>
                      </div>
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">D-Number:</p>
+                        <p className="font-semibold text-gray-800">D-Number:</p>
                         <p>{currentUser.d_number}</p>
                      </div>
                      {currentUser.employee_id && ( // If the user has an employee ID, display it, otherwise don't
                         <div className="flex gap-x-2">
-                           <p className="font-semibold text-gray-700">Employee ID:</p>
+                           <p className="font-semibold text-gray-800">Employee ID:</p>
                            <p>{currentUser.employee_id}</p>
                         </div>
                      )}
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">Role:</p>
+                        <p className="font-semibold text-gray-800">Role:</p>
                         <p>{currentUser.role?.role_name}</p>
                      </div>
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">Role Description:</p>
+                        <p className="font-semibold text-gray-800">Role Description:</p>
                         <p>{currentUser.role?.role_description}</p>
                      </div>
                      <div className="flex gap-x-2">
-                        <p className="font-semibold text-gray-700">Date Created:</p>
+                        <p className="font-semibold text-gray-800">Date Created:</p>
                         <p>{new Date(currentUser.date_created).toLocaleString()}</p>
                      </div>
                   </div>

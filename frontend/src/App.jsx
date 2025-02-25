@@ -48,7 +48,7 @@ const PersistentGradient = () => (
       uDensity={1.3}
       uFrequency={5.5}
       uStrength={4}
-      uSpeed={0.2}
+      uSpeed={0.1}
       brightness={1.0}
       reflection={0.1}
       grain="off"
