@@ -183,7 +183,7 @@ function Courses() {
       };
       
       applyFilters();
-   }, [filters, mockCourses]);
+   }, [filters]);
    // STOP  - Filtering 
    
    return (

@@ -96,11 +96,7 @@ const Navbar = () => {
             {loggedIn && (
                <>
                   <Link to="/account">
-                     <ListItem 
-                        button 
-                        sx={getActiveStyle("/account")}
-                        onClick={() => console.log("Account page clicked")}
-                     >
+                     <ListItem button sx={getActiveStyle("/account")}>
                         <ListItemIcon>
                            <AccountCircleIcon />
                         </ListItemIcon>
@@ -111,11 +107,7 @@ const Navbar = () => {
                      </ListItem>
                   </Link>
                   <Link to="/courses">
-                     <ListItem
-                        button
-                        sx={getActiveStyle("/courses")}
-                        onClick={() => console.log("Courses page clicked")}
-                     >
+                     <ListItem button sx={getActiveStyle("/courses")}>
                         <ListItemIcon>
                            <ViewAgendaIcon />
                         </ListItemIcon>
@@ -157,6 +149,7 @@ const Navbar = () => {
                            color: location.pathname === "/logout" ? '#a10000' : '#a10000', // Match icon to text
                         },
                      }}
+                     onClick={()=> {setLoggedIn(false);}}
                   >
                      <ListItemIcon>
                         <ExitToAppIcon />
