@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Drawer, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
-import InfoIcon from "@mui/icons-material/Info";
-import DashboardIcon from '@mui/icons-material/Dashboard';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import LoginIcon from '@mui/icons-material/Login';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ContactMailIcon from "@mui/icons-material/ContactMail";
 import SubjectIcon from "@mui/icons-material/Subject"; // Courses
 import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
 import BuildIcon from "@mui/icons-material/Build";
@@ -29,18 +26,22 @@ const Navbar = () => {
    const [currentUser, setCurrentUser] = useState(null);
    const [isRootOrAdmin, setIsRootOrAdmin] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
-
+   
    const navigate = useNavigate();
-
-   const handleScroll = (id) => {
-      const element = document.getElementById(id);
-      if (element) {
-         element.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-         navigate(`/#${id}`);
-      }
-   };
-
+   const location = useLocation();
+   
+   const getActiveStyle = (path) => ({
+      backgroundColor: location.pathname === path ? '#f5f5f5' : 'transparent',
+      color: location.pathname === path ? 'black' : 'gray',
+      '&:hover': {
+         color: 'white',
+         '& svg': { color: 'white' },
+      },
+      '& svg': {
+         color: location.pathname === path ? 'black' : 'gray',
+      },
+   });
+   
    const getUserData = () => {
       try {
          const userData = JSON.parse(localStorage.getItem(USER));
@@ -51,7 +52,7 @@ const Navbar = () => {
                const userRole = findRoleName(userData?.role?.id);
                if (userRole === "root" || userRole === "admin") {
                   setIsRootOrAdmin(true);
-               } 
+               }
             }
          } else {
             setCurrentUser(null);
@@ -63,8 +64,8 @@ const Navbar = () => {
          setIsLoading(false);
       }
    };
-
-   useEffect(() => {
+   
+   useEffect(() => { // Grabs user data on mount
       getUserData();
    }, []);
    
@@ -84,18 +85,20 @@ const Navbar = () => {
                />
             </ListItem>
             <Link to="/">
-               <ListItem button>
-                  <ListItemIcon><HomeIcon className="text-white" /></ListItemIcon>
+               <ListItem button sx={getActiveStyle("/")}> 
+                  <ListItemIcon>
+                     <HomeIcon />
+                  </ListItemIcon>
                   <ListItemText primary="Home" />
                </ListItem>
             </Link>
-
-            {loggedIn && ( // Only show application page options if logged in
+            
+            {loggedIn && (
                <>
                   <Link to="/account">
-                     <ListItem>
+                     <ListItem button sx={getActiveStyle("/account")}>
                         <ListItemIcon>
-                           <AccountCircleIcon className="text-white" />
+                           <AccountCircleIcon />
                         </ListItemIcon>
                         <ListItemText
                            primary={loggedIn ? currentUser?.first_name : "Account"}
@@ -104,40 +107,65 @@ const Navbar = () => {
                      </ListItem>
                   </Link>
                   <Link to="/courses">
-                     <ListItem button>
-                        <ListItemIcon><ViewAgendaIcon className="text-white" /></ListItemIcon>
-                        <ListItemText primary="Courses" />
-                     </ListItem>
+                     <ListItem button sx={getActiveStyle("/courses")}>
+                        <ListItemIcon>
+                           <ViewAgendaIcon />
+                        </ListItemIcon>
+                           <ListItemText primary="Courses" />
+                        </ListItem>
                   </Link>
+                  
                   <Link to="/sections">
-                     <ListItem button>
-                        <ListItemIcon><SubjectIcon className="text-white" /></ListItemIcon>
+                     <ListItem button sx={getActiveStyle("/sections")}>
+                        <ListItemIcon>
+                           <SubjectIcon />
+                        </ListItemIcon>
                         <ListItemText primary="Sections" />
                      </ListItem>
                   </Link>
                   <Link to="/tools">
-                     <ListItem button>
-                        <ListItemIcon><BuildIcon className="text-white" /></ListItemIcon>
+                     <ListItem button sx={getActiveStyle("/tools")}>
+                        <ListItemIcon>
+                           <BuildIcon />
+                        </ListItemIcon>
                         <ListItemText primary="Tools" />
                      </ListItem>
                   </Link>
                </>
             )}
-
             
-            
-            {loggedIn && ( // If logged in
+            {loggedIn && (
                <Link to="/logout">
-                  <ListItem button>
-                     <ListItemIcon><ExitToAppIcon className="text-red-500" /></ListItemIcon>
-                     <ListItemText primary="Logout" className="text-red-500" />
+                  <ListItem
+                     button
+                     sx={{
+                        backgroundColor: location.pathname === "/logout" ? '#f5f5f5' : 'transparent',
+                        color: location.pathname === "/logout" ? '#a10000' : '#a10000', // Dark red default
+                        '&:hover': {
+                           color: '#FF0000', // Bright red on hover
+                           '& svg': { color: '#FF0000' }, // Icon bright red on hover
+                        },
+                        '& svg': {
+                           color: location.pathname === "/logout" ? '#a10000' : '#a10000', // Match icon to text
+                        },
+                     }}
+                     onClick={()=> {setLoggedIn(false);}}
+                  >
+                     <ListItemIcon>
+                        <ExitToAppIcon />
+                     </ListItemIcon>
+                     <ListItemText primary="Logout" />
                   </ListItem>
+               
                </Link>
             )}
-            {!loggedIn && ( // IF NOT LOGGED IN
+            
+            {!loggedIn && (
                <Link to="/login">
-                  <ListItem button>
-                     <ListItemIcon><LoginIcon className="text-white" /></ListItemIcon>
+                  <ListItem button sx={getActiveStyle("/login")}>
+                     <ListItemIcon>
+                        <LoginIcon />
+                     </ListItemIcon>
                      <ListItemText primary="Login" />
                   </ListItem>
                </Link>
