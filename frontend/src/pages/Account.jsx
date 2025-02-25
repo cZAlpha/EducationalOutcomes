@@ -25,7 +25,6 @@ function Account() {
 
    return (
       <>
-         <Navbar />
          <div className="flex flex-col items-center justify-center w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%]">
             <h1 className="text-2xl font-bold mb-8">Account Details</h1>
             {currentUser ? (

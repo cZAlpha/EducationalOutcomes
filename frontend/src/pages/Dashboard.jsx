@@ -88,7 +88,6 @@ function Dashboard() {
    
    return (
       <>
-         <Navbar/>
          <div className="bg-transparent min-h-screen p-2"> {/* Page Background*/}
             {/* Navigation Section */}
             <nav className="flex justify-start p-4">

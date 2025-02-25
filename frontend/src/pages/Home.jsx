@@ -4,12 +4,10 @@ import Navbar from "../components/Navbar";
 function Home() {
    return (
       <> {/* Singular parent element required by React */}
-         <Navbar />
-
          <div className="w-full flex justify-center pt-10">
             <h1 className="text-white text-4xl font-bold">Educational Outcomes</h1>
          </div>
-
+         
          <div className="flex justify-center items-center pt-4 pb-10">
             <div className="flex flex-row w-[60%] rounded-2xl shadow-lg overflow-hidden">
                <img

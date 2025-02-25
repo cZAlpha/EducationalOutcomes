@@ -5,6 +5,7 @@ import Login from "./pages/Login"
 import Home from "./pages/Home"
 import Account from "./pages/Account"
 import Courses from "./pages/Courses"
+import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
 import { ShaderGradientCanvas, ShaderGradient } from '@shadergradient/react'
@@ -63,8 +64,9 @@ function App() {
   return (
     <BrowserRouter>
       <PersistentGradient /* Adds a persistent gradient that is on every page */ />
+      <Navbar /* Global navbar */ /> 
       <Routes>
-        <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
+        {/* <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
             <ProtectedRoute>
               <Dashboard /> 
             </ProtectedRoute>
@@ -75,7 +77,7 @@ function App() {
               <UserDashboard /> 
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route path="/account" element={                             /* Account page (Protected) */
           <ProtectedRoute>
             <Account/>
