@@ -1,4 +1,8 @@
 # Educational Outcomes Web Application
+
+
+# Purpose
+### The purpose of this application is to provide educators at Delaware State University with an application where they can upload their grades, map the questions to ABET learning outcomes and then automatically receive information on their student performance on the aforementioned learning outcomes. This will also include statistical analysis to some degree for insightful information
 <br>
 
 # To Do List:
@@ -8,9 +12,6 @@
 # Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/homePage.png)
 
 # Courses Page Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/coursesPage.png)
-
-# Purpose
-### The purpose of this application is to provide educators at Delaware State University with an application where they can upload their grades, map the questions to ABET learning outcomes and then automatically receive information on their student performance on the aforementioned learning outcomes. This will also include statistical analysis to some degree for insightful information
 
 <br>
 
@@ -30,7 +31,7 @@
 3. If you don't already have a Python 3.11.9 virtual environment, perform the following command to instantiate it: 
 `python -m venv env`
 <br>
-This will instantiate a Python virtual environment called 'env'. DO NOT NAME IS 'venv', NAME IT 'env'.
+This will instantiate a Python virtual environment called 'env'. DO NOT NAME IT 'venv', name it 'env'.
 <br><br>
 4. Now that you have a Python virtual environment, you must activate it before installing packages. 
 <br><br>
@@ -48,15 +49,15 @@ And this command for Windows OS:
 <br><br>
 
 # Installing Required Node Packages for Local Development
-1. Ensure you have Node.js downloaded AND installed. On Windows, ensure that it is added to the PATH Environment Variables. On UNIX, this should be automatically handled.
+1. Ensure you have Node.js downloaded and installed. On Windows, ensure that it is added to the PATH Environment Variables. On UNIX, this should be automatically handled.
 <br><br>
 2. Change directory into the 'frontend' directory and perform the following command:
 <br>
-`npm install`
+`npm install` or `npm i`
 <br><br>
-3. This should automatically download all required Node JS packages.
+3. This will automatically download all required Node JS packages.
 <br><br>
-4. NOTE: This project was set up specificall for UNIX or UNIX-like OS'. Due to weird things about React JS and Tailwind CSS' React JS port that I do not care enough to figure out the why question, you MUST swap the contents of the Tailwind CSS configuration file in the frontend directory. Other than that, you should not run into any issues that are not explicity mentioned in this document.
+4. NOTE: This project was set up specifically for UNIX or UNIX-like OS'. Due to the way React JS handles explicit imports differently on differing OS', you MUST swap the contents of the Tailwind CSS configuration file in the frontend directory. Other than that, you should not run into any issues that are not explicity mentioned in this document.
 <br><br>
 
 # Starting up Local Development Server
