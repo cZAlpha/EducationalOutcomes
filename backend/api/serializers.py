@@ -81,7 +81,7 @@ class AccreditationOrganizationSerializer(serializers.ModelSerializer):
 
 # Accreditation Version Serializer
 class AccreditationVersionSerializer(serializers.ModelSerializer):
-   a_organization = serializers.PrimaryKeyRelatedField(queryset=AccreditationOrganization.objects.all())  # Explicit FK validation
+   a_organization = AccreditationOrganizationSerializer() # Nested serializer to get the actual object instead of just the id
    
    class Meta:
       model = AccreditationVersion
@@ -107,11 +107,12 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 # Course Serializer
 class CourseSerializer(serializers.ModelSerializer):
-   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all())  # Explicit FK validation
+   a_version = AccreditationVersionSerializer()  # Use the nested serializer
    
    class Meta:
       model = Course
       fields = ['course_id', 'a_version', 'course_number', 'name', 'description', 'date_added', 'date_removed']
+      depth = 1  # This will automatically expand foreign keys
    
    # Custom validation for date_added and date_removed
    def validate_date_added(self, value):

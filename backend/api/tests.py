@@ -556,13 +556,154 @@ def wipe_database(): # Function to wipe the database
    print("[~] Database wiped!", end="\n\n")
 
 
+def simple_auto_test(): # Function to automatically populate and then visualize the database for rudimentary testing procedures
+   wipe_database()
+   populate_database()
+   visualize_database()
+   # calculate_average_grades() # TODO: Calculate the average grade for each learning objective and print it before wiping
+   wipe_database()
+
+
+def populate_courses(): # Function that only populates courses
+   # NOTE: Will contain a lot of dummy data 
+   
+      # Add user roles
+   print("[+] Creating User Roles")
+   root_user_role, created = UserRole.objects.get_or_create(
+      role_name = 'root',
+      role_description = "Root users have access to everything. They are super users.",
+      permissions = {"permission" : "root"}
+   )
+   admin_user_role, created = UserRole.objects.get_or_create(
+      role_name = 'Admin',
+      role_description = "Admin users have access to everything. They are super users.",
+      permissions = {"permission" : "Admin"}
+   ) 
+   user_user_role, created = UserRole.objects.get_or_create(
+      role_name = 'User',
+      role_description = "Normal users have access to only the bare necessities required for their usage of this application.",
+      permissions = {"permission" : "User"}
+   )
+   user_roles_list = [root_user_role, admin_user_role, user_user_role] # List to contain all user roles
+   print("[+] User Roles Created: ", user_roles_list)
+   
+   
+   # Add users
+   print("[+] Creating Users...")
+   dr_smolinski, created = User.objects.get_or_create(
+      d_number="D10795834",
+      role=root_user_role,
+      email="drsmolinski@desu.edu",
+      first_name="First Name",
+      last_name="Smolinski",
+      employee_id="D10795834"
+   )
+   dr_rasamny, created = User.objects.get_or_create(
+      d_number="D10000000",
+      role=root_user_role,
+      email="drrasamny@desu.edu",
+      first_name="Marwan",
+      last_name="Rasamny",
+      employee_id="D10000000"
+   )
+   noah_klaus, created = User.objects.get_or_create(
+      d_number="D10686712",
+      role=user_user_role,
+      email="nbklaus21@students.desu.edu",
+      first_name="Noah",
+      last_name="Klaus",
+      employee_id="" # No employee ID for Noah, as he is a student
+   )
+   users_list = [dr_smolinski, dr_rasamny, noah_klaus]
+   print(f"[+] Created Users: {users_list}")
+   
+   # Accreditation Organization Creation
+   print("[+] Creating Accreditation Organizations...")
+   abet_accreditation_organization, created = AccreditationOrganization.objects.get_or_create(
+      name = "ABET",
+      description = "We are a nonprofit, ISO 9001 certified quality assurance organization focused on college and university programs in the science, technology, engineering and math (STEM) disciplines. Through our work and our partnerships we help ensure that the next generation of STEM professionals is equipped to help build a world that is safer, more efficient, more inclusive and more sustainable."
+   )
+   accreditation_organizations_list = [abet_accreditation_organization]
+   print(f"[+] Created Accreditation Organizations: {accreditation_organizations_list}")
+   
+   
+   # Accreditation Version Creation
+   print("[+] Creating Accreditation Versions...")
+   year = 2024
+   abet_2024_accreditation_version, created = AccreditationVersion.objects.get_or_create(
+      a_organization=abet_accreditation_organization,
+      year=year
+   )
+   accreditation_versions_list = [abet_2024_accreditation_version]
+   print(f"[+] Created Accreditation Versions: {accreditation_versions_list}")
+
+   # Program Creation
+   print("[+] Creating Programs...")
+   cs_program, created = Program.objects.get_or_create(
+      designation = "CSCI",
+      description = "Computer science majors at Delaware State learn more than how to write code. They also develop career-advancing skills such as communication, critical thinking, and creative problem-solving. Students are encouraged to explore new ideas and technologies, as well as to find new uses for existing computer science technologies. Small class sizes ensure that students can work closely with faculty and tailor their education to their own interests. The senior capstone project enables computer science majors to broaden their horizons and apply their expertise in fields such as business, science, education, social services, or entertainment. Nearly every industry relies on computers, so graduates from this major enjoy a wide range of job opportunities."
+   )
+   programs_list = [cs_program]
+   print(f"[+] Created Programs: {programs_list}")
+   
+   
+   # Course Creation
+   print("[+] Creating Courses...")
+   comp_think_i, created = Course.objects.get_or_create( 
+      a_version = abet_2024_accreditation_version,
+      course_number = 110,
+      name = "Computational Thinking I",
+      description = "Description for Comp. Think. I",
+      # No date_removed
+   )
+   comp_think_ii, created = Course.objects.get_or_create(
+      a_version = abet_2024_accreditation_version,
+      course_number = 111,
+      name = "Computational Thinking II",
+      description = "This course, like its first installment, exposes students to abstract and algorithmic thinking through hands-on exercises and projects focused on computer science problem-solving techniques. Students will be required to formulate problems and solutions and present these solutions in a form that is implementable on a computing device. Through this approach, students will be introduced, at an elementary level, to mathematical, computational, and engineering problem-solving techniques. Students will be exposed to UML and other diagramming tools, problem modeling, pseudo code, translation of pseudo code into an implementation language, and incremental development and testing. In addition, students may also apply computational thinking techniques to databases, mobile computing, and intelligent systems.",
+      # No date_removed
+   )
+   elements_of_computer_programming_i, created = Course.objects.get_or_create(
+      a_version = abet_2024_accreditation_version,
+      course_number = 101,
+      name = "Elements of Computer Programming I",
+      description = "A course designed to teach students the basics of computer programming.",
+      # No date_removed
+   )
+   elements_of_computer_programming_ii, created = Course.objects.get_or_create(
+      a_version = abet_2024_accreditation_version,
+      course_number = 120,
+      name = "Elements of Computer Programming II",
+      description = "This course is meant to expand upon reoccurant student knowledge on the inner workings of computer programming.",
+      # No date_removed
+   )
+   course_list = [comp_think_ii]
+   print(f"[+] Created Courses: {course_list}")
+   
+   # Program-Course Mappings Creation
+   print("[+] Creating Program-Course Mappings...")
+   program_course_mapping_1, created = ProgramCourseMapping.objects.get_or_create(
+      program = cs_program,
+      course = comp_think_i
+   )
+   program_course_mapping_2, created = ProgramCourseMapping.objects.get_or_create(
+      program = cs_program,
+      course = comp_think_ii
+   )
+   program_course_mapping_3, created = ProgramCourseMapping.objects.get_or_create(
+      program = cs_program,
+      course = elements_of_computer_programming_i
+   )
+   program_course_mapping_4, created = ProgramCourseMapping.objects.get_or_create(
+      program = cs_program,
+      course = elements_of_computer_programming_ii
+   )
+   program_course_mapping_list = [program_course_mapping_1, program_course_mapping_2, program_course_mapping_3, program_course_mapping_4]
+   print("[+] Created Program-Course Mappings: ", program_course_mapping_list)
+
+
+
 if __name__ == "__main__": # Main execution
    wipe_database()
-   
-   populate_database()
-   
+   populate_courses()
    visualize_database()
-   
-   # calculate_average_grades() # TODO: Calculate the average grade for each learning objective and print it before wiping
-   
-   wipe_database()
