@@ -6,7 +6,7 @@
 - Start frontend work (Figma first, then implementation)
 
 # To Do For Components:
-- 
+- Make an Auth context to make authorization much easier
 
 <br>
 
