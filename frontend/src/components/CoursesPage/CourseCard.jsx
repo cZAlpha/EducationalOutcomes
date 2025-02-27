@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 
 const CourseCard = ({
    // ENSURE THESE MATCH THE ACTUAL ATTRIBUTE NAMES FROM THE DATABASE OR IT WON'T WORK
-   courseName,
-   programName,
+   name,
+   program_name,
    course_number,
    a_organization,
    a_version,
@@ -22,10 +22,10 @@ const CourseCard = ({
          <Card sx={{ width: "100%", boxShadow: 3, borderRadius: 3, p: 2 }}>
             <CardContent sx={{ width: "100%", p: 0 }}>
                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {courseName}
+                  {name || ""}
                </Typography>
                <Typography variant="body2" color="text.secondary">
-                  Program: {programName}
+                  Program: {program_name}
                </Typography>
                <Typography variant="body2" color="text.secondary">
                   Course Number: {course_number}

@@ -32,13 +32,15 @@ const Navbar = () => {
    
    const getActiveStyle = (path) => ({
       backgroundColor: location.pathname === path ? '#f5f5f5' : 'transparent',
-      color: location.pathname === path ? 'black' : 'gray',
+      color: location.pathname === path ? 'black' : '#b8b8b8',
+      transition: 'color 0.3s ease, background-color 0.3s ease', // Smooth transition
       '&:hover': {
          color: 'white',
          '& svg': { color: 'white' },
       },
       '& svg': {
-         color: location.pathname === path ? 'black' : 'gray',
+         color: location.pathname === path ? 'black' : '#b8b8b8',
+         transition: 'color 0.3s ease', // Smooth transition for icon color
       },
    });
    
@@ -141,12 +143,14 @@ const Navbar = () => {
                      sx={{
                         backgroundColor: location.pathname === "/logout" ? '#f5f5f5' : 'transparent',
                         color: location.pathname === "/logout" ? '#a10000' : '#a10000', // Dark red default
+                        transition: 'color 0.3s ease, background-color 0.3s ease', // Smooth transition
                         '&:hover': {
                            color: '#FF0000', // Bright red on hover
                            '& svg': { color: '#FF0000' }, // Icon bright red on hover
                         },
                         '& svg': {
                            color: location.pathname === "/logout" ? '#a10000' : '#a10000', // Match icon to text
+                           transition: 'color 0.3s ease', // Smooth transition for icon color
                         },
                      }}
                      onClick={()=> {setLoggedIn(false);}}

@@ -115,7 +115,8 @@ function Courses() {
    const [currentUser, setCurrentUser] = useState(null); // Stores the user object
    
    const [courses, setCourses] = useState([]); // Used to store the courses fetched from the api call
-   const [programCourseMappings, setProgramCourseMappings] = useState([]); // USed to store the Program <-> Course Mappings from the api call
+   const [programs, setPrograms] = useState([]); // Used to store the programs fetched  from the api call
+   const [programCourseMappings, setProgramCourseMappings] = useState([]); // Used to store the Program <-> Course Mappings from the api call
    const [filters, setFilters] = useState({ // Stores all active filters
       search: "",
       courseType: "All Courses",
@@ -148,6 +149,15 @@ function Courses() {
       console.log("Courses: ", courses);
    };
    // STOP  - Course Data Fetching   
+
+   // START - Program Data Fetching
+   const getPrograms = () => {
+      api
+         .get('/api/programs/')
+         .then((res) => setPrograms(res.data))
+         .catch((err) => alert(`Error fetching Programs: ${err.message}`));
+   };
+   // STOP  - Program Data Fetching
 
    // START - Program Course Mapping Data Fetching
    const getProgramCourseMappings = () => {
@@ -206,24 +216,48 @@ function Courses() {
    }, [filters]);
    // STOP  - Filtering 
 
+   // CONSOLE LOGGING AND MAPPING OF PROGRAMS ONTO COURSES
+   useEffect(() => {
+      if (courses.length > 0) {
+         console.log("Courses: ", courses);
+      }
+      if (programs.length > 0) {
+         console.log("Programs: ", programs);
+      }
+      if (programCourseMappings.length > 0) {
+         console.log("Program Course Mappings: ", programCourseMappings);
+      }
+   
+      // Ensure courses and programCourseMappings are available
+      if (courses.length > 0 && programCourseMappings.length > 0) {
+         // Create a lookup object for program names by ID
+         const programLookup = programs.reduce((acc, program) => {
+            acc[program.program_id] = program.designation;
+            return acc;
+         }, {});
+
+         // Map courses and replace program IDs with program names
+         const updatedCourses = courses.map(course => {
+            const mapping = programCourseMappings.find(mapping => mapping.course === course.course_id);
+            return {
+               ...course,
+               program_name: mapping ? programLookup[mapping.program] || "Unknown Program" : "No Program Assigned"
+            };
+         });
+         setCourses(updatedCourses); // Update courses
+         console.log("Updated Courses with Program Names: ", updatedCourses);
+      }
+         
+   }, [programCourseMappings, programs]) // If Courses or Programs or ProgramCourseMappings Change, this will trigger
+   
    // ON MOUNT FUNCTION CALLS
    useEffect(() => { // On component mount, call all functions within this 
       getUserData(); // Gets user data from local storage (NEEDS TO BE CHANGED TO AN AUTH CONTEXT)
       getProgramCourseMappings();
       getCourses(); // Fetches courses from the backend through the api
+      getPrograms();
    }, []);
 
-   // CONSOLE LOGGING 
-   useEffect(() => {
-      if (courses.length > 0) {
-         console.log("Courses: ", courses);
-      }
-      if (programCourseMappings.length > 0) {
-         console.log("Program Course Mappings: ", programCourseMappings);
-      }
-      console.log("Note to self: You gotta configure showing program course mappings onto the program of the course card btw!")
-   }, [courses, programCourseMappings]) // If Courses or ProgramCourseMappings Change, this will trigger
-   
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div /* HeaderContent | Flex row for: Title, AddNewCourseButton*/ className="flex flex-row justify-between items-center w-[60%] pt-8">
