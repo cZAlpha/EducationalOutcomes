@@ -598,6 +598,9 @@ def populate_courses(): # Function that only populates courses
       last_name="Smolinski",
       employee_id="D10795834"
    )
+   if created:
+      dr_smolinski.set_password("smolinski")  # Set password
+      dr_smolinski.save()
    dr_rasamny, created = User.objects.get_or_create(
       d_number="D10000000",
       role=root_user_role,
@@ -606,6 +609,9 @@ def populate_courses(): # Function that only populates courses
       last_name="Rasamny",
       employee_id="D10000000"
    )
+   if created:
+      dr_rasamny.set_password("rasamny")  # Set password
+      dr_rasamny.save()
    noah_klaus, created = User.objects.get_or_create(
       d_number="D10686712",
       role=user_user_role,
@@ -614,6 +620,9 @@ def populate_courses(): # Function that only populates courses
       last_name="Klaus",
       employee_id="" # No employee ID for Noah, as he is a student
    )
+   if created:
+      noah_klaus.set_password("klaus")  # Set password
+      noah_klaus.save()
    users_list = [dr_smolinski, dr_rasamny, noah_klaus]
    print(f"[+] Created Users: {users_list}")
    
