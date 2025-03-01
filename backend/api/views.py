@@ -35,7 +35,7 @@ class UserListCreate(generics.ListCreateAPIView):
    serializer_class = UserSerializer
    permission_classes = [IsAuthenticated]
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       """
       If the user is a superuser, return all users.
       Otherwise, return only the requesting user's data.
@@ -62,7 +62,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
    serializer_class = UserSerializer
    permission_classes = [IsAuthenticated]
    
-   def get_object(self):
+   def get_object(self, request):
       """
       Retrieve user by either ID or username.
       """
@@ -162,7 +162,7 @@ class AccreditationOrganizationListCreate(generics.ListCreateAPIView):
    serializer_class = AccreditationOrganizationSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       accreditation_organizations = AccreditationOrganization.objects.all()
       serializer = AccreditationOrganizationSerializer(accreditation_organizations, many=True)
       return Response(serializer.data)
@@ -185,7 +185,7 @@ class AccreditationOrganizationDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the log instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return AccreditationOrganization.objects.all()
    
    def perform_update(self, request, serializer):
@@ -217,7 +217,7 @@ class AccreditationVersionListCreate(generics.ListCreateAPIView):
    serializer_class = AccreditationVersionSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       accreditation_versions = AccreditationVersion.objects.all()
       serializer = AccreditationVersionSerializer(accreditation_versions, many=True)
       return Response(serializer.data)
@@ -240,7 +240,7 @@ class AccreditationVersionDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return AccreditationVersion.objects.all()
    
    def perform_update(self, request, serializer):
@@ -272,7 +272,7 @@ class ProgramLearningObjectiveListCreate(generics.ListCreateAPIView):
    serializer_class = ProgramLearningObjectiveSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       program_learning_objectives = ProgramLearningObjective.objects.all()
       serializer = ProgramLearningObjectiveSerializer(program_learning_objectives, many=True)
       return Response(serializer.data)
@@ -295,7 +295,7 @@ class ProgramLearningObjectiveDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return ProgramLearningObjective.objects.all()
    
    def perform_update(self, request, serializer):
@@ -492,7 +492,7 @@ class SemesterListCreate(generics.ListCreateAPIView):
    serializer_class = SemesterSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       semesters = Semester.objects.all()
       serializer = SemesterSerializer(semesters, many=True)
       return Response(serializer.data)
@@ -515,7 +515,7 @@ class SemesterDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return Semester.objects.all()
    
    def perform_update(self, request, serializer):
@@ -547,7 +547,7 @@ class SectionListCreate(generics.ListCreateAPIView):
    serializer_class = SectionSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       sections = Section.objects.all()
       serializer = SectionSerializer(sections, many=True)
       return Response(serializer.data)
@@ -568,7 +568,7 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return Section.objects.all()
    
    def perform_update(self, request, serializer):
@@ -596,7 +596,7 @@ class EvaluationTypeListCreate(generics.ListCreateAPIView):
    serializer_class = EvaluationTypeSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       evaluation_types = EvaluationType.objects.all()
       serializer = EvaluationTypeSerializer(evaluation_types, many=True)
       return Response(serializer.data)
@@ -619,7 +619,7 @@ class EvaluationTypeDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return EvaluationType.objects.all()
    
    def perform_update(self, request, serializer):
@@ -651,7 +651,7 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
    serializer_class = EvaluationInstrumentSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       evaluation_instruments = EvaluationInstrument.objects.all()
       serializer = EvaluationInstrumentSerializer(evaluation_instruments, many=True)
       return Response(serializer.data)
@@ -674,7 +674,7 @@ class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return EvaluationInstrument.objects.all()
    
    def perform_update(self, request, serializer):
@@ -706,7 +706,7 @@ class EmbeddedTaskListCreate(generics.ListCreateAPIView):
    serializer_class = EmbeddedTaskSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       embedded_tasks = EmbeddedTask.objects.all()
       serializer = EmbeddedTaskSerializer(embedded_tasks, many=True)
       return Response(serializer.data)
@@ -729,7 +729,7 @@ class EmbeddedTaskDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return EmbeddedTask.objects.all()
    
    def perform_update(self, request, serializer):
@@ -761,7 +761,7 @@ class CourseLearningObjectiveListCreate(generics.ListCreateAPIView):
    serializer_class = CourseLearningObjectiveSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       course_learning_objectives = CourseLearningObjective.objects.all()
       serializer = CourseLearningObjectiveSerializer(course_learning_objectives, many=True)
       return Response(serializer.data)
@@ -784,7 +784,7 @@ class CourseLearningObjectiveDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return CourseLearningObjective.objects.all()
    
    def perform_update(self, request, serializer):
@@ -816,7 +816,7 @@ class TaskCLOMappingListCreate(generics.ListCreateAPIView):
    serializer_class = TaskCLOMappingSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       task_CLO_mappings = TaskCLOMapping.objects.all()
       serializer = TaskCLOMappingSerializer(task_CLO_mappings, many=True)
       return Response(serializer.data)
@@ -837,7 +837,7 @@ class TaskCLOMappingDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return TaskCLOMapping.objects.all()
    
    def perform_update(self, serializer):
@@ -865,7 +865,7 @@ class PLOCLOMappingListCreate(generics.ListCreateAPIView):
    serializer_class = PLOCLOMappingSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       plo_clo_mappings = PLOCLOMapping.objects.all()
       serializer = PLOCLOMappingSerializer(plo_clo_mappings, many=True)
       return Response(serializer.data)
@@ -888,7 +888,7 @@ class PLOCLOMappingDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return PLOCLOMapping.objects.all()
    
    def perform_update(self, request, serializer):
@@ -920,7 +920,7 @@ class StudentListCreate(generics.ListCreateAPIView):
    serializer_class = StudentSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       students = Student.objects.all()
       serializer = StudentSerializer(students, many=True)
       return Response(serializer.data)
@@ -943,7 +943,7 @@ class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return Student.objects.all()
    
    def perform_update(self, request, serializer):
@@ -975,7 +975,7 @@ class StudentTaskMappingListCreate(generics.ListCreateAPIView):
    serializer_class = StudentTaskMappingSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       student_task_mappings = StudentTaskMapping.objects.all()
       serializer = StudentSerializer(student_task_mappings, many=True)
       return Response(serializer.data)
@@ -998,7 +998,7 @@ class StudentTaskMappingDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self):
+   def get_queryset(self, request):
       return StudentTaskMapping.objects.all()
    
    def perform_update(self, request, serializer):
