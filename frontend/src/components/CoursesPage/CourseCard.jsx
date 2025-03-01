@@ -3,13 +3,14 @@ import { Card, CardContent, Typography } from "@mui/material";
 import { motion } from "framer-motion";
 
 const CourseCard = ({
-   courseName,
-   programName,
-   courseNumber,
-   accreditationOrganization,
-   accreditationVersion,
-   dateAdded,
-   dateRemoved,
+   // ENSURE THESE MATCH THE ACTUAL ATTRIBUTE NAMES FROM THE DATABASE OR IT WON'T WORK
+   name,
+   program_name,
+   course_number,
+   a_organization,
+   a_version,
+   date_added,
+   date_removed,
    }) => {
    return (
       <motion.div
@@ -21,23 +22,23 @@ const CourseCard = ({
          <Card sx={{ width: "100%", boxShadow: 3, borderRadius: 3, p: 2 }}>
             <CardContent sx={{ width: "100%", p: 0 }}>
                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {courseName}
+                  {name || ""}
                </Typography>
                <Typography variant="body2" color="text.secondary">
-                  Program: {programName}
+                  Program: {program_name}
                </Typography>
                <Typography variant="body2" color="text.secondary">
-                  Course Number: {courseNumber}
+                  Course Number: {course_number}
                </Typography>
                <Typography variant="body2" color="text.secondary">
-                  Accreditation: {accreditationOrganization} (v{accreditationVersion})
+                  Accreditation: {a_version?.a_organization.name || ""} ({a_version?.year || ""})
                </Typography>
                <Typography variant="body2" color="text.secondary">
-                  Date Added: {dateAdded}
+                  Date Added: {date_added}
                </Typography>
-               {dateRemoved && (
+               {date_removed && (
                   <Typography variant="body2" color="error">
-                  Date Removed: {dateRemoved}
+                  Date Removed: {date_removed}
                   </Typography>
                )}
             </CardContent>

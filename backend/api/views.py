@@ -327,7 +327,7 @@ class ProgramListCreate(generics.ListCreateAPIView):
    serializer_class = ProgramSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       programs = Program.objects.all()
       serializer = ProgramSerializer(programs, many=True)
       return Response(serializer.data)
@@ -382,7 +382,7 @@ class CourseListCreate(generics.ListCreateAPIView):
    serializer_class = CourseSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       courses = Course.objects.all()
       serializer = CourseSerializer(courses, many=True)
       return Response(serializer.data)
@@ -437,7 +437,7 @@ class ProgramCourseMappingListCreate(generics.ListCreateAPIView):
    serializer_class = ProgramCourseMappingSerializer
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    
-   def get(self):
+   def get(self, request):
       program_course_mappings = ProgramCourseMapping.objects.all()
       serializer = ProgramCourseMappingSerializer(program_course_mappings, many=True)
       return Response(serializer.data)
