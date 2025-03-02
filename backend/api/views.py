@@ -62,7 +62,7 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
    serializer_class = UserSerializer
    permission_classes = [IsAuthenticated]
    
-   def get_object(self, request):
+   def get_object(self):
       """
       Retrieve user by either ID or username.
       """

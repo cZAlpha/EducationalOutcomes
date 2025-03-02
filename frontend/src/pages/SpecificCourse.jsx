@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import api from '../api';
 import { USER } from "../constants";
 import SpecificCourseInformation from "../components/SpecificCoursesPage/SpecificCourseInformation";
+import { use } from "react";
 
 
 function SpecificCourse() {
@@ -13,6 +14,7 @@ function SpecificCourse() {
    const [programs, setPrograms] = useState([]);
    const [programCourseMappings, setProgramCourseMappings] = useState([]);
    const [sections, setSections] = useState([]);
+   const [learningObjectives, setLearningObjectives] = useState([]);
    const [loading, setLoading] = useState(true); // New state to track loading status
 
    const getUserData = () => {
@@ -96,8 +98,8 @@ function SpecificCourse() {
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div className="flex flex-col items-left text-left w-[60%]">
-            <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"}</h1>
-            <h2>{loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h2>
+            <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
+            <h2 className="font-semi-bold text-xl"></h2>
             <h2 className="font-semi-bold text-xl">
                Accreditation: {loading ? "Loading..." : `${course.a_version?.a_organization.name || ""} (${course.a_version?.year || ""})`}
             </h2>
@@ -105,7 +107,7 @@ function SpecificCourse() {
          </div>
 
          <div className="w-[60%]">
-            <SpecificCourseInformation courseID={course.course_id || ""} />
+            <SpecificCourseInformation courseID={course.course_id || ""} sections={sections || []} learningObjectives={learningObjectives || []} />
          </div>
       </div>
    );

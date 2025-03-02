@@ -147,9 +147,9 @@ class SemesterSerializer(serializers.ModelSerializer):
 
 # Section Serializer
 class SectionSerializer(serializers.ModelSerializer):
-   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
-   semester = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
-   instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   course = CourseSerializer() # Nested serializer to give more information
+   semester = SemesterSerializer() # Anotha one! We da best music. DJ KHALED
+   instructor = UserSerializer() # Another nested serializer
    
    class Meta:
       model = Section
