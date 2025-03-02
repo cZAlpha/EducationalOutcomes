@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../api';
 import { USER } from "../constants";
+import SpecificCourseInformation from "../components/SpecificCoursesPage/SpecificCourseInformation";
+
 
 function SpecificCourse() {
    const { courseId } = useParams();
@@ -102,7 +104,9 @@ function SpecificCourse() {
             <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
          </div>
 
-         <div className="flex bg-white w-[60%]">placeholder</div>
+         <div className="w-[60%]">
+            <SpecificCourseInformation courseID={course.course_id || ""} />
+         </div>
       </div>
    );
 }
