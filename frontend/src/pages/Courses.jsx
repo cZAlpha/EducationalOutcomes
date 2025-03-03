@@ -215,7 +215,15 @@ function Courses() {
       applyFilters();
    }, [filters]);
    // STOP  - Filtering 
-
+   
+   // START - Refresh handling from FilterCoursesBar component
+   const handleRefresh = () => {
+      getProgramCourseMappings();
+      getCourses(); // Fetches courses from the backend through the api
+      getPrograms();
+   };
+   // STOP  - Refresh handling from FilterCoursesBar component
+   
    // CONSOLE LOGGING AND MAPPING OF PROGRAMS ONTO COURSES
    useEffect(() => {
       if (courses.length > 0) {
@@ -235,7 +243,7 @@ function Courses() {
             acc[program.program_id] = program.designation;
             return acc;
          }, {});
-
+         
          // Map courses and replace program IDs with program names
          const updatedCourses = courses.map(course => {
             const mapping = programCourseMappings.find(mapping => mapping.course === course.course_id);
@@ -260,13 +268,13 @@ function Courses() {
 
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
-         <div /* HeaderContent | Flex row for: Title, AddNewCourseButton*/ className="flex flex-row justify-between items-center w-[60%] pt-8">
+         <div /* HeaderContent | Flex row for: Title, AddNewCourseButton*/ className="flex flex-row justify-between items-center w-[70%] pt-8">
             <h1 /*Title */ className="text-3xl font-bold">Courses</h1>
             <AddCourseButton/>
          </div>
          
-         <div className="w-[60%]">
-            <FilterCoursesBar onFilterChange={handleFilterChange} />
+         <div className="w-[70%]">
+            <FilterCoursesBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
          <div>

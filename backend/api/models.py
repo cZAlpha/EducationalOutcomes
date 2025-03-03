@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone # For verifying time validity
 from django.core.exceptions import ValidationError # For throwing validation errors
 from django.contrib.auth.password_validation import validate_password # For validating passwords
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 # NOTE: This is where API-compatible database tables are defined
@@ -124,8 +125,8 @@ class Log(models.Model):
 class AccreditationOrganization(models.Model):
    a_organization_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    name = models.CharField(max_length=100, blank=False, null=False)  # The name of the organization
-   description = models.CharField(max_length=100, blank=True, null=False)  # A description of the organization
-
+   description = models.CharField(max_length=1000, blank=True, null=False)  # A description of the organization
+   
    def __str__(self): # To string metod
       return f"{self.name} | {self.description[:20]}"  # Shows the name and first 20 chars of the description of the organization
 
@@ -213,12 +214,18 @@ class Semester(models.Model):
 class Section(models.Model):
    section_id = models.BigAutoField(primary_key=True)
    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Associated course for the given section
+   section_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])  # Section number can be from 1-10
    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
    crn = models.CharField(max_length=20)
    instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # Users are instructors, optional (at first)
    
+   class Meta:
+      constraints = [
+         models.UniqueConstraint(fields=['course', 'section_number'], name='unique_course_section')
+      ]
+   
    def __str__(self):
-      return f"Section {self.section_id} - {self.course.name} - ({self.semester})"
+      return f"Section {self.section_id} - {self.course.name} - {self.section_number} - ({self.semester})"
 
 
 # Evaluation Type
@@ -258,7 +265,7 @@ class EmbeddedTask(models.Model):
 class CourseLearningObjective(models.Model):
    clo_id = models.BigAutoField(primary_key=True)
    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Deletes course-specific learning objectives if the associated course was deleted
-   designation = models.CharField(max_length=20)  # Required designation
+   designation = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(20)])  # Designation number can be from 1-20
    description = models.CharField(max_length=500, null=True, blank=True)  # Optional description
    created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)  # If the creator user is deleted, set this to null
    

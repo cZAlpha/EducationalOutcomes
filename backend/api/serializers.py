@@ -147,13 +147,17 @@ class SemesterSerializer(serializers.ModelSerializer):
 
 # Section Serializer
 class SectionSerializer(serializers.ModelSerializer):
-   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
-   semester = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
-   instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
+   semester = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())
+   instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+   
+   course_details = CourseSerializer(source='course', read_only=True)
+   semester_details = SemesterSerializer(source='semester', read_only=True)
+   instructor_details = UserSerializer(source='instructor', read_only=True)
    
    class Meta:
       model = Section
-      fields = ['section_id', 'course', 'semester', 'crn', 'instructor']
+      fields = ['section_id', 'course', 'section_number', 'semester', 'crn', 'instructor', 'course_details', 'semester_details', 'instructor_details']
 
 
 # Evaluation Type Serializer
@@ -184,8 +188,8 @@ class EmbeddedTaskSerializer(serializers.ModelSerializer):
 
 # Course Learning Objective Serializer
 class CourseLearningObjectiveSerializer(serializers.ModelSerializer):
-   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
-   created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   course = CourseSerializer()  # Nested serializer to capture full info.
+   created_by = UserSerializer()  # Anotha one
    
    class Meta:
       model = CourseLearningObjective

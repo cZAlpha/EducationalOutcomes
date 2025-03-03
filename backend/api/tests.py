@@ -55,6 +55,9 @@ def populate_database(): # Function to populate the database with random users a
       last_name="Smolinski",
       employee_id="D10795834"
    )
+   if created:
+      dr_smolinski.set_password("smolinski")  # Set password
+      dr_smolinski.save()
    dr_rasamny, created = User.objects.get_or_create(
       d_number="D10000000",
       role=root_user_role,
@@ -63,6 +66,9 @@ def populate_database(): # Function to populate the database with random users a
       last_name="Rasamny",
       employee_id="D10000000"
    )
+   if created:
+      dr_rasamny.set_password("rasamny")  # Set password
+      dr_rasamny.save()
    noah_klaus, created = User.objects.get_or_create(
       d_number="D10686712",
       role=user_user_role,
@@ -71,6 +77,9 @@ def populate_database(): # Function to populate the database with random users a
       last_name="Klaus",
       employee_id="" # No employee ID for Noah, as he is a student
    )
+   if created:
+      noah_klaus.set_password("klaus")  # Set password
+      noah_klaus.save()
    users_list = [dr_smolinski, dr_rasamny, noah_klaus]
    print(f"[+] Created Users: {users_list}")
    
@@ -227,12 +236,14 @@ def populate_database(): # Function to populate the database with random users a
    print("[+] Creating Sections...")
    comp_think_ii_section_01, created = Section.objects.get_or_create(
       course = comp_think_ii,
+      section_number = 1,
       semester = spring_2024_semester,
       crn = "34324",
       instructor = dr_smolinski,
    )
    comp_think_ii_section_02, created = Section.objects.get_or_create(
       course = comp_think_ii,
+      section_number = 2,
       semester = spring_2024_semester,
       crn = "34683",
       instructor = dr_smolinski,
@@ -645,7 +656,7 @@ def populate_courses(): # Function that only populates courses
    )
    accreditation_versions_list = [abet_2024_accreditation_version]
    print(f"[+] Created Accreditation Versions: {accreditation_versions_list}")
-
+   
    # Program Creation
    print("[+] Creating Programs...")
    cs_program, created = Program.objects.get_or_create(
@@ -714,5 +725,5 @@ def populate_courses(): # Function that only populates courses
 
 if __name__ == "__main__": # Main execution
    wipe_database()
-   populate_courses()
+   populate_database()
    visualize_database()

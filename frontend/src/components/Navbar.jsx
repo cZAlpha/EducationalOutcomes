@@ -77,7 +77,7 @@ const Navbar = () => {
          sx={{
             width: 240,
             flexShrink: 0,
-            [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box', backgroundColor: '#122441', color: 'white' },
+            [`& .MuiDrawer-paper`]: { width: 180, boxSizing: 'border-box', backgroundColor: '#122441', color: 'white' },
          }}
       >
          <List>

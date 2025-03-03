@@ -5,6 +5,7 @@ import Login from "./pages/Login"
 import Home from "./pages/Home"
 import Account from "./pages/Account"
 import Courses from "./pages/Courses"
+import SpecificCourse from "./pages/SpecificCourse"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
@@ -87,6 +88,12 @@ function App() {
         <Route path="/courses" element={                             /* Courses page (Protected) */
           <ProtectedRoute>
             <Courses/>
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/courses/:courseId" element={                             /* Courses page (Protected) */
+          <ProtectedRoute>
+            <SpecificCourse />
           </ProtectedRoute>
         }
         />
