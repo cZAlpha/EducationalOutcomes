@@ -153,7 +153,7 @@ class SectionSerializer(serializers.ModelSerializer):
    
    class Meta:
       model = Section
-      fields = ['section_id', 'course', 'semester', 'crn', 'instructor']
+      fields = ['section_id', 'course', 'section_number', 'semester', 'crn', 'instructor']
 
 
 # Evaluation Type Serializer
@@ -184,8 +184,8 @@ class EmbeddedTaskSerializer(serializers.ModelSerializer):
 
 # Course Learning Objective Serializer
 class CourseLearningObjectiveSerializer(serializers.ModelSerializer):
-   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
-   created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Explicit FK validation
+   course = CourseSerializer()  # Nested serializer to capture full info.
+   created_by = UserSerializer()  # Anotha one
    
    class Meta:
       model = CourseLearningObjective

@@ -8,15 +8,17 @@ import { use } from "react";
 
 function SpecificCourse() {
    const { courseId } = useParams();
-
+   
    const [currentUser, setCurrentUser] = useState(null);
    const [course, setCourse] = useState({});
    const [programs, setPrograms] = useState([]);
    const [programCourseMappings, setProgramCourseMappings] = useState([]);
    const [sections, setSections] = useState([]);
-   const [learningObjectives, setLearningObjectives] = useState([]);
+   const [CLOs, setCLOs] = useState([]);
+   const [PLOs, setPLOs] = useState([]);
+   const [PLOCLOMappings, setPLOCLOMappings] = useState([]);
    const [loading, setLoading] = useState(true); // New state to track loading status
-
+   
    const getUserData = () => {
       try {
          const userData = JSON.parse(localStorage.getItem(USER));
@@ -26,7 +28,7 @@ function SpecificCourse() {
          setCurrentUser(null);
       }
    };
-
+   
    const getCourse = async () => {
       try {
          const res = await api.get(`/api/courses/${courseId}`);
@@ -35,7 +37,7 @@ function SpecificCourse() {
          alert(`Error fetching course: ${err.message}`);
       }
    };
-
+   
    const getPrograms = async () => {
       try {
          const res = await api.get('/api/programs/');
@@ -44,7 +46,7 @@ function SpecificCourse() {
          alert(`Error fetching Programs: ${err.message}`);
       }
    };
-
+   
    const getProgramCourseMappings = async () => {
       try {
          const res = await api.get('/api/program-course-mappings/');
@@ -53,7 +55,7 @@ function SpecificCourse() {
          alert(`Error fetching Program <-> Course Mappings: ${err.message}`);
       }
    };
-
+   
    const getSections = async () => {
       try {
          const res = await api.get('/api/sections/');
@@ -62,7 +64,34 @@ function SpecificCourse() {
          alert(`Error fetching Sections: ${err.message}`);
       }
    };
-
+   
+   const getCLOs = async () => {
+      try {
+         const res = await api.get('/api/course-learning-objectives/');
+         setCLOs(res.data);
+      } catch (err) {
+         alert(`Error fetching CLOs: ${err.message}`);
+      }
+   };
+   
+   const getPLOs = async () => {
+      try {
+         const res = await api.get('/api/program-learning-objectives/');
+         setPLOs(res.data);
+      } catch (err) {
+         alert(`Error fetching PLOs: ${err.message}`);
+      }
+   };
+   
+   const getPLOCLOMappings = async () => {
+      try {
+         const res = await api.get('/api/plo-clo-mappings/');
+         setPLOCLOMappings(res.data);
+      } catch (err) {
+         alert(`Error fetching PLO <-> CLO Mappings: ${err.message}`);
+      }
+   };
+   
    useEffect(() => {
       const fetchData = async () => {
          await getUserData();
@@ -70,31 +99,54 @@ function SpecificCourse() {
          await getCourse();
          await getPrograms();
          await getSections();
+         await getCLOs();
+         await getPLOs();
+         await getPLOCLOMappings();
          setLoading(false); // Set loading to false when all data is fetched
       };
-
+      
       fetchData();
    }, []);
-
-   useEffect(() => {
+   
+   useEffect(() => { // Program <-> Course Mapping Handling
       if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {
          console.log("Course: ", course);
          console.log("Programs: ", programs);
          console.log("Program Course Mappings: ", programCourseMappings);
          console.log("Sections:", sections);
-
+         
          const programLookup = programs.reduce((acc, program) => {
             acc[program.program_id] = program.designation;
             return acc;
          }, {});
-
+         
          const mapping = programCourseMappings.find(mapping => mapping.course === course.course_id);
          const foundProgramName = mapping ? programLookup[mapping.program] || "Unknown Program" : "No Program Assigned";
-
+         
          setCourse(prev => ({ ...prev, program_name: foundProgramName }));
       }
    }, [loading, programCourseMappings, programs, course.course_id]);
-
+   
+   useEffect(() => { // PLO <-> CLO Mapping Handling
+      if (!loading && CLOs.length > 0 && PLOs.length > 0 && PLOCLOMappings.length > 0) {
+         console.log("CLOs: ", CLOs);
+         console.log("PLOs: ", PLOs);
+         console.log("PLO <-> CLO Mappings: ", PLOCLOMappings);
+         
+         const mappedCLOs = CLOs.map(clo => ({
+            ...clo,
+            mappedPLOs: PLOCLOMappings
+               .filter(mapping => mapping.clo_id === clo.clo_id)
+               .map(mapping => PLOs.find(plo => plo.plo_id === mapping.plo_id))
+               .filter(plo => plo) // Remove undefined values
+         }));
+         console.log("Mapped CLOs: ", mappedCLOs);
+         setCLOs(mappedCLOs);
+      }
+   }, [loading, PLOs, PLOCLOMappings, CLOs.clo_id]);
+   
+   
+   
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div className="flex flex-col items-left text-left w-[60%]">
@@ -105,9 +157,9 @@ function SpecificCourse() {
             </h2>
             <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
          </div>
-
+         
          <div className="w-[60%]">
-            <SpecificCourseInformation courseID={course.course_id || ""} sections={sections || []} learningObjectives={learningObjectives || []} />
+            <SpecificCourseInformation sections={sections || []} CLOs={CLOs || []} PLOs={PLOs || []} PLOCLOMappings={PLOCLOMappings || []} />
          </div>
       </div>
    );

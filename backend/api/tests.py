@@ -236,12 +236,14 @@ def populate_database(): # Function to populate the database with random users a
    print("[+] Creating Sections...")
    comp_think_ii_section_01, created = Section.objects.get_or_create(
       course = comp_think_ii,
+      section_number = 1,
       semester = spring_2024_semester,
       crn = "34324",
       instructor = dr_smolinski,
    )
    comp_think_ii_section_02, created = Section.objects.get_or_create(
       course = comp_think_ii,
+      section_number = 2,
       semester = spring_2024_semester,
       crn = "34683",
       instructor = dr_smolinski,
@@ -654,7 +656,7 @@ def populate_courses(): # Function that only populates courses
    )
    accreditation_versions_list = [abet_2024_accreditation_version]
    print(f"[+] Created Accreditation Versions: {accreditation_versions_list}")
-
+   
    # Program Creation
    print("[+] Creating Programs...")
    cs_program, created = Program.objects.get_or_create(
