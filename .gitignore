@@ -35,6 +35,7 @@ coverage/
 # Python related
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 
 # Django specific
