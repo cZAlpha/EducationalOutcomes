@@ -215,7 +215,15 @@ function Courses() {
       applyFilters();
    }, [filters]);
    // STOP  - Filtering 
-
+   
+   // START - Refresh handling from FilterCoursesBar component
+   const handleRefresh = () => {
+      getProgramCourseMappings();
+      getCourses(); // Fetches courses from the backend through the api
+      getPrograms();
+   };
+   // STOP  - Refresh handling from FilterCoursesBar component
+   
    // CONSOLE LOGGING AND MAPPING OF PROGRAMS ONTO COURSES
    useEffect(() => {
       if (courses.length > 0) {
@@ -235,7 +243,7 @@ function Courses() {
             acc[program.program_id] = program.designation;
             return acc;
          }, {});
-
+         
          // Map courses and replace program IDs with program names
          const updatedCourses = courses.map(course => {
             const mapping = programCourseMappings.find(mapping => mapping.course === course.course_id);
@@ -266,7 +274,7 @@ function Courses() {
          </div>
          
          <div className="w-[60%]">
-            <FilterCoursesBar onFilterChange={handleFilterChange} />
+            <FilterCoursesBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
          <div>

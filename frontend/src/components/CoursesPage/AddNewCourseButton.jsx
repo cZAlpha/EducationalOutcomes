@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import { motion, AnimatePresence } from "framer-motion";
 
 const AddCourseButton = () => {
@@ -23,10 +24,10 @@ const AddCourseButton = () => {
          onClick={handleMainClick}
          variant="contained"
          color="primary"
-         startIcon={<AddIcon />}
+         
          sx={{ width: "auto", px: 1.5, py: 1, borderRadius: 3, boxShadow: 3 }}
          >
-         {expanded ? "Select Option" : "Add Course"}
+         {expanded ? <RemoveIcon /> : <AddIcon />}
          </Button>
          
          <AnimatePresence>
