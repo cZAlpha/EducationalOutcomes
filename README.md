@@ -15,6 +15,10 @@
 
 # Courses Page Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/coursesPage.png)
 
+# Specific Course Page Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/specificCoursesPage.png)
+
+# CLO Mappings For Courses Preview ![Admin Dashboard Preview](frontend/src/assets/PreviewsForReadMe/specificCoursesPage_CLOPLOMappings.png)
+
 <br>
 
 # Database Schema 
