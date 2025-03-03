@@ -147,13 +147,17 @@ class SemesterSerializer(serializers.ModelSerializer):
 
 # Section Serializer
 class SectionSerializer(serializers.ModelSerializer):
-   course = CourseSerializer() # Nested serializer to give more information
-   semester = SemesterSerializer() # Anotha one! We da best music. DJ KHALED
-   instructor = UserSerializer() # Another nested serializer
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
+   semester = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())
+   instructor = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+   
+   course_details = CourseSerializer(source='course', read_only=True)
+   semester_details = SemesterSerializer(source='semester', read_only=True)
+   instructor_details = UserSerializer(source='instructor', read_only=True)
    
    class Meta:
       model = Section
-      fields = ['section_id', 'course', 'section_number', 'semester', 'crn', 'instructor']
+      fields = ['section_id', 'course', 'section_number', 'semester', 'crn', 'instructor', 'course_details', 'semester_details', 'instructor_details']
 
 
 # Evaluation Type Serializer

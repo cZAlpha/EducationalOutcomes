@@ -14,12 +14,15 @@ function SpecificCourse() {
    const [programs, setPrograms] = useState([]);
    const [programCourseMappings, setProgramCourseMappings] = useState([]);
    const [sections, setSections] = useState([]);
+   const [semesters, setSemesters] = useState([]); // Used to populate information for the form to create a new section
+   // NOTE: The view from the backend disallows non-super users from GET calling all users, therefore the GET call will only return the current user
+   const [instructor, setInstructor] = useState(null); 
    const [CLOs, setCLOs] = useState([]);
    const [PLOs, setPLOs] = useState([]);
    const [PLOCLOMappings, setPLOCLOMappings] = useState([]);
    const [loading, setLoading] = useState(true); // New state to track loading status
    
-   const getUserData = () => {
+   const getUserData = async () => {
       try {
          const userData = JSON.parse(localStorage.getItem(USER));
          setCurrentUser(userData || null);
@@ -65,6 +68,24 @@ function SpecificCourse() {
       }
    };
    
+   const getSemesters = async () => {
+      try {
+         const res = await api.get('/api/semesters/');
+         setSemesters(res.data);
+      } catch (err) {
+         alert(`Error fetching Semesters: ${err.message}`);
+      }
+   };
+   
+   const getInstructor = async () => {
+      try {
+         const res = await api.get('/api/users/');
+         setInstructor(res.data);
+      } catch (err) {
+         alert(`Error fetching Instructor: ${err.message}`);
+      }
+   };
+   
    const getCLOs = async () => {
       try {
          const res = await api.get('/api/course-learning-objectives/');
@@ -97,6 +118,8 @@ function SpecificCourse() {
          await getUserData();
          await getProgramCourseMappings();
          await getCourse();
+         await getSemesters();
+         await getInstructor();
          await getPrograms();
          await getSections();
          await getCLOs();
@@ -145,8 +168,6 @@ function SpecificCourse() {
       }
    }, [loading, PLOs, PLOCLOMappings, CLOs.clo_id]);
    
-   
-   
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div className="flex flex-col items-left text-left w-[60%]">
@@ -158,8 +179,20 @@ function SpecificCourse() {
             <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
          </div>
          
-         <div className="w-[60%]">
-            <SpecificCourseInformation sections={sections || []} CLOs={CLOs || []} PLOs={PLOs || []} PLOCLOMappings={PLOCLOMappings || []} />
+         <div className="flex flex-col items-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
+            {!loading && instructor ? (
+               <SpecificCourseInformation 
+                  course={course} 
+                  semesters={semesters} 
+                  instructor={instructor} 
+                  sections={sections} 
+                  CLOs={CLOs} 
+                  PLOs={PLOs} 
+                  PLOCLOMappings={PLOCLOMappings} 
+               />
+            ) : (
+               <p>Loading instructor data...</p> 
+            )}
          </div>
       </div>
    );

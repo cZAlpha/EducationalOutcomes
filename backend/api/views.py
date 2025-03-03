@@ -35,7 +35,7 @@ class UserListCreate(generics.ListCreateAPIView):
    serializer_class = UserSerializer
    permission_classes = [IsAuthenticated]
    
-   def get_queryset(self, request):
+   def get_queryset(self):
       """
       If the user is a superuser, return all users.
       Otherwise, return only the requesting user's data.

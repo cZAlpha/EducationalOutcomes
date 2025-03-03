@@ -27,10 +27,10 @@ const SpecificCoursesSectionCard = ({
                      #{section_number}
                   </Typography>
                </Box>
-
+               
                {/* Divider for spacing */}
                <Box sx={{ my: 1, borderBottom: "1px solid #ddd" }} />
-
+               
                {/* Bottom Section: Details */}
                <Box display="flex" flexWrap="wrap" gap={2}>
                   <Typography variant="body2" color="text.secondary">

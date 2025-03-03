@@ -125,8 +125,8 @@ class Log(models.Model):
 class AccreditationOrganization(models.Model):
    a_organization_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    name = models.CharField(max_length=100, blank=False, null=False)  # The name of the organization
-   description = models.CharField(max_length=100, blank=True, null=False)  # A description of the organization
-
+   description = models.CharField(max_length=1000, blank=True, null=False)  # A description of the organization
+   
    def __str__(self): # To string metod
       return f"{self.name} | {self.description[:20]}"  # Shows the name and first 20 chars of the description of the organization
 
@@ -214,7 +214,7 @@ class Semester(models.Model):
 class Section(models.Model):
    section_id = models.BigAutoField(primary_key=True)
    course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Associated course for the given section
-   section_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])  # Course number can be from 1-10
+   section_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])  # Section number can be from 1-10
    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
    crn = models.CharField(max_length=20)
    instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # Users are instructors, optional (at first)
@@ -223,7 +223,7 @@ class Section(models.Model):
       constraints = [
          models.UniqueConstraint(fields=['course', 'section_number'], name='unique_course_section')
       ]
-
+   
    def __str__(self):
       return f"Section {self.section_id} - {self.course.name} - {self.section_number} - ({self.semester})"
 
