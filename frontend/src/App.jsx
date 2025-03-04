@@ -6,6 +6,7 @@ import Home from "./pages/Home"
 import Account from "./pages/Account"
 import Courses from "./pages/Courses"
 import SpecificCourse from "./pages/SpecificCourse"
+import Sections from "./pages/Sections"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
@@ -91,9 +92,15 @@ function App() {
           </ProtectedRoute>
         }
         />
-        <Route path="/courses/:courseId" element={                             /* Courses page (Protected) */
+        <Route path="/courses/:courseId" element={                   /* Specific Course page (Protected) */
           <ProtectedRoute>
             <SpecificCourse />
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/sections/" element={                   /* Sections page (Protected) */
+          <ProtectedRoute>
+            <Sections />
           </ProtectedRoute>
         }
         />
