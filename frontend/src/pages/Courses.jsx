@@ -277,7 +277,7 @@ function Courses() {
             <FilterCoursesBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
-         <div>
+         <div className="min-w-[360px]">
             <CoursesTable courses={courses} coursesPerPage={filters.recordsPerPage} />
          </div>
       </div>

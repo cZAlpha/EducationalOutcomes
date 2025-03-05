@@ -4,9 +4,12 @@ import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Acco
 import AddIcon from "@mui/icons-material/Add";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import api from '../../api';
+import { useNavigate } from "react-router-dom";
 
 
 function SpecificCourseInformation({ course, semesters, instructor, sections, CLOs, PLOs, PLOCLOMappings }) {
+   const navigate = useNavigate(); // For navigating to specific section page
+   
    const [selectedTab, setSelectedTab] = useState("Sections");
    const [extraSections, setExtraSections] = useState([]); // Keeps track of added sections
    const [openForm, setOpenForm] = useState(false);
@@ -74,6 +77,10 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       }
    };
    
+   const handleSectionClick = (sectionId) => { // Navigates to the given specific section page
+      navigate(`/sections/${sectionId}`);
+   };
+   
    useEffect(() => { // Program <-> Course Mapping Handling
       console.log("PROPS Instructor: ", instructor);
       console.log("PROPS Semesters: ", semesters);
@@ -114,14 +121,21 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                   {sections.length > 0 || extraSections.length > 0 ? (
                      <div className="flex flex-col gap-4">
                         {sections.map((section, index) => (
-                           <SpecificCoursesSectionCard
-                              key={`existing-${index}`}
-                              course={section.course_details.name} 
-                              section_number={section.section_number}
-                              semester={section.semester_details.designation} 
-                              crn={section.crn}
-                              instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
-                           />
+                           <div
+                              key={section.section_id}
+                              className="w-full"
+                              onClick={(e) => handleSectionClick(section.section_id, e)}
+                              style={{ cursor: "pointer", pointerEvents: "auto" }}
+                           >                        
+                              <SpecificCoursesSectionCard
+                                 key={`existing-${index}`}
+                                 course={section.course_details.name} 
+                                 section_number={section.section_number}
+                                 semester={section.semester_details.designation} 
+                                 crn={section.crn}
+                                 instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
+                              />
+                           </div>
                         ))}
                         {extraSections.map((section, index) => (
                            <SpecificCoursesSectionCard

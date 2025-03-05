@@ -29,7 +29,7 @@ const SectionsTable = ({ sections, sectionsPerPage = 5 }) => {
 
    return (
       <div className="w-full flex flex-col space-y-4">
-         <div className="flex justify-center items-center space-x-4">
+         <div className="w-full flex justify-center items-center space-x-4">
             <IconButton onClick={handlePrevPage} disabled={currentPage === 1}>
                <ArrowBack />
             </IconButton>

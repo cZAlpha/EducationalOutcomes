@@ -24,20 +24,20 @@ const CourseCard = ({
                <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {name || ""}
                </Typography>
-               <Typography variant="body2" color="text.secondary">
+               <Typography variant="body1" color="text.secondary">
                   Program: {program_name}
                </Typography>
-               <Typography variant="body2" color="text.secondary">
+               <Typography variant="body1" color="text.secondary">
                   Course Number: {course_number}
                </Typography>
-               <Typography variant="body2" color="text.secondary">
+               <Typography variant="body1" color="text.secondary">
                   Accreditation: {a_version?.a_organization.name || ""} ({a_version?.year || ""})
                </Typography>
-               <Typography variant="body2" color="text.secondary">
+               <Typography variant="body1" color="text.secondary">
                   Date Added: {date_added}
                </Typography>
                {date_removed && (
-                  <Typography variant="body2" color="error">
+                  <Typography variant="body1" color="error">
                   Date Removed: {date_removed}
                   </Typography>
                )}

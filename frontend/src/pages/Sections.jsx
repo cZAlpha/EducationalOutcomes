@@ -109,7 +109,7 @@ const Sections = () => {
             <FilterSectionsBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
-         <div>
+         <div className="min-w-[360px]">
             <SectionsTable sections={sections} sectionsPerPage={filters.recordsPerPage}/>
          </div>
       </div>

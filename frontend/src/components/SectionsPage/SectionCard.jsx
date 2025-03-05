@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent, Typography } from "@mui/material";
+import { Box, Card, CardContent, Typography } from "@mui/material";
 import { motion } from "framer-motion";
 
 const SectionsCard = ({
@@ -19,21 +19,33 @@ const SectionsCard = ({
       >
          <Card sx={{ width: "100%", boxShadow: 3, borderRadius: 3, p: 2 }}>
             <CardContent sx={{ width: "100%", p: 0 }}>
-               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {course_details?.name + " - " + section_number || ""}
-               </Typography>
-               <Typography variant="body2" color="text.secondary">
-                  Section number: {section_number}
-               </Typography>
-               <Typography variant="body2" color="text.secondary">
-                  Semester: {semester_details?.designation}
-               </Typography>
-               <Typography variant="body2" color="text.secondary">
-               CRN #: {crn}
-               </Typography>
-               <Typography variant="body2" color="text.secondary">
-                  Instructor: {instructor_details?.last_name}
-               </Typography>
+               {/* Top Section: Course Name & Section Number */}
+               <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                     {course_details?.name || "Unknown Course"}
+                  </Typography>
+                  <Typography variant="h6" color="text.secondary">
+                     #{section_number}
+                  </Typography>
+               </Box>
+               {/* Bottom Section: Attributes of the Section */}
+               <Box
+                  display="flex"
+                  flexDirection="column"
+                  justifyContent="flex-start" // Justify content to the start
+                  alignItems="flex-start" // Align items to the start (left)
+                  width="100%" // Ensure the box takes full width
+               >
+                  <Typography variant="body1" color="text.secondary">
+                     Semester: {semester_details?.designation}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                  CRN #: {crn}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                     Instructor: {instructor_details?.last_name}
+                  </Typography>
+               </Box>
             </CardContent>
          </Card>
       </motion.div>
