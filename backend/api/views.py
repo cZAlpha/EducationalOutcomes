@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.hashers import make_password
+from django.db import transaction
 
 # User-made imports
 from .serializers import * # Import serializers
@@ -388,13 +389,82 @@ class CourseListCreate(generics.ListCreateAPIView):
       return Response(serializer.data)
    
    def post(self, request):
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
-      serializer = CourseSerializer(data=request.data)
-      if serializer.is_valid():  # Checks for valid serializer
-         serializer.save()
-         return Response(serializer.data, status=status.HTTP_201_CREATED)
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      if not request.user.is_superuser:
+         return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
+      
+      data = request.data
+      
+      # Extract relevant information
+      program_id = data.get("program")
+      accreditation_org = data.get("accreditation_organization")
+      accreditation_version = data.get("accreditation_version")
+      course_number = data.get("course_number")
+      course_name = data.get("course_name")
+      course_description = data.get("course_description")
+      clos_data = data.get("clos", [])  # List of CLOs
+      mappings_data = data.get("mappings", [])  # List of CLO-PLO mappings
+      
+      if not (program_id and accreditation_org and accreditation_version and course_number and course_name and course_description):
+         return Response({"error": "Missing required course information."}, status=status.HTTP_400_BAD_REQUEST)
+      
+      try:
+         with transaction.atomic(): # Use transaction to ensure that nothing is saved if any part of the course creation process fails
+               # Step 1: Create Course
+               course_data = {
+                  "accreditation_organization": accreditation_org,
+                  "accreditation_version": accreditation_version,
+                  "course_number": course_number,
+                  "course_name": course_name,
+                  "course_description": course_description
+               }
+               course_serializer = CourseSerializer(data=course_data)
+               if not course_serializer.is_valid(): # If the course data is invalid, return 400 error
+                  return Response(course_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               course = course_serializer.save()  # Save Course if the course data was valid
+               
+               # Step 1.5: Create Program-Course Mapping
+               ProgramCourseMapping.objects.create(program_id=program_id, course=course)
+               
+               # Step 2: Create CLOs and store their IDs for mapping
+               clo_id_map = {}  # Maps CLO designation to actual saved CLO ID
+               for clo in clos_data:
+                  clo_data = {
+                     "course": course.id,
+                     "designation": clo.get("designation"),
+                     "description": clo.get("description")
+                  }
+                  clo_serializer = CourseLearningObjectiveSerializer(data=clo_data)
+                  if clo_serializer.is_valid():
+                     saved_clo = clo_serializer.save()
+                     clo_id_map[clo.get("designation")] = saved_clo.id  # Store for mapping
+                  else:
+                     return Response(clo_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               # Step 3: Create CLO-PLO Mappings
+               for mapping in mappings_data:
+                  clo_designation = mapping.get("clo_designation")  # Using designation from CLO
+                  plo_id = mapping.get("plo_id")
+                  
+                  if clo_designation not in clo_id_map or not plo_id:
+                     return Response({"error": "Invalid CLO-PLO mapping data."}, status=status.HTTP_400_BAD_REQUEST)
+                  
+                  mapping_data = {
+                     "clo": clo_id_map[clo_designation],  # Use actual saved CLO ID
+                     "plo": plo_id
+                  }
+                  mapping_serializer = PLOCLOMappingSerializer(data=mapping_data)
+                  if mapping_serializer.is_valid():
+                     mapping_serializer.save()
+                  else:
+                     return Response(mapping_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               return Response(course_serializer.data, status=status.HTTP_201_CREATED)
+      
+      except Exception as e:
+         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    """

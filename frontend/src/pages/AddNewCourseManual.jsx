@@ -120,9 +120,21 @@ const AddNewCourseManual = () => {
       }
    };
    
-   const handleDone = () => {
-      alert("Course and CLO Mapping Added Successfully!");
-      // Here you can submit the data to the server.
+   const handleDone = async () => {      
+      let formData = { // The data to be sent to the server
+         "course": courseInfo,
+         "clos": cloList,
+         "plo_clo_mappings": ploMappings
+      };
+      
+      try {
+         const res = await api.post('/api/courses/', formData);
+         console.log("Response from server:", res.data); // REMOVE FOR PRODUCTION
+         alert("Course Data Successfully Sent!");
+      } catch (err) {
+         console.error("Error posting Course:", err.response?.data || err.message);
+         alert(`Error posting Course: ${err.response?.data?.error || err.message}`);
+      }
    };
    
    // START - ON MOUNT FUNCTION CALLS (FOR DATA FETCHING)
