@@ -82,7 +82,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    return (
       <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg p-6">
          {/* Selectors */}
-         <div className="flex justify-between mb-4 gap-x-4">
+         <div className="w-full flex justify-between mb-4 gap-x-4">
             <button
                className={`px-4 py-2 rounded-md w-full ${
                   selectedTab === "Sections" ? "bg-blue-500 text-white" : "bg-gray-200"
@@ -102,7 +102,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
          </div>
          
          {/* Display Section */}
-         <div className="p-4 border rounded-md bg-gray-100 min-h-[200px]">
+         <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
             {selectedTab === "Sections" ? (
                <div>
                   <div className="flex justify-between items-center mb-4">
@@ -130,7 +130,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                               section_number={section.section_number}
                               semester={section.semester}
                               crn={section.crn}
-                              instructor={section.instructor}
+                              instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
                            />
                         ))}
                      </div>

@@ -4,29 +4,29 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { motion, useAnimation } from "framer-motion";
 
 
-const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
+const FilterSectionsBar = ({ onFilterChange, onRefresh }) => {
    const [searchText, setSearchText] = useState("");
-   const [courseFilter, setCourseFilter] = useState("All Courses");
+   const [sectionFilter, setSectionFilter] = useState("All Sections");
    const [recordsPerPage, setRecordsPerPage] = useState(5);
-   const controls = useAnimation(); // Use framer-motion's useAnimation hook
+   const controls = useAnimation();
    const refreshButtonRef = useRef(null);
    
    const handleSearchChange = (event) => {
       const value = event.target.value;
       setSearchText(value);
-      triggerFilterChange(value, courseFilter, recordsPerPage);
+      triggerFilterChange(value, sectionFilter, recordsPerPage);
    };
    
-   const handleCourseFilterChange = (event) => {
+   const handleSectionFilterChange = (event) => {
       const value = event.target.value;
-      setCourseFilter(value);
+      setSectionFilter(value);
       triggerFilterChange(searchText, value, recordsPerPage);
    };
    
    const handleRecordsPerPageChange = (event) => {
       const value = event.target.value;
       setRecordsPerPage(value);
-      triggerFilterChange(searchText, courseFilter, value);
+      triggerFilterChange(searchText, sectionFilter, value);
    };
    
    const triggerFilterChange = (search, filter, records) => {
@@ -58,7 +58,7 @@ const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
          className="flex flex-col md:flex-row items-center gap-4 bg-white rounded-2xl shadow-lg p-4 w-full"
       >
          <TextField
-            label="Search Courses"
+            label="Search Sections"
             variant="outlined"
             value={searchText}
             onChange={handleSearchChange}
@@ -66,16 +66,16 @@ const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
          />
          
          <FormControl sx={{ minWidth: 160, width: "100%", maxWidth: "16rem" }}>
-            <InputLabel>Course Filter</InputLabel>
+            <InputLabel>Section Filter</InputLabel>
             <Select
-               value={courseFilter}
-               onChange={handleCourseFilterChange}
-               label="Course Filter"
+               value={sectionFilter}
+               onChange={handleSectionFilterChange}
+               label="Section Filter"
             >
-               <MenuItem value="All Courses">All Courses</MenuItem>
-               <MenuItem value="Current Courses">Current Courses</MenuItem>
-               <MenuItem value="Active Courses">Active Courses</MenuItem>
-               <MenuItem value="Removed Courses">Removed Courses</MenuItem>
+               <MenuItem value="All Sections">All Sections</MenuItem>
+               <MenuItem value="Current Sections">Current Sections</MenuItem>
+               <MenuItem value="Active Sections">Active Sections</MenuItem>
+               <MenuItem value="Removed Sections">Removed Sections</MenuItem>
             </Select>
          </FormControl>
          
@@ -109,4 +109,4 @@ const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
    );
 };
 
-export default FilterCoursesBar;
+export default FilterSectionsBar;
