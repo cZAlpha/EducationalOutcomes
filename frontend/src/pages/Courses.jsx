@@ -235,7 +235,7 @@ function Courses() {
       if (programCourseMappings.length > 0) {
          console.log("Program Course Mappings: ", programCourseMappings);
       }
-   
+      
       // Ensure courses and programCourseMappings are available
       if (courses.length > 0 && programCourseMappings.length > 0) {
          // Create a lookup object for program names by ID
@@ -255,7 +255,7 @@ function Courses() {
          setCourses(updatedCourses); // Update courses
          console.log("Updated Courses with Program Names: ", updatedCourses);
       }
-         
+      
    }, [programCourseMappings, programs]) // If Courses or Programs or ProgramCourseMappings Change, this will trigger
    
    // ON MOUNT FUNCTION CALLS
