@@ -108,10 +108,11 @@ class ProgramSerializer(serializers.ModelSerializer):
 # Course Serializer
 class CourseSerializer(serializers.ModelSerializer):
    a_version = AccreditationVersionSerializer()  # Use the nested serializer
+   a_version_details = AccreditationVersionSerializer(source='a_version', read_only=True) # Nested, read-only serializer
    
    class Meta:
       model = Course
-      fields = ['course_id', 'a_version', 'course_number', 'name', 'description', 'date_added', 'date_removed']
+      fields = ['course_id', 'a_version', 'a_version_details', 'course_number', 'name', 'description', 'date_added', 'date_removed']
       depth = 1  # This will automatically expand foreign keys
    
    # Custom validation for date_added and date_removed
