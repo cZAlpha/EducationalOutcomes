@@ -107,7 +107,7 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 # Course Serializer
 class CourseSerializer(serializers.ModelSerializer):
-   a_version = AccreditationVersionSerializer()  # Use the nested serializer
+   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all())
    a_version_details = AccreditationVersionSerializer(source='a_version', read_only=True) # Nested, read-only serializer
    
    class Meta:
@@ -189,12 +189,15 @@ class EmbeddedTaskSerializer(serializers.ModelSerializer):
 
 # Course Learning Objective Serializer
 class CourseLearningObjectiveSerializer(serializers.ModelSerializer):
-   course = CourseSerializer()  # Nested serializer to capture full info.
-   created_by = UserSerializer()  # Anotha one
+   course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())
+   created_by = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+   
+   course_details = CourseSerializer(source='course', read_only=True)
+   created_by_details = UserSerializer(source='created_by', read_only=True)
    
    class Meta:
       model = CourseLearningObjective
-      fields = ['clo_id', 'course', 'designation', 'description', 'created_by']
+      fields = ['clo_id', 'course', 'designation', 'description', 'created_by', 'course_details', 'created_by_details']
 
 
 # Task CLO Mapping Serializer

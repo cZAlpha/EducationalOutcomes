@@ -7,10 +7,13 @@ import { Link } from 'react-router-dom'; // Import Link if using react-router
 
 const AddNewCourseManual = () => {
    // START - Variables to hold data
-   const [programs, setPrograms] = useState([]);
-   const [accreditationOrganizations, setAccreditationOrganizations] = useState([]);
-   const [selectedAccreditationOrg, setSelectedAccreditationOrg] = useState(null); // Selected a_org
-   const [accreditationVersions, setAccreditationVersions] = useState([]);
+   const [programs, setPrograms] = useState([]); // Programs list
+   const [accreditationOrganizations, setAccreditationOrganizations] = useState([]); // Accreditation Organizations list
+   const [selectedAccreditationOrg, setSelectedAccreditationOrg] = useState(null); // Selected a_org (not a list of all of them!)
+   const [accreditationVersions, setAccreditationVersions] = useState([]); // Accreditation Versions list
+   const [PLOs, setPLOs] = useState([]); // Program Learning Objectives list
+   // NOTE: The view from the backend disallows non-super users from GET calling all users, therefore the GET call will only return the current user
+   const [instructor, setInstructor] = useState(null); 
    // STOP  - Variables to hold data
    
    // START - Program data fetching
@@ -45,6 +48,29 @@ const AddNewCourseManual = () => {
       }
    };
    // STOP  - Accreditation Organization data fetching
+   
+   // START - Program Learning Objectives data fetching
+   const getPLOs = async () => {
+      try {
+         const res = await api.get('/api/program-learning-objectives/');
+         setPLOs(res.data);
+      } catch (err) {
+         alert(`Error fetching Program Learning Objectives: ${err.message}`);
+      }
+   };
+   // STOP  - Program Learning Objectives data fetching
+   
+   // START - User data fetch
+   const getInstructor = async () => {
+      try {
+         const res = await api.get('/api/users/');
+         console.log(res.data[0]); // Log the response to check its structure
+         setInstructor(res.data[0]);
+      } catch (err) {
+         alert(`Error fetching Instructor: ${err.message}`);
+      }
+   };
+   // STOP  - User data fetch
    
    // Step 1: Basic Course Information
    const [courseInfo, setCourseInfo] = useState({
@@ -101,12 +127,63 @@ const AddNewCourseManual = () => {
    };
    
    const handleAddClo = () => {
-      setCloList([...cloList, { designation: "", description: "" }]);
+      setCloList([...cloList, { designation: "", description: "", created_by: instructor?.user_id}]);
    };
    
-   const handlePloMappingChange = (cloDesignation, plo) => {
-      setPloMappings((prevMappings) => [...prevMappings, { cloDesignation, plo }]);
+   const handleFilterPLOs = () => { 
+      setPLOs((prevPlos) => prevPlos.filter(plo => plo.a_version === courseInfo.accreditationVersion));
    };
+   
+   // This shit worked alright ig
+   // const handlePloMappingChange = (cloDesignation, ploId) => {
+   //    // Create a new copy of the PLO mappings to ensure immutability
+   //    const newPLOMappings = [...ploMappings];
+      
+   //    // Find if the CLO is already in the mappings
+   //    const existingMappingIndex = newPLOMappings.findIndex(mapping => mapping.cloDesignation === cloDesignation);
+      
+   //    if (existingMappingIndex !== -1) {
+   //       // If the CLO mapping exists, add the new PLO ID to the existing mapping
+   //       newPLOMappings[existingMappingIndex].plos.push(ploId);
+   //    } else {
+   //       // Otherwise, create a new mapping for the CLO
+   //       newPLOMappings.push({
+   //          cloDesignation,
+   //          plos: [ploId],
+   //       });
+   //    }
+      
+   //    // Update the state with the new PLO mappings
+   //    setPloMappings(newPLOMappings);
+   // };
+   
+   const handlePloMappingChange = (cloDesignation, ploId) => {
+      // Create a new copy of the PLO mappings to ensure immutability
+      const newPLOMappings = [...ploMappings];
+      
+      // Check if this CLO is already mapped to the PLO
+      const existingMappingIndex = newPLOMappings.findIndex(mapping => mapping.cloDesignation === cloDesignation && mapping.plo === ploId);
+      
+      if (existingMappingIndex === -1) {
+         // If no mapping exists, create a new mapping and add it
+         newPLOMappings.push({
+            cloDesignation,
+            plo: ploId,
+         });
+      }
+      
+      // Update the state with the new PLO mappings
+      setPloMappings(newPLOMappings);
+   };
+   
+   
+   
+   const handleRemovePloMapping = (cloDesignation, ploId) => {
+      setPloMappings((prevMappings) =>
+         prevMappings.filter(mapping => !(mapping.cloDesignation === cloDesignation && mapping.plo === ploId))
+      );
+   };
+   
    
    const handleNext = () => {
       if (currentStep < 3) {
@@ -127,6 +204,7 @@ const AddNewCourseManual = () => {
          "plo_clo_mappings": ploMappings
       };
       
+      console.log("Form Data: ", formData);
       try {
          const res = await api.post('/api/courses/', formData);
          console.log("Response from server:", res.data); // REMOVE FOR PRODUCTION
@@ -136,21 +214,38 @@ const AddNewCourseManual = () => {
          alert(`Error posting Course: ${err.response?.data?.error || err.message}`);
       }
    };
+
+   // START - FILTERS PLOs BY CHOSEN ACCREDITATION VERSION
+   useEffect(() => {
+      const fetchAndFilterPLOs = async () => {
+         await getPLOs(); // Ensure PLOs are fetched first
+         handleFilterPLOs(); // Then filter them
+         console.log("Filtered PLOs: ", PLOs);
+      };
+      
+      fetchAndFilterPLOs();
+   }, [courseInfo.accreditationVersion]);
+   // STOP  - FILTERS PLOs BY CHOSEN ACCREDITATION VERSION
    
    // START - ON MOUNT FUNCTION CALLS (FOR DATA FETCHING)
    useEffect(() => {
-      getPrograms();
-      getAccreditationOrganizations();
-      getAccreditationVersions(); 
+      const fetchData = async () => {
+         await getPrograms();
+         await getAccreditationOrganizations();
+         await getAccreditationVersions(); 
+         await getPLOs();
+         await getInstructor();
+      };
+      
+      fetchData();
    }, []);
    // STOP  - ON MOUNT FUNCTION CALLS (FOR DATA FETCHING)
    
    // TESTING
    useEffect(() => {
       console.log("Course Info: ", courseInfo);
-      console.log("CLO List: ", cloList);
-      console.log("PLO Mappings List: ", ploMappings);
-   }, [courseInfo, cloList]);
+      console.log("Instructor: ", instructor?.user_id)
+   }, [courseInfo, instructor]);
    
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
@@ -223,6 +318,13 @@ const AddNewCourseManual = () => {
                   value={courseInfo.courseNumber}
                   onChange={handleCourseInfoChange}
                   margin="normal"
+                  type="number"  // Ensures only numbers can be entered
+                  slotProps={{
+                     input: {
+                        min: 0,  // Prevents negative numbers (optional)
+                        max: 999,  // Prevents too big of integers being inputted
+                     },
+                  }}
                />
                <TextField
                   fullWidth
@@ -287,32 +389,61 @@ const AddNewCourseManual = () => {
             </Box>
             )}
             
-            {/* Step 3: Mapping CLOs to PLOs */}
+            {/* Step 3: CLO <-> PLO Mappings */}
             {currentStep === 3 && (
-            <Box>
-               <Typography variant="h6" sx={{ marginBottom: 2 }}>
-                  Map CLOs to PLOs
-               </Typography>
-               
-               {cloList.length === 0 ? (
-                  <Typography variant="body1" sx={{ color: "red", marginBottom: 2 }}>
-                  Please add at least one CLO before proceeding.
-                  </Typography>
-               ) : (
-                  cloList.map((clo, index) => (
-                  <Box key={index} sx={{ marginBottom: 2 }}>
-                     <Typography variant="body1">CLO {clo.designation}: {clo.description}</Typography>
-                     <TextField
-                        fullWidth
-                        label="PLO Mapping"
-                        onChange={(e) => handlePloMappingChange(clo.designation, e.target.value)}
-                        margin="normal"
-                     />
-                  </Box>
-                  ))
-               )}
-            </Box>
+               <Box>
+                  <Typography variant="h6" sx={{ marginBottom: 2 }}>Map CLOs to PLOs</Typography>
+                  
+                  {cloList.map((clo, cloIndex) => {
+                        console.log("ploMappings structure:", ploMappings);
+                        
+                        // Find the CLO to PLO mappings for the current CLO
+                        const mappedPLOs = ploMappings
+                           .filter(mapping => mapping.cloDesignation === clo.designation)
+                           .map(mapping => mapping.plo);
+                        
+                        // Find available PLOs that are not yet mapped
+                        const availablePLOs = PLOs.filter(plo => !mappedPLOs.includes(plo.plo_id));
+                        console.log("Available PLOs: ", availablePLOs);
+                        
+                        return (
+                           <Box key={cloIndex} sx={{ marginBottom: 3, padding: 2, border: "1px solid #ccc", borderRadius: 2 }}>
+                              <Typography variant="body1">CLO {clo.designation}: {clo.description}</Typography>
+                              
+                              {/* PLO Dropdown */}
+                              <FormControl fullWidth margin="normal">
+                                    <InputLabel>Select PLO</InputLabel>
+                                    <Select
+                                       value=""
+                                       onChange={(e) => handlePloMappingChange(clo.designation, e.target.value)}
+                                    >
+                                       {availablePLOs.map((plo) => (
+                                          <MenuItem key={plo.plo_id} value={plo.plo_id}>
+                                                {plo.designation}: {plo.description}
+                                          </MenuItem>
+                                       ))}
+                                    </Select>
+                              </FormControl>
+                              
+                              {/* Display Mapped PLOs */}
+                              {mappedPLOs.length > 0 && (
+                                    <Box>
+                                       {mappedPLOs.map((ploId) => (
+                                          <Box key={ploId} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 1 }}>
+                                                <Typography variant="body2">PLO: {PLOs.find(p => p.plo_id === ploId)?.designation} {PLOs.find(p => p.plo_id === ploId)?.description}</Typography>
+                                                <IconButton size="small" onClick={() => handleRemovePloMapping(clo.designation, ploId)}>
+                                                   ❌
+                                                </IconButton>
+                                          </Box>
+                                       ))}
+                                    </Box>
+                              )}
+                           </Box>
+                        );
+                  })}
+               </Box>
             )}
+            
             
             {/* Navigation Buttons */}
             <Box sx={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>

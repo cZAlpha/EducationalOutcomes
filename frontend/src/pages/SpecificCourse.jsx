@@ -174,7 +174,7 @@ function SpecificCourse() {
             <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
             <h2 className="font-semi-bold text-xl"></h2>
             <h2 className="font-semi-bold text-xl">
-               Accreditation: {loading ? "Loading..." : `${course.a_version?.a_organization.name || ""} (${course.a_version?.year || ""})`}
+               Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
             </h2>
             <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
          </div>
