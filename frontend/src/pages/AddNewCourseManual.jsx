@@ -134,29 +134,6 @@ const AddNewCourseManual = () => {
       setPLOs((prevPlos) => prevPlos.filter(plo => plo.a_version === courseInfo.accreditationVersion));
    };
    
-   // This shit worked alright ig
-   // const handlePloMappingChange = (cloDesignation, ploId) => {
-   //    // Create a new copy of the PLO mappings to ensure immutability
-   //    const newPLOMappings = [...ploMappings];
-      
-   //    // Find if the CLO is already in the mappings
-   //    const existingMappingIndex = newPLOMappings.findIndex(mapping => mapping.cloDesignation === cloDesignation);
-      
-   //    if (existingMappingIndex !== -1) {
-   //       // If the CLO mapping exists, add the new PLO ID to the existing mapping
-   //       newPLOMappings[existingMappingIndex].plos.push(ploId);
-   //    } else {
-   //       // Otherwise, create a new mapping for the CLO
-   //       newPLOMappings.push({
-   //          cloDesignation,
-   //          plos: [ploId],
-   //       });
-   //    }
-      
-   //    // Update the state with the new PLO mappings
-   //    setPloMappings(newPLOMappings);
-   // };
-   
    const handlePloMappingChange = (cloDesignation, ploId) => {
       // Create a new copy of the PLO mappings to ensure immutability
       const newPLOMappings = [...ploMappings];
@@ -176,14 +153,11 @@ const AddNewCourseManual = () => {
       setPloMappings(newPLOMappings);
    };
    
-   
-   
    const handleRemovePloMapping = (cloDesignation, ploId) => {
       setPloMappings((prevMappings) =>
          prevMappings.filter(mapping => !(mapping.cloDesignation === cloDesignation && mapping.plo === ploId))
       );
    };
-   
    
    const handleNext = () => {
       if (currentStep < 3) {
@@ -241,12 +215,8 @@ const AddNewCourseManual = () => {
    }, []);
    // STOP  - ON MOUNT FUNCTION CALLS (FOR DATA FETCHING)
    
-   // TESTING
-   useEffect(() => {
-      console.log("Course Info: ", courseInfo);
-      console.log("Instructor: ", instructor?.user_id)
-   }, [courseInfo, instructor]);
    
+   // HTML Stuff
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div className="p-10 bg-white rounded-md">
@@ -266,6 +236,7 @@ const AddNewCourseManual = () => {
                      name="program"
                      value={courseInfo.program}
                      onChange={handleCourseInfoChange}
+                     sx={{ textAlign: 'left' }}  // Align selected value to the left
                   >
                      {programs.map((program) => (
                         <MenuItem key={program.program_id} value={program.program_id}>
@@ -282,6 +253,7 @@ const AddNewCourseManual = () => {
                      value={selectedAccreditationOrg || ''}
                      onChange={handleAccreditationOrgChange}
                      label="Accreditation Organization"
+                     sx={{ textAlign: 'left' }}  // Align selected value to the left
                   >
                      {accreditationOrganizations.map((org) => (
                         <MenuItem key={org.a_organization_id} value={org.a_organization_id}>
@@ -299,6 +271,7 @@ const AddNewCourseManual = () => {
                      name="accreditationVersion"
                      value={courseInfo.accreditationVersion}
                      onChange={handleCourseInfoChange}
+                     sx={{ textAlign: 'left' }}  // Align selected value to the left
                   >
                      {accreditationVersions
                         .filter(version => version.a_organization.a_organization_id === courseInfo.accreditationOrganization) // Filter by organization
@@ -353,7 +326,7 @@ const AddNewCourseManual = () => {
                </Typography>
                
                {cloList.map((clo, index) => (
-                  <div className="flex flex-col bg-gray-200 rounded-lg pl-4 pr-4 mb-4">
+                  <div className="flex flex-col bg-gray-100 rounded-lg pl-4 pr-4 mb-4">
                      <Box key={index} sx={{ marginBottom: 2 }}>
                         <TextField
                            fullWidth

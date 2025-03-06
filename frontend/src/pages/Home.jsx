@@ -34,7 +34,7 @@ function Home() {
                      <h2 className="text-xl font-semibold">Announcement Title 1</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">
-                        This is the content for the first announcement. It can include details, updates, or any relevant information.
+                        This is the content for the first announcement. 
                      </p>
                   </div>
                   
@@ -42,7 +42,7 @@ function Home() {
                      <h2 className="text-xl font-semibold">Announcement Title 2</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">
-                        Here is some content for the second announcement. Each card takes the full width of the section with appropriate spacing.
+                        Here is some content for the second announcement. 
                      </p>
                   </div>
                   
@@ -50,7 +50,7 @@ function Home() {
                      <h2 className="text-xl font-semibold">Announcement Title 3</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">
-                        The third announcement content goes here. The layout keeps all cards aligned and spaced evenly.
+                        The third announcement content goes here. 
                      </p>
                   </div>
                </div>

@@ -98,18 +98,41 @@ const Sections = () => {
             <h1 /*Title */ className="text-3xl font-bold">Sections</h1>
             
             {/* Help Button with Tooltip */}
-            <Tooltip title="To add a section, find the corresponding course and add it through the courses page" arrow placement="left">
+            <Tooltip
+               title="To add a section, find the corresponding course and add it through the courses page"
+               arrow
+               placement="left"
+               slotProps={{
+                  tooltip: {
+                     sx: {
+                     backgroundColor: 'white',
+                     color: 'black',
+                     fontSize: '1rem',
+                     borderRadius: '20px',  // Increased border radius for rounder corners
+                     p: 1.5,
+                     borderRadius: 1,
+                     boxShadow: 3,
+                     },
+                  },
+                  arrow: {
+                     sx: {
+                     color: 'white',
+                     },
+                  },
+               }}
+            >
                <IconButton>
                   <HelpOutlineIcon />
                </IconButton>
             </Tooltip>
+
          </div>
          
          <div className="w-[70%]">
             <FilterSectionsBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
-         <div className="min-w-[360px]">
+         <div className="min-w-[600px]">
             <SectionsTable sections={sections} sectionsPerPage={filters.recordsPerPage}/>
          </div>
       </div>
