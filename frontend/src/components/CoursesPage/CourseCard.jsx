@@ -7,8 +7,7 @@ const CourseCard = ({
    name,
    program_name,
    course_number,
-   a_organization,
-   a_version,
+   a_version_details,
    date_added,
    date_removed,
    }) => {
@@ -31,7 +30,7 @@ const CourseCard = ({
                   Course Number: {course_number}
                </Typography>
                <Typography variant="body1" color="text.secondary">
-                  Accreditation: {a_version?.a_organization.name || ""} ({a_version?.year || ""})
+                  Accreditation: {a_version_details?.a_organization.name || ""} ({a_version_details?.year || ""})
                </Typography>
                <Typography variant="body1" color="text.secondary">
                   Date Added: {date_added}

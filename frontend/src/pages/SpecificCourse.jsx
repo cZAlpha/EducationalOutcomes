@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import api from '../api';
 import { USER } from "../constants";
 import SpecificCourseInformation from "../components/SpecificCoursesPage/SpecificCourseInformation";
-import { use } from "react";
 
 
 function SpecificCourse() {
@@ -59,14 +58,19 @@ function SpecificCourse() {
       }
    };
    
+   // START - Sections fetching and filtering
    const getSections = async () => {
+      const filterSections = (unfilteredSections) => {
+         return unfilteredSections.filter(section => section.course === parseInt(courseId));
+      };  
       try {
          const res = await api.get('/api/sections/');
-         setSections(res.data);
+         setSections(filterSections(res.data)); // Filter then set sections
       } catch (err) {
          alert(`Error fetching Sections: ${err.message}`);
       }
    };
+   // STOP  - Sections fetching and filtering
    
    const getSemesters = async () => {
       try {
@@ -86,14 +90,19 @@ function SpecificCourse() {
       }
    };
    
+   // START - CLO fetching and filtering
    const getCLOs = async () => {
+      const filterCLOs = (unfilteredCLOs) => {
+         return unfilteredCLOs.filter(clo => clo.course === parseInt(courseId));
+      };   
       try {
          const res = await api.get('/api/course-learning-objectives/');
-         setCLOs(res.data);
+         setCLOs(filterCLOs(res.data)); // Filter and then set the CLOs
       } catch (err) {
          alert(`Error fetching CLOs: ${err.message}`);
       }
    };
+   // STOP  - CLO fetching and filtering
    
    const getPLOs = async () => {
       try {
@@ -174,7 +183,7 @@ function SpecificCourse() {
             <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
             <h2 className="font-semi-bold text-xl"></h2>
             <h2 className="font-semi-bold text-xl">
-               Accreditation: {loading ? "Loading..." : `${course.a_version?.a_organization.name || ""} (${course.a_version?.year || ""})`}
+               Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
             </h2>
             <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
          </div>

@@ -139,7 +139,7 @@ function Courses() {
       }
    };
    // STOP  - User Data Fetching
-
+   
    // START - Course Data Fetching
    const getCourses = () => {
       api
@@ -149,7 +149,7 @@ function Courses() {
       console.log("Courses: ", courses);
    };
    // STOP  - Course Data Fetching   
-
+   
    // START - Program Data Fetching
    const getPrograms = () => {
       api
@@ -158,7 +158,7 @@ function Courses() {
          .catch((err) => alert(`Error fetching Programs: ${err.message}`));
    };
    // STOP  - Program Data Fetching
-
+   
    // START - Program Course Mapping Data Fetching
    const getProgramCourseMappings = () => {
       api

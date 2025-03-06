@@ -6,6 +6,7 @@ import Home from "./pages/Home"
 import Account from "./pages/Account"
 import Courses from "./pages/Courses"
 import SpecificCourse from "./pages/SpecificCourse"
+import AddNewCourseManual from "./pages/AddNewCourseManual"
 import Sections from "./pages/Sections"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
@@ -95,6 +96,12 @@ function App() {
         <Route path="/courses/:courseId" element={                   /* Specific Course page (Protected) */
           <ProtectedRoute>
             <SpecificCourse />
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/add-course/manual" element={                   /* Add New Course Manually (Protected) */
+          <ProtectedRoute>
+            <AddNewCourseManual />
           </ProtectedRoute>
         }
         />
