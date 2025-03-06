@@ -649,7 +649,7 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self, request):
+   def get_queryset(self):
       return Section.objects.all()
    
    def perform_update(self, request, serializer):

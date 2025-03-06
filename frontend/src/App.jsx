@@ -7,6 +7,7 @@ import Account from "./pages/Account"
 import Courses from "./pages/Courses"
 import SpecificCourse from "./pages/SpecificCourse"
 import AddNewCourseManual from "./pages/AddNewCourseManual"
+import SpecificSection from "./pages/SpecificSection"
 import Sections from "./pages/Sections"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
@@ -105,9 +106,15 @@ function App() {
           </ProtectedRoute>
         }
         />
-        <Route path="/sections/" element={                   /* Sections page (Protected) */
+        <Route path="/sections/" element={                           /* Sections page (Protected) */
           <ProtectedRoute>
             <Sections />
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/sections/:sectionId" element={                 /* Sections page (Protected) */
+          <ProtectedRoute>
+            <SpecificSection />
           </ProtectedRoute>
         }
         />

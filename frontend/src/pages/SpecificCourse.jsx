@@ -19,7 +19,7 @@ function SpecificCourse() {
    const [CLOs, setCLOs] = useState([]);
    const [PLOs, setPLOs] = useState([]);
    const [PLOCLOMappings, setPLOCLOMappings] = useState([]);
-   const [loading, setLoading] = useState(true); // New state to track loading status
+   const [loading, setLoading] = useState(true); // State to track loading status
    
    const getUserData = async () => {
       try {
