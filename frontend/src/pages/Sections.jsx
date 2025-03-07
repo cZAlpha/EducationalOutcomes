@@ -44,9 +44,9 @@ const Sections = () => {
          let updatedSections = [...sections];
          
          // Search filter
-         if (filters.search.trim()) {
+         if (filters.search !== "") {
             updatedSections = updatedSections.filter((section) =>
-               section.sectionName.toLowerCase().includes(filters.search.toLowerCase())
+               section.course_details.name.toLowerCase().includes(filters.search.toLowerCase())
             );
          }
          
@@ -108,9 +108,8 @@ const Sections = () => {
                      backgroundColor: 'white',
                      color: 'black',
                      fontSize: '1rem',
-                     borderRadius: '20px',  // Increased border radius for rounder corners
+                     borderRadius: '16px',  // Increased border radius for rounder corners
                      p: 1.5,
-                     borderRadius: 1,
                      boxShadow: 3,
                      },
                   },

@@ -42,14 +42,14 @@ const AddCourseButton = () => {
                <Button
                onClick={() => handleOptionClick("/add-course/manual")}
                fullWidth
-               sx={{ px: 1.5, py: 0.5, justifyContent: "flex-start" }}
+               sx={{ py: 0.5, justifyContent: "flex-start", fontWeight: "bold" }}
                >
                From Scratch
                </Button>
                <Button
                onClick={() => handleOptionClick("/add-course/template")}
                fullWidth
-               sx={{ px: 1.5, py: 0.5, justifyContent: "flex-start" }}
+               sx={{ py: 0.5, justifyContent: "flex-start", fontWeight: "bold" }}
                >
                From Template
                </Button>

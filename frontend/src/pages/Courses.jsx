@@ -187,7 +187,7 @@ function Courses() {
          // Search filter
          if (filters.search.trim()) {
             updatedCourses = updatedCourses.filter((course) =>
-               course.courseName.toLowerCase().includes(filters.search.toLowerCase())
+               course.name.toLowerCase().includes(filters.search.toLowerCase())
             );
          }
          
