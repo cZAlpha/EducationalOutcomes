@@ -115,6 +115,7 @@ function Courses() {
    const [currentUser, setCurrentUser] = useState(null); // Stores the user object
    
    const [courses, setCourses] = useState([]); // Used to store the courses fetched from the api call
+   const [filteredCourses, setFilteredCourses] = useState([]); // Used to store filtered courses
    const [programs, setPrograms] = useState([]); // Used to store the programs fetched  from the api call
    const [programCourseMappings, setProgramCourseMappings] = useState([]); // Used to store the Program <-> Course Mappings from the api call
    const [filters, setFilters] = useState({ // Stores all active filters
@@ -208,12 +209,12 @@ function Courses() {
             default:
                break;
          }
-         
-         setCourses(updatedCourses);
+         console.log("Filtered Courses: ", updatedCourses);
+         setFilteredCourses(updatedCourses);
       };
       
       applyFilters();
-   }, [filters]);
+   }, [filters, courses]);
    // STOP  - Filtering 
    
    // START - Refresh handling from FilterCoursesBar component
@@ -278,7 +279,7 @@ function Courses() {
          </div>
          
          <div className="min-w-[600px] text-left">
-            <CoursesTable courses={courses} coursesPerPage={filters.recordsPerPage} />
+            <CoursesTable courses={filteredCourses} coursesPerPage={filters.recordsPerPage} />
          </div>
       </div>
    );

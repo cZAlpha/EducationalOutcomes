@@ -10,6 +10,7 @@ import { USER } from "../constants";
 const Sections = () => {
    // START - Variables
    const [sections, setSections] = useState([]); // Stores all sections in an array
+   const [filteredSections, setFilteredSections] = useState([]); // Stores filtered sections in an array
    const [filters, setFilters] = useState({ // Stores all active filters
       search: "",
       sectionType: "All Sections",
@@ -68,11 +69,11 @@ const Sections = () => {
                break;
          }
          
-         setSections(updatedSections);
+         setFilteredSections(updatedSections);
       };
       
       applyFilters();
-   }, [filters]);
+   }, [filters, sections]);
    // STOP  - Filtering
    
    // START - Refresh handling from FilterSectionsBar component
@@ -124,7 +125,6 @@ const Sections = () => {
                   <HelpOutlineIcon />
                </IconButton>
             </Tooltip>
-
          </div>
          
          <div className="w-[70%]">
@@ -132,7 +132,7 @@ const Sections = () => {
          </div>
          
          <div className="min-w-[600px]">
-            <SectionsTable sections={sections} sectionsPerPage={filters.recordsPerPage}/>
+            <SectionsTable sections={filteredSections} sectionsPerPage={filters.recordsPerPage}/>
          </div>
       </div>
    );

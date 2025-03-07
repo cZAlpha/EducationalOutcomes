@@ -724,6 +724,6 @@ def populate_courses(): # Function that only populates courses
 
 
 if __name__ == "__main__": # Main execution
-   wipe_database()
-   populate_database()
+   #wipe_database()
+   #populate_database()
    visualize_database()
