@@ -233,7 +233,7 @@ class EvaluationType(models.Model):
    evaluation_type_id = models.BigAutoField(primary_key=True)
    type_name = models.CharField(max_length=30)  # The name of the type of evaluation
    description = models.CharField(max_length=250, null=True, blank=True)
-
+   
    def __str__(self):
       return f"{self.type_name} | {self.description[:20]}"
 
