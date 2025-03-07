@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import api from '../api';
 import { USER } from "../constants";
 import SpecificSectionInformation from "../components/SpecificSectionPage/SpecificSectionInformation";
+import LoadingIndicator from "../components/LoadingIndicator";
 
 
 function SpecificSection() {
@@ -141,10 +142,10 @@ function SpecificSection() {
          </div>
          
          <div className="flex flex-col items-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
-            {!loading && instructor ? (
-               <SpecificSectionInformation />
+            {!loading && instructor && section ? (
+               <SpecificSectionInformation section={section} />
             ) : (
-               <p>Loading instructor data...</p> 
+               <LoadingIndicator />
             )}
          </div>
       </div>

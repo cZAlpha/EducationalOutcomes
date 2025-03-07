@@ -1,10 +1,36 @@
-import React, { useState } from "react";
-import { Button } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import api from '../../api';
+import LoadingIndicator from '../LoadingIndicator';
 
 
-function SpecificSectionInformation() {
+function SpecificSectionInformation (section) {
+   const [loading, setLoading] = useState(true); // State to track loading status
    const [selectedTab, setSelectedTab] = useState("Evaluation Instruments");
+   const [evaluationInstruments, setEvaluationInstruments] = useState([]);
    
+   // START - Eval. Instrument data fetching
+   const getEvaluationInstruments = async () => {
+      try {
+         const res = await api.get("/api/evaluation-instruments/");
+         const filteredEvals = res.data.filter(e => e.section === section.section.section_id); // Whitelist filter
+         setEvaluationInstruments(filteredEvals);
+      } catch (err) {
+         alert(`Error fetching Evaluation Instruments: ${err.message}`);
+      }
+   };
+   // STOP - Eval. Instrument data fetching
+   
+   useEffect(() => { // ON COMPONENT MOUNT
+      const fetchData = async () => {
+         await getEvaluationInstruments();
+         setLoading(false); // Set loading to false when all data is fetched
+      };
+      
+      fetchData();
+   }, []);
+   
+   
+   // HTML STUFF
    return (
       <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg p-6">
          {/* Selectors */}
@@ -32,8 +58,20 @@ function SpecificSectionInformation() {
             {selectedTab === "Evaluation Instruments" ? (
                <div>
                   <h3 className="font-bold text-lg">Evaluation Instruments</h3>
-                  {/* Content specific to Evaluation Instruments */}
-                  <p>This is the content for Evaluation Instruments tab.</p>
+                  {/* If no instruments, show message */}
+                  {evaluationInstruments.length === 0 || loading ? (
+                     <LoadingIndicator />
+                  ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {evaluationInstruments.map((instrument) => (
+                           <div key={instrument.id} className="p-4 bg-gray-100 rounded-lg shadow">
+                              <h3 className="text-lg font-semibold">{instrument.name}</h3>
+                              <p className="text-sm text-gray-600">{instrument.type}</p>
+                              <p className="mt-2 text-gray-700">{instrument.description}</p>
+                           </div>
+                        ))}
+                     </div>
+                  )}
                </div>
             ) : (
                <div>
