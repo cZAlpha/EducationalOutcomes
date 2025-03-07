@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import api from '../../api';
 import LoadingIndicator from '../LoadingIndicator';
 import EvaluationInstrumentCard from "./EvaluationInstrumentCard";
+import { useNavigate } from "react-router-dom";
 
 
 function SpecificSectionInformation (section) {
+   const navigate = useNavigate(); // For navigating to specific section page
    const [loading, setLoading] = useState(true); // State to track loading status
    const [selectedTab, setSelectedTab] = useState("Evaluation Instruments");
    const [evaluationInstruments, setEvaluationInstruments] = useState([]);
@@ -20,6 +22,10 @@ function SpecificSectionInformation (section) {
       }
    };
    // STOP - Eval. Instrument data fetching
+   
+   const handleEvaluationInstrumentClick = (evaluationInstrumentId) => { // Navigates to the given specific evaluation instrument page
+      navigate(`/evaluation-instruments/${evaluationInstrumentId}`);
+   };
    
    useEffect(() => { // ON COMPONENT MOUNT
       const fetchData = async () => {
@@ -66,8 +72,13 @@ function SpecificSectionInformation (section) {
                      <p className="text-center text-gray-500">No evaluation instruments for this section</p>
                   ) : (
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {evaluationInstruments.map((instrument) => (
-                           <div key={instrument.evaluation_instrument_id}>
+                        {evaluationInstruments.map((instrument) => (     
+                           <div 
+                              key={instrument.evaluation_instrument_id}
+                              className="w-full"
+                              onClick={(e) => handleEvaluationInstrumentClick(instrument.evaluation_instrument_id)}
+                              style={{ cursor: "pointer", pointerEvents: "auto" }}
+                           >
                               <EvaluationInstrumentCard 
                                  name={instrument.name} 
                                  evaluation_type={instrument.evaluation_type_details?.type_name} 
