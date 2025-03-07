@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from '../../api';
 import LoadingIndicator from '../LoadingIndicator';
 import EvaluationInstrumentCard from "./EvaluationInstrumentCard";
+import AddEvaluationInstrumentButton from "./AddNewEvaluationInstrumentButton";
 import { useNavigate } from "react-router-dom";
 
 
@@ -44,17 +45,15 @@ function SpecificSectionInformation (section) {
          {/* Selectors */}
          <div className="w-full flex justify-between mb-4 gap-x-4">
             <button
-               className={`px-4 py-2 rounded-md w-full ${
-                  selectedTab === "Evaluation Instruments" ? "bg-blue-500 text-white" : "bg-gray-200"
-               }`}
+               className={`px-4 py-2 rounded-md w-full font-bold
+                  ${selectedTab === "Evaluation Instruments" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
                onClick={() => setSelectedTab("Evaluation Instruments")}
             >
                Evaluation Instruments
             </button>
             <button
-               className={`px-4 py-2 rounded-md w-full ${
-                  selectedTab === "Performance" ? "bg-blue-500 text-white" : "bg-gray-200"
-               }`}
+               className={`px-4 py-2 rounded-md w-full font-bold
+                  ${selectedTab === "Performance" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
                onClick={() => setSelectedTab("Performance")}
             >
                Performance
@@ -64,8 +63,11 @@ function SpecificSectionInformation (section) {
          {/* Display Section */}
          <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
             {selectedTab === "Evaluation Instruments" ? (
-               <div>
-                  <h3 className="font-bold text-lg mb-4">Evaluation Instruments</h3>
+               <div className="w-full">
+                  <div className="w-full flex flex-row items-center justify-between mb-6">
+                     <h3 className="font-bold text-lg">Evaluation Instruments</h3>
+                     <AddEvaluationInstrumentButton />
+                  </div>
                   {loading ? (
                      <LoadingIndicator />
                   ) : evaluationInstruments.length === 0 ? (
