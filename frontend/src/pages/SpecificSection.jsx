@@ -4,6 +4,7 @@ import api from '../api';
 import { USER } from "../constants";
 import SpecificSectionInformation from "../components/SpecificSectionPage/SpecificSectionInformation";
 import LoadingIndicator from "../components/LoadingIndicator";
+import { motion } from "framer-motion";
 
 
 function SpecificSection() {
@@ -132,13 +133,48 @@ function SpecificSection() {
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          <div className="flex flex-col items-left text-left w-[60%]">
             <div className="flex flex-row gap-x-4">
-               <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"}</h1>
-               <p className="font-bold text-3xl">—</p>
-               <h1 className="font-bold text-3xl">{section?.section_number}</h1>
+               <motion.h1
+                  className="font-bold text-3xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
+                  {loading ? "Loading..." : course?.name || "N/A"}
+               </motion.h1>
+               <motion.p className="font-bold text-3xl">—</motion.p>
+               <motion.h1
+                  className="font-bold text-3xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
+                  {loading ? "Loading..." : section?.section_number}
+               </motion.h1>
             </div>
-            <h2 className="font-semi-bold text-2xl">{loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`} ｜ {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}</h2>
-            <h3 className="font-semi-bold text-md">Semester: {section?.semester_details?.designation}</h3>
-            <h3 className="font-semi-bold text-md">Instructor: {section?.instructor_details?.last_name}</h3>
+            <motion.h2
+               className="font-semi-bold text-2xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`} ｜ {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
+            </motion.h2>
+            <motion.h3
+               className="font-semi-bold text-md"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Semester: {section?.semester_details?.designation}
+            </motion.h3>
+            <motion.h3
+               className="font-semi-bold text-md"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Instructor: {section?.instructor_details?.last_name}
+            </motion.h3>
          </div>
          
          <div className="flex flex-col items-center justify-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
