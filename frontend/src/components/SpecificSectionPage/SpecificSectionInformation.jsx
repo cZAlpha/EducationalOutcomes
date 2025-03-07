@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from '../../api';
 import LoadingIndicator from '../LoadingIndicator';
+import EvaluationInstrumentCard from "./EvaluationInstrumentCard";
 
 
 function SpecificSectionInformation (section) {
@@ -27,6 +28,7 @@ function SpecificSectionInformation (section) {
       };
       
       fetchData();
+      console.log("Evals: ", evaluationInstruments);
    }, []);
    
    
@@ -57,17 +59,20 @@ function SpecificSectionInformation (section) {
          <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
             {selectedTab === "Evaluation Instruments" ? (
                <div>
-                  <h3 className="font-bold text-lg">Evaluation Instruments</h3>
-                  {/* If no instruments, show message */}
-                  {evaluationInstruments.length === 0 || loading ? (
+                  <h3 className="font-bold text-lg mb-4">Evaluation Instruments</h3>
+                  {loading ? (
                      <LoadingIndicator />
+                  ) : evaluationInstruments.length === 0 ? (
+                     <p className="text-center text-gray-500">No evaluation instruments for this section</p>
                   ) : (
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {evaluationInstruments.map((instrument) => (
-                           <div key={instrument.id} className="p-4 bg-gray-100 rounded-lg shadow">
-                              <h3 className="text-lg font-semibold">{instrument.name}</h3>
-                              <p className="text-sm text-gray-600">{instrument.type}</p>
-                              <p className="mt-2 text-gray-700">{instrument.description}</p>
+                           <div key={instrument.evaluation_instrument_id}>
+                              <EvaluationInstrumentCard 
+                                 name={instrument.name} 
+                                 evaluation_type={instrument.evaluation_type_details?.type_name} 
+                                 description={instrument.description} 
+                              />
                            </div>
                         ))}
                      </div>

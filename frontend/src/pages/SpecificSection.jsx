@@ -141,7 +141,7 @@ function SpecificSection() {
             <h3 className="font-semi-bold text-md">Instructor: {section?.instructor_details?.last_name}</h3>
          </div>
          
-         <div className="flex flex-col items-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
+         <div className="flex flex-col items-center justify-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
             {!loading && instructor && section ? (
                <SpecificSectionInformation section={section} />
             ) : (
