@@ -5,7 +5,6 @@
 <br>
 
 # To Do List:
-- Make an Auth context to make authorization much easier
 - Finish Frontend Programming
 - Add Announcements model to the backend to make the home page's announcement section dynamic
 <br>
