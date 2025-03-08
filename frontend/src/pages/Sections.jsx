@@ -10,6 +10,7 @@ import { USER } from "../constants";
 const Sections = () => {
    // START - Variables
    const [sections, setSections] = useState([]); // Stores all sections in an array
+   const [filteredSections, setFilteredSections] = useState([]); // Stores filtered sections in an array
    const [filters, setFilters] = useState({ // Stores all active filters
       search: "",
       sectionType: "All Sections",
@@ -44,9 +45,9 @@ const Sections = () => {
          let updatedSections = [...sections];
          
          // Search filter
-         if (filters.search.trim()) {
+         if (filters.search !== "") {
             updatedSections = updatedSections.filter((section) =>
-               section.sectionName.toLowerCase().includes(filters.search.toLowerCase())
+               section.course_details.name.toLowerCase().includes(filters.search.toLowerCase())
             );
          }
          
@@ -68,11 +69,11 @@ const Sections = () => {
                break;
          }
          
-         setSections(updatedSections);
+         setFilteredSections(updatedSections);
       };
       
       applyFilters();
-   }, [filters]);
+   }, [filters, sections]);
    // STOP  - Filtering
    
    // START - Refresh handling from FilterSectionsBar component
@@ -108,9 +109,8 @@ const Sections = () => {
                      backgroundColor: 'white',
                      color: 'black',
                      fontSize: '1rem',
-                     borderRadius: '20px',  // Increased border radius for rounder corners
+                     borderRadius: '16px',  // Increased border radius for rounder corners
                      p: 1.5,
-                     borderRadius: 1,
                      boxShadow: 3,
                      },
                   },
@@ -125,7 +125,6 @@ const Sections = () => {
                   <HelpOutlineIcon />
                </IconButton>
             </Tooltip>
-
          </div>
          
          <div className="w-[70%]">
@@ -133,7 +132,7 @@ const Sections = () => {
          </div>
          
          <div className="min-w-[600px]">
-            <SectionsTable sections={sections} sectionsPerPage={filters.recordsPerPage}/>
+            <SectionsTable sections={filteredSections} sectionsPerPage={filters.recordsPerPage}/>
          </div>
       </div>
    );

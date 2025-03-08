@@ -5,7 +5,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { motion, AnimatePresence } from "framer-motion";
 
-const AddCourseButton = () => {
+const AddEvaluationInstrumentButton = () => {
    const [expanded, setExpanded] = useState(false); // State variable used to keep track of if the button has been expanded or nah
    const navigate = useNavigate();
    
@@ -40,15 +40,16 @@ const AddCourseButton = () => {
                className="absolute right-full mr-2 bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 flex flex-row"
             >
                <Button
-               onClick={() => handleOptionClick("/add-course/manual")}
+               onClick={() => handleOptionClick("/add-evaluation-instrument/manual")}
                fullWidth
                sx={{ py: 0.5, justifyContent: "flex-start", fontWeight: "bold" }}
                >
                From Scratch
                </Button>
                <Button
-               onClick={() => handleOptionClick("/add-course/template")}
+               onClick={() => handleOptionClick("/add-evaluation-instrument/template")}
                fullWidth
+               disabled
                sx={{ py: 0.5, justifyContent: "flex-start", fontWeight: "bold" }}
                >
                From Template
@@ -60,4 +61,4 @@ const AddCourseButton = () => {
    );
 };
 
-export default AddCourseButton;
+export default AddEvaluationInstrumentButton;

@@ -172,10 +172,12 @@ class EvaluationTypeSerializer(serializers.ModelSerializer):
 class EvaluationInstrumentSerializer(serializers.ModelSerializer):
    section = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
    evaluation_type = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
-
+   
+   evaluation_type_details = EvaluationTypeSerializer(source='evaluation_type', read_only=True)
+   
    class Meta:
       model = EvaluationInstrument
-      fields = ['evaluation_instrument_id', 'section', 'evaluation_type', 'name', 'description']
+      fields = ['evaluation_instrument_id', 'section', 'evaluation_type', 'evaluation_type_details', 'name', 'description']
 
 
 # Embedded Task Serializer

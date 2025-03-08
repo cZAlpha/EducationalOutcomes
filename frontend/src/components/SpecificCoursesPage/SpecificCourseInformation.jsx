@@ -47,7 +47,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       setError(""); // Remove any error before closing
       setOpenForm(false); // Close the form
    };
-
+   
    const handleInputChange = (e) => {
       setFormData({ ...formData, [e.target.name]: e.target.value });
    };
@@ -81,27 +81,22 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       navigate(`/sections/${sectionId}`);
    };
    
-   useEffect(() => { // Program <-> Course Mapping Handling
-      console.log("PROPS Instructor: ", instructor);
-      console.log("PROPS Semesters: ", semesters);
-   }, []);
    
+   // HTML STUFF
    return (
       <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg p-6">
          {/* Selectors */}
          <div className="w-full flex justify-between mb-4 gap-x-4">
             <button
-               className={`px-4 py-2 rounded-md w-full ${
-                  selectedTab === "Sections" ? "bg-blue-500 text-white" : "bg-gray-200"
-               }`}
+               className={`px-4 py-2 rounded-md w-full font-bold
+                  ${selectedTab === "Sections" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
                onClick={() => setSelectedTab("Sections")}
             >
                Sections
             </button>
             <button
-               className={`px-4 py-2 rounded-md w-full ${
-                  selectedTab === "CLO Mappings" ? "bg-blue-500 text-white" : "bg-gray-200"
-               }`}
+               className={`px-4 py-2 rounded-md w-full font-bold 
+                  ${selectedTab === "CLO Mappings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
                onClick={() => setSelectedTab("CLO Mappings")}
             >
                CLO Mappings
