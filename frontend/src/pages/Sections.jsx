@@ -17,7 +17,7 @@ const Sections = () => {
       recordsPerPage: 5,
    });
    // STOP  - Variables
-
+   
    // START - Section data fetching
    const getSections = async () => {
       try {
