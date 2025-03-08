@@ -49,6 +49,7 @@ const AddCourseButton = () => {
                <Button
                onClick={() => handleOptionClick("/add-course/template")}
                fullWidth
+               disabled
                sx={{ py: 0.5, justifyContent: "flex-start", fontWeight: "bold" }}
                >
                From Template
