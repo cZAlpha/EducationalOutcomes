@@ -8,7 +8,8 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SubjectIcon from "@mui/icons-material/Subject"; // Courses
 import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
 import BuildIcon from "@mui/icons-material/Build";
-import { USER } from "../constants";
+import { useAuth } from "../components/AuthProvider"; // Import useAuth hook
+
 
 const Navbar = () => {
    const roles = [
@@ -22,8 +23,7 @@ const Navbar = () => {
       return role ? role.name : 'Unassigned';
    };
    
-   const [loggedIn, setLoggedIn] = useState(false);
-   const [currentUser, setCurrentUser] = useState(null);
+   const { user, loggedIn, setLoggedIn, logout } = useAuth(); // Use AuthContext
    const [isRootOrAdmin, setIsRootOrAdmin] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
    
@@ -44,32 +44,20 @@ const Navbar = () => {
       },
    });
    
-   const getUserData = () => {
-      try {
-         const userData = JSON.parse(localStorage.getItem(USER));
-         if (userData) {
-            setCurrentUser(userData);
-            setLoggedIn(true);
-            if (userData.role) {
-               const userRole = findRoleName(userData?.role?.id);
-               if (userRole === "root" || userRole === "admin") {
-                  setIsRootOrAdmin(true);
-               }
-            }
-         } else {
-            setCurrentUser(null);
+   useEffect(() => {
+      // Check if user is logged in and set role on component mount
+      if (user && user.role) {
+         const userRole = findRoleName(user?.role?.id);
+         if (userRole === "root" || userRole === "admin") {
+            setIsRootOrAdmin(true);
          }
-      } catch (error) {
-         console.error("Navbar Component | Error loading user from localStorage:", error);
-         setCurrentUser(null);
-      } finally {
-         setIsLoading(false);
       }
-   };
+      setIsLoading(false); // Once loading is done, hide any loading indicators
+   }, [user]);
    
-   useEffect(() => { // Grabs user data on mount
-      getUserData();
-   }, []);
+   useEffect(() => {
+      console.log("User: ", user);
+   }, [user]);
    
    return (
       <Drawer
@@ -95,7 +83,7 @@ const Navbar = () => {
                </ListItem>
             </Link>
             
-            {loggedIn && (
+            {user && (
                <>
                   <Link to="/account">
                      <ListItem button sx={getActiveStyle("/account")}>
@@ -103,7 +91,7 @@ const Navbar = () => {
                            <AccountCircleIcon />
                         </ListItemIcon>
                         <ListItemText
-                           primary={loggedIn ? currentUser?.first_name : "Account"}
+                           primary={loggedIn ? user?.first_name : "Account"}
                            className="font-bold text-lg"
                         />
                      </ListItem>
@@ -113,8 +101,8 @@ const Navbar = () => {
                         <ListItemIcon>
                            <ViewAgendaIcon />
                         </ListItemIcon>
-                           <ListItemText primary="Courses" />
-                        </ListItem>
+                        <ListItemText primary="Courses" />
+                     </ListItem>
                   </Link>
                   
                   <Link to="/sections">
@@ -136,7 +124,7 @@ const Navbar = () => {
                </>
             )}
             
-            {loggedIn && (
+            {user && (
                <Link to="/logout">
                   <ListItem
                      button
@@ -153,18 +141,17 @@ const Navbar = () => {
                            transition: 'color 0.3s ease', // Smooth transition for icon color
                         },
                      }}
-                     onClick={()=> {setLoggedIn(false);}}
+                     onClick={() => { logout(); }} // Use logout from AuthContext
                   >
                      <ListItemIcon>
                         <ExitToAppIcon />
                      </ListItemIcon>
                      <ListItemText primary="Logout" />
                   </ListItem>
-               
                </Link>
             )}
             
-            {!loggedIn && (
+            {!user && (
                <Link to="/login">
                   <ListItem button sx={getActiveStyle("/login")}>
                      <ListItemIcon>
