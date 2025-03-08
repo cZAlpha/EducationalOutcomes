@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do it all in one line because React is dumb)
 import UserDashboard from "./pages/UserDashboard"
+import { AuthProvider } from "./components/AuthProvider"
 import Login from "./pages/Login" 
 import Home from "./pages/Home"
 import Account from "./pages/Account"
@@ -67,62 +68,64 @@ const PersistentGradient = () => (
 function App() {
   return (
     <BrowserRouter>
-      <PersistentGradient /* Adds a persistent gradient that is on every page */ />
-      <Navbar /* Global navbar */ /> 
-      <Routes>
-        {/* <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
+      <AuthProvider>
+        <PersistentGradient /* Adds a persistent gradient that is on every page */ />
+        <Navbar /* Global navbar */ /> 
+        <Routes>
+          {/* <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
+              <ProtectedRoute>
+                <Dashboard /> 
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/userdashboard" element={ // MIGHT NOT USE THIS!!!!
+              <ProtectedRoute>
+                <UserDashboard /> 
+              </ProtectedRoute>
+            }
+          /> */}
+          <Route path="/account" element={                             /* Account page (Protected) */
             <ProtectedRoute>
-              <Dashboard /> 
+              <Account/>
             </ProtectedRoute>
           }
-        />
-        <Route path="/userdashboard" element={ // MIGHT NOT USE THIS!!!!
+          />
+          <Route path="/courses" element={                             /* Courses page (Protected) */
             <ProtectedRoute>
-              <UserDashboard /> 
+              <Courses/>
             </ProtectedRoute>
           }
-        /> */}
-        <Route path="/account" element={                             /* Account page (Protected) */
-          <ProtectedRoute>
-            <Account/>
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/courses" element={                             /* Courses page (Protected) */
-          <ProtectedRoute>
-            <Courses/>
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/courses/:courseId" element={                   /* Specific Course page (Protected) */
-          <ProtectedRoute>
-            <SpecificCourse />
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/add-course/manual" element={                   /* Add New Course Manually (Protected) */
-          <ProtectedRoute>
-            <AddNewCourseManual />
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/sections/" element={                           /* Sections page (Protected) */
-          <ProtectedRoute>
-            <Sections />
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/sections/:sectionId" element={                 /* Sections page (Protected) */
-          <ProtectedRoute>
-            <SpecificSection />
-          </ProtectedRoute>
-        }
-        />
-        <Route path="/" element={<Home />} />                         {/* Home page / landing page */}
-        <Route path="/login" element={<Login />} />                   {/* Login page */}
-        <Route path="/logout" element={<Logout />} />                 {/* Logout 'page' */}
-        <Route path="*" element={<NotFound />}></Route>               {/* Notfound page (404 page) */}
-      </Routes>
+          />
+          <Route path="/courses/:courseId" element={                   /* Specific Course page (Protected) */
+            <ProtectedRoute>
+              <SpecificCourse />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/add-course/manual" element={                   /* Add New Course Manually (Protected) */
+            <ProtectedRoute>
+              <AddNewCourseManual />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/sections/" element={                           /* Sections page (Protected) */
+            <ProtectedRoute>
+              <Sections />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/sections/:sectionId" element={                 /* Sections page (Protected) */
+            <ProtectedRoute>
+              <SpecificSection />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/" element={<Home />} />                         {/* Home page / landing page */}
+          <Route path="/login" element={<Login />} />                   {/* Login page */}
+          <Route path="/logout" element={<Logout />} />                 {/* Logout 'page' */}
+          <Route path="*" element={<NotFound />}></Route>               {/* Notfound page (404 page) */}
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
