@@ -8,8 +8,9 @@ import Account from "./pages/Account"
 import Courses from "./pages/Courses"
 import SpecificCourse from "./pages/SpecificCourse"
 import AddNewCourseManual from "./pages/AddNewCourseManual"
-import SpecificSection from "./pages/SpecificSection"
 import Sections from "./pages/Sections"
+import SpecificSection from "./pages/SpecificSection"
+import Tools from "./pages/Tools"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
 import ProtectedRoute from "./components/ProtectedRoute" // Protected Route import
@@ -114,9 +115,15 @@ function App() {
             </ProtectedRoute>
           }
           />
-          <Route path="/sections/:sectionId" element={                 /* Sections page (Protected) */
+          <Route path="/sections/:sectionId" element={                 /* Specific Section page (Protected) */
             <ProtectedRoute>
               <SpecificSection />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/tools/" element={                 /* Tools page (Protected) */
+            <ProtectedRoute>
+              <Tools />
             </ProtectedRoute>
           }
           />
