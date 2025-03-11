@@ -37,6 +37,7 @@ urlpatterns = [
       # Sections routing
    path("sections/", SectionListCreate.as_view(), name="section-list"), # Route that returns all objects and can be used to create new instances
    path("sections/<int:pk>/", SectionDetail.as_view(), name="section-detail"),  # Retrieve, update, or delete
+   path("sections/<int:pk>/performance/", SectionPerformance.as_view(), name="section-performance"),  # Retrieve, update, or delete
       # EvaluationType routing
    path("evaluation-types/", EvaluationTypeListCreate.as_view(), name="evaluation-type-list"),  # Route that returns all evaluation types
    path("evaluation-types/<int:pk>/", EvaluationTypeDetail.as_view(), name="evaluation-type-detail"),  # Retrieve, update, or delete a specific evaluation type

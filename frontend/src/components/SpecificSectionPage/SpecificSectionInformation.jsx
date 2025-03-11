@@ -13,7 +13,9 @@ function SpecificSectionInformation (section) {
    const [selectedTab, setSelectedTab] = useState("Evaluation Instruments");
    const [evaluationInstruments, setEvaluationInstruments] = useState([]);
    const [evaluationTypes, setEvaluationTypes] = useState([]); 
-   
+   const [CLOs, setCLOs] = useState([]);
+   const [sectionPerformance, setSectionPerformance] = useState({}); // Obj to store the performance of a section
+
    // Filtering Variables
    const [filteredInstruments, setFilteredInstruments] = useState([]);
    const [filterName, setFilterName] = useState("");
@@ -31,7 +33,7 @@ function SpecificSectionInformation (section) {
          alert(`Error fetching Evaluation Instruments: ${err.message}`);
       }
    };
-   // STOP - Eval. Instrument data fetching
+   // STOP  - Eval. Instrument data fetching
    
    // START - Eval. Instrument data fetching
    const getEvaluationTypes = async () => {
@@ -42,7 +44,46 @@ function SpecificSectionInformation (section) {
          alert(`Error fetching Evaluation Instrument Types: ${err.message}`);
       }
    };
-   // STOP - Eval. Instrument data fetching
+   // STOP  - Eval. Instrument data fetching
+   
+   // START - CLO fetching and filtering
+   const getCLOs = async () => {
+      const filterCLOs = (unfilteredCLOs) => {
+         return unfilteredCLOs.filter(clo => clo.course === section.section.course);
+      };   
+      try {
+         const res = await api.get('/api/course-learning-objectives/');
+         setCLOs(filterCLOs(res.data)); // Filter and then set the CLOs
+         console.log("CLOs: ", filterCLOs(res.data));
+      } catch (err) {
+         alert(`Error fetching CLOs: ${err.message}`);
+      }
+   };
+   // STOP  - CLO fetching and filtering
+   
+   // START - Section Performance data fetching
+   const getSectionPerformance = async () => {
+      try {
+         const res = await api.get(`/api/sections/${section.section.section_id}/performance/`);
+         if (!res.data || !res.data.performance) {
+            setSectionPerformance({});
+            return;
+         }
+         
+         // Map CLO IDs to their corresponding 'designation' attribute
+         const mappedPerformance = Object.entries(res.data.performance).map(([cloId, score]) => {
+            const cloObj = CLOs.find(clo => clo.clo_id === parseInt(cloId)); // Match CLO object by ID
+            return {
+               designation: cloObj ? cloObj.designation : `Unknown CLO (${cloId})`,
+               score: score.toFixed(2),
+            };
+         });
+         setSectionPerformance(mappedPerformance);
+      } catch (err) {
+         alert(`Error fetching Performance Data: ${err.message}`);
+      }
+   };   
+   // STOP  - Section Performance data fetching
    
    const handleEvaluationInstrumentClick = (evaluationInstrumentId) => { // Navigates to the given specific evaluation instrument page
       navigate(`/evaluation-instruments/${evaluationInstrumentId}`);
@@ -52,17 +93,18 @@ function SpecificSectionInformation (section) {
       const fetchData = async () => {
          await getEvaluationInstruments();
          await getEvaluationTypes();
+         await getCLOs();
          setLoading(false); // Set loading to false when all data is fetched
       };
       
       fetchData();
-      console.log("Evals: ", evaluationInstruments);
-      console.log("Types: ", evaluationTypes);
    }, []);
-
-   useEffect(() => {
-      console.log("Eval Types: ", evaluationTypes);
-   }, [evaluationTypes])
+   
+   useEffect(() => { // Performance Report Call
+      if (CLOs.length > 0) {
+         getSectionPerformance();
+      }
+   }, [CLOs]); // This ensures `getSectionPerformance()` runs only after `CLOs` is updated
    
    useEffect(() => {
       setFilteredInstruments(
@@ -71,7 +113,6 @@ function SpecificSectionInformation (section) {
             .filter(e => (filterType ? e.evaluation_type_details?.evaluation_type_id === filterType : true))
             .slice(0, perPage)
       );
-      console.log("Filter type: ", filterType);
    }, [filterName, filterType, perPage, evaluationInstruments]); // Depend on filters
    
    // HTML STUFF
@@ -143,9 +184,22 @@ function SpecificSectionInformation (section) {
                </div>
             ) : (
                <div>
-                  <h3 className="font-bold text-lg">Performance</h3>
+                  <h3 className="font-bold text-lg mb-4">Performance</h3>
                   {/* Content specific to Performance */}
-                  <p>This is the content for Performance tab.</p>
+                  {sectionPerformance ? (
+                     <div className="w-full p-4 border rounded-lg shadow">
+                        <ul className="space-y-2">
+                           {sectionPerformance.map(({ designation, score }) => (
+                              <li key={designation} className="flex justify-between p-2 bg-gray-100 rounded">
+                                 <span className="font-semibold">CLO {designation}</span>
+                                 <span className="text-blue-600">{score}</span>
+                              </li>
+                           ))}
+                        </ul>
+                     </div>
+                  ) : (
+                     <p className="text-center text-gray-500">No performance data available.</p>
+                  )}
                </div>
             )}
          </div>
