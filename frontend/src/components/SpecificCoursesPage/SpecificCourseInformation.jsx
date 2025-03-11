@@ -152,7 +152,10 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                   {CLOs.map((clo) => (
                   <Accordion key={clo.clo_id}>
                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="h6">{`CLO ${clo.designation}: ${clo.description}`}</Typography>
+                        <div className="flex flex-col gap-y-1">
+                           <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
+                           <p className="pl-4">{clo.description}</p>
+                        </div>
                      </AccordionSummary>
                      <AccordionDetails>
                         {cloToPloMap[clo.clo_id]?.length > 0 ? (
@@ -161,7 +164,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                               <Typography variant="subtitle1" fontWeight="bold">
                               Mapped PLOs:
                               </Typography>
-                              <ul>
+                              <ul className="flex flex-col gap-y-1 text-left pt-2">
                               {cloToPloMap[clo.clo_id].map((plo) => (
                                  <li key={plo.plo_id}>
                                     <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>

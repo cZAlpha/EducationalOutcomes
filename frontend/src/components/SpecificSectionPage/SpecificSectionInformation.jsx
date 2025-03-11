@@ -5,6 +5,7 @@ import EvaluationInstrumentCard from "./EvaluationInstrumentCard";
 import AddEvaluationInstrumentButton from "./AddNewEvaluationInstrumentButton";
 import FilterEvaluationInstrumentsBar from "./FilterEvaluationInstrumentsBar";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 
 function SpecificSectionInformation (section) {
@@ -75,6 +76,7 @@ function SpecificSectionInformation (section) {
             const cloObj = CLOs.find(clo => clo.clo_id === parseInt(cloId)); // Match CLO object by ID
             return {
                designation: cloObj ? cloObj.designation : `Unknown CLO (${cloId})`,
+               description: cloObj ? cloObj.description : "",
                score: score.toFixed(2),
             };
          });
@@ -183,24 +185,47 @@ function SpecificSectionInformation (section) {
                   )}
                </div>
             ) : (
-               <div>
+               <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full"
+               >
                   <h3 className="font-bold text-lg mb-4">Performance</h3>
                   {/* Content specific to Performance */}
                   {sectionPerformance ? (
-                     <div className="w-full p-4 border rounded-lg shadow">
+                     <div className="w-full p-4 border bg-white rounded-lg shadow">
+                        <h4 className="font-bold text-lg mb-4">CLOs</h4>
                         <ul className="space-y-2">
-                           {sectionPerformance.map(({ designation, score }) => (
-                              <li key={designation} className="flex justify-between p-2 bg-gray-100 rounded">
-                                 <span className="font-semibold">CLO {designation}</span>
-                                 <span className="text-blue-600">{score}</span>
-                              </li>
-                           ))}
+                           {sectionPerformance.map(({ designation, description, score }) => {
+                              // Helper function to determine background color
+                              const getBackgroundColor = (score) => {
+                                 if (score < 70) return 'bg-red-500'; // Red for < 70
+                                 if (score < 80) return 'bg-orange-500'; // Orange for 70-79
+                                 if (score < 84) return 'bg-yellow-300'; // Yellow for 80-84
+                                 if (score < 90) return 'bg-green-200'; // LIGHT Green for 84-89
+                                 if (score < 95) return 'bg-green-300'; // Light Green for 90-94
+                                 return 'bg-green-600'; // Darker Green for 95+
+                              };
+                              
+                              return (
+                                 <li key={designation} className="p-2 rounded">
+                                    <div className="flex flex-col gap-y-2 w-full">
+                                       <div className={`flex flex-row gap-x-4 w-full p-2 rounded ${getBackgroundColor(score)}`}> {/* Apply background color */}
+                                          <span className="font-semibold">CLO {designation}</span>
+                                          <span className="">{score ? `${score}%` : "No scores for this CLO"}</span>
+                                       </div>
+                                       <p className="text-left w-full pl-4">{description}</p>
+                                    </div>
+                                 </li>
+                              );
+                           })}
                         </ul>
                      </div>
                   ) : (
                      <p className="text-center text-gray-500">No performance data available.</p>
                   )}
-               </div>
+               </motion.div>
             )}
          </div>
       </div>
