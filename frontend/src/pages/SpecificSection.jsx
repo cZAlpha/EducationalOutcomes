@@ -141,7 +141,14 @@ function SpecificSection() {
                >
                   {loading ? "Loading..." : course?.name || "N/A"}
                </motion.h1>
-               <motion.p className="font-bold text-3xl">—</motion.p>
+               <motion.p 
+                  className="font-bold text-3xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
+                  {loading ? "Loading..." : "—"}
+               </motion.p>
                <motion.h1
                   className="font-bold text-3xl"
                   initial={{ opacity: 0 }}

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../api';
-import { USER } from "../constants";
 import SpecificCourseInformation from "../components/SpecificCoursesPage/SpecificCourseInformation";
+import { Button } from "@mui/material"; // MUI Button
 
 
 function SpecificCourse() {
@@ -20,16 +20,7 @@ function SpecificCourse() {
    const [PLOs, setPLOs] = useState([]);
    const [PLOCLOMappings, setPLOCLOMappings] = useState([]);
    const [loading, setLoading] = useState(true); // State to track loading status
-   
-   const getUserData = async () => {
-      try {
-         const userData = JSON.parse(localStorage.getItem(USER));
-         setCurrentUser(userData || null);
-      } catch (error) {
-         console.error("Error loading user from localStorage:", error);
-         setCurrentUser(null);
-      }
-   };
+   const [showFullDescription, setShowFullDescription] = useState(false); // State for toggling description visibility
    
    const getCourse = async () => {
       try {
@@ -124,7 +115,6 @@ function SpecificCourse() {
    
    useEffect(() => {
       const fetchData = async () => {
-         await getUserData();
          await getProgramCourseMappings();
          await getCourse();
          await getSemesters();
@@ -185,7 +175,29 @@ function SpecificCourse() {
             <h2 className="font-semi-bold text-xl">
                Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
             </h2>
-            <h4>{loading ? "Loading..." : course?.description ? course.description.slice(0, 200) + "..." : "N/A"}</h4>
+            <h4>
+               {loading ? "Loading..." : course?.description ? 
+                  showFullDescription ? 
+                     course.description : 
+                     `${course.description.slice(0, 200)}...` 
+                  : "N/A"
+               }
+            </h4>
+            {course?.description && course.description.length > 200 && (
+               <div className="flex justify-center w-full mt-4"> {/* Centering the button */}
+                  <Button 
+                     variant="outlined" 
+                     color="black" 
+                     onClick={() => setShowFullDescription(prev => !prev)}
+                     sx={{
+                        minWidth: '140px',
+                        maxWidth: '160px'
+                     }}
+                  >
+                     {showFullDescription ? "Show Less" : "Show More"}
+                  </Button>
+               </div>
+            )}
          </div>
          
          <div className="flex flex-col items-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >

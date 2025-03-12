@@ -1,9 +1,12 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 from rest_framework import status, generics
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from django.db.models import Avg
+from collections import defaultdict
 
 # User-made imports
 from .serializers import * # Import serializers
@@ -665,6 +668,109 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
       We can perform any custom logic before actually deleting the instance.
       """
       instance.delete()
+
+class SectionPerformance(generics.RetrieveAPIView):
+   """
+   This view is meant to ascertain the section performance.
+   It retrieves the section based on the provided primary key (pk).
+   """
+   queryset = Section.objects.all()
+   serializer_class = SectionSerializer
+   lookup_field = "pk"
+   
+   def get(self, request, *args, **kwargs):
+      section_id = self.kwargs.get("pk")
+      
+      # Check if the given section_id corresponds to a valid Section object
+      try:
+         section = Section.objects.get(pk=section_id)
+      except Section.DoesNotExist:
+         raise NotFound(detail="Section not found")
+      
+      # Perform necessary logic for performance report generation here
+      performance_data = self.generate_performance_report(section)
+      
+      return Response(performance_data)
+   
+   def generate_clo_performance(self, section):
+      # Step 1: Get all Evaluation Instruments for the given section
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      
+      # Step 2: Get all Embedded Tasks from these Evaluation Instruments
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
+      
+      # Step 3: Compute average score for each embedded task
+      # We'll store these in a dictionary keyed by the task's primary key (embedded_task_id)
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         avg_score = (
+            StudentTaskMapping.objects.filter(task=task)
+            .aggregate(avg_score=Avg("score"))["avg_score"]
+         )
+         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+      
+      # Step 4: Get all TaskCLOMapping records for these embedded tasks.
+      # This junction model links EmbeddedTasks to CourseLearningObjectives (CLOs)
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+      
+      # Step 5: Group task scores by CLO. 
+      # For each mapping, retrieve the task's average score and append it to the list for that CLO.
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         # mapping.task is the EmbeddedTask instance
+         # mapping.clo is the related CLO instance.
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_id = mapping.clo.clo_id  # using clo_id as the primary key for CLO
+         clo_scores[clo_id].append(avg_score)
+      
+      # Step 6: Calculate the average score per CLO
+      final_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in clo_scores.items()
+      }
+
+      return final_clo_performance
+   
+   def generate_plo_performance(self, section):
+      # Step 1: Get CLO performance using the existing function
+      clo_performance = self.generate_clo_performance(section)
+      
+      # Step 2: Get all CLOs from the computed performance
+      clo_ids = clo_performance.keys()
+      
+      # Step 3: Get PLO mappings for these CLOs
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      
+      # Step 4: Group CLO scores by PLO
+      plo_scores = defaultdict(list)
+      for mapping in clo_plo_mappings:
+         clo_id = mapping.clo.clo_id  # CLO ID from mapping
+         plo_id = mapping.plo.plo_id  # PLO ID from mapping
+         clo_score = clo_performance.get(clo_id, 0)  # Get the CLO's average score
+         plo_scores[plo_id].append(clo_score)  # Append to PLO list
+      
+      # Step 5: Compute final PLO performance (simple average)
+      final_plo_performance = {
+         plo_id: sum(scores) / len(scores) if scores else 0
+         for plo_id, scores in plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def generate_performance_report(self, section):
+      """
+      Generate a performance report for the section.
+      Instead of computing average scores per embedded task, we now
+      compute the average score per CLO by using the TaskCLOMapping intermediary.
+      """
+      
+      clo_performance = self.generate_clo_performance(section)
+      
+      plo_performance = self.generate_plo_performance(section)
+      
+      return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
+
+
 # STOP - Section
 
 
