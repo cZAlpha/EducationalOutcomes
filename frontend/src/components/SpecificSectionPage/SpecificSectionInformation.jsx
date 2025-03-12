@@ -15,14 +15,24 @@ function SpecificSectionInformation (section) {
    const [evaluationInstruments, setEvaluationInstruments] = useState([]);
    const [evaluationTypes, setEvaluationTypes] = useState([]); 
    const [CLOs, setCLOs] = useState([]);
+   const [PLOs, setPLOs] = useState([]);
    const [sectionPerformance, setSectionPerformance] = useState({}); // Obj to store the performance of a section
-
+   
    // Filtering Variables
    const [filteredInstruments, setFilteredInstruments] = useState([]);
    const [filterName, setFilterName] = useState("");
    const [filterType, setFilterType] = useState("");
    const [perPage, setPerPage] = useState(10);
    
+   
+   const getBackgroundColor = (score) => {
+      if (score < 70) return 'bg-red-500';
+      if (score < 80) return 'bg-orange-500';
+      if (score < 84) return 'bg-yellow-300';
+      if (score < 90) return 'bg-green-200';
+      if (score < 95) return 'bg-green-400';
+      return 'bg-green-600';
+   };
    
    // START - Eval. Instrument data fetching
    const getEvaluationInstruments = async () => {
@@ -62,25 +72,58 @@ function SpecificSectionInformation (section) {
    };
    // STOP  - CLO fetching and filtering
    
+   // START - CLO fetching and filtering
+   const getPLOs = async () => {
+      try {
+         const res = await api.get('/api/program-learning-objectives/');
+         setPLOs(res.data); 
+         console.log("PLOs: ", res.data);
+      } catch (err) {
+         alert(`Error fetching PLOs: ${err.message}`);
+      }
+   };
+   // STOP  - CLO fetching and filtering
+   
    // START - Section Performance data fetching
    const getSectionPerformance = async () => {
       try {
          const res = await api.get(`/api/sections/${section.section.section_id}/performance/`);
-         if (!res.data || !res.data.performance) {
+         console.log("SECTION PERFORMANCE: ", res.data);
+         
+         if (!res.data || (!res.data.clo_performance && !res.data.plo_performance)) {
             setSectionPerformance({});
             return;
          }
          
-         // Map CLO IDs to their corresponding 'designation' attribute
-         const mappedPerformance = Object.entries(res.data.performance).map(([cloId, score]) => {
-            const cloObj = CLOs.find(clo => clo.clo_id === parseInt(cloId)); // Match CLO object by ID
-            return {
-               designation: cloObj ? cloObj.designation : `Unknown CLO (${cloId})`,
-               description: cloObj ? cloObj.description : "",
-               score: score.toFixed(2),
-            };
+         // Map CLO IDs to their corresponding 'designation' and 'description'
+         const mappedCLOPerformance = res.data.clo_performance
+            ? Object.entries(res.data.clo_performance).map(([cloId, score]) => {
+                  const cloObj = CLOs.find(clo => clo.clo_id === parseInt(cloId)); // Match CLO object by ID
+                  return {
+                     designation: cloObj ? cloObj.designation : `Unknown CLO (${cloId})`,
+                     description: cloObj ? cloObj.description : "",
+                     score: parseFloat(score).toFixed(2),
+                  };
+            })
+            : [];
+         
+         // Map PLO IDs to their corresponding 'designation' and 'description'
+         const mappedPLOPerformance = res.data.plo_performance
+            ? Object.entries(res.data.plo_performance).map(([ploId, score]) => {
+                  const ploObj = PLOs.find(plo => plo.plo_id === parseInt(ploId)); // Match PLO object by ID
+                  return {
+                     designation: ploObj ? ploObj.designation : `Unknown PLO (${ploId})`,
+                     description: ploObj ? ploObj.description : "",
+                     score: parseFloat(score).toFixed(2),
+                  };
+            })
+            : [];
+         
+         // Combine CLO and PLO performance into state
+         setSectionPerformance({
+            CLOs: mappedCLOPerformance,
+            PLOs: mappedPLOPerformance,
          });
-         setSectionPerformance(mappedPerformance);
       } catch (err) {
          alert(`Error fetching Performance Data: ${err.message}`);
       }
@@ -96,6 +139,7 @@ function SpecificSectionInformation (section) {
          await getEvaluationInstruments();
          await getEvaluationTypes();
          await getCLOs();
+         await getPLOs();
          setLoading(false); // Set loading to false when all data is fetched
       };
       
@@ -103,10 +147,10 @@ function SpecificSectionInformation (section) {
    }, []);
    
    useEffect(() => { // Performance Report Call
-      if (CLOs.length > 0) {
+      if (CLOs.length > 0 && PLOs.length > 0) {
          getSectionPerformance();
       }
-   }, [CLOs]); // This ensures `getSectionPerformance()` runs only after `CLOs` is updated
+   }, [CLOs, PLOs]); // This ensures `getSectionPerformance()` runs only after `CLOs` is updated
    
    useEffect(() => {
       setFilteredInstruments(
@@ -195,35 +239,48 @@ function SpecificSectionInformation (section) {
                   {/* Content specific to Performance */}
                   {sectionPerformance ? (
                      <div className="w-full p-4 border bg-white rounded-lg shadow">
-                        <h4 className="font-bold text-lg mb-4">CLOs</h4>
-                        <ul className="space-y-2">
-                           {sectionPerformance.map(({ designation, description, score }) => {
-                              // Helper function to determine background color
-                              const getBackgroundColor = (score) => {
-                                 if (score < 70) return 'bg-red-500'; // Red for < 70
-                                 if (score < 80) return 'bg-orange-500'; // Orange for 70-79
-                                 if (score < 84) return 'bg-yellow-300'; // Yellow for 80-84
-                                 if (score < 90) return 'bg-green-200'; // LIGHT Green for 84-89
-                                 if (score < 95) return 'bg-green-300'; // Light Green for 90-94
-                                 return 'bg-green-600'; // Darker Green for 95+
-                              };
-                              
-                              return (
-                                 <li key={designation} className="p-2 rounded">
-                                    <div className="flex flex-col gap-y-2 w-full">
-                                       <div className={`flex flex-row gap-x-4 w-full p-2 rounded ${getBackgroundColor(score)}`}> {/* Apply background color */}
-                                          <span className="font-semibold">CLO {designation}</span>
-                                          <span className="">{score ? `${score}%` : "No scores for this CLO"}</span>
+                        {/* CLO Performance */}
+                        <h4 className="font-bold text-lg mb-4">CLO Performance</h4>
+                        {sectionPerformance.CLOs?.length > 0 ? (
+                           <ul className="space-y-2">
+                              {sectionPerformance.CLOs.map(({ designation, description, score }) => (
+                                 <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                    <div className="flex flex-col gap-y-2">
+                                       <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                          <h1 className="font-xl font-bold">{designation}</h1>
+                                          <h1 className="font-xl font-bold">{score}%</h1>
                                        </div>
-                                       <p className="text-left w-full pl-4">{description}</p>
+                                       <p className="text-left pl-4 pr-4 pb-2">{description}</p>
                                     </div>
                                  </li>
-                              );
-                           })}
-                        </ul>
+                              ))}
+                           </ul>
+                        ) : (
+                           <p className="text-gray-500">No CLO data available.</p>
+                        )}
+                        
+                        {/* PLO Performance */}
+                        <h4 className="font-bold text-lg mt-6 mb-4">PLO Performance</h4>
+                        {sectionPerformance.PLOs?.length > 0 ? (
+                           <ul className="space-y-2">
+                              {sectionPerformance.PLOs.map(({ designation, description, score }) => (
+                                 <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                    <div className="flex flex-col gap-y-2">
+                                       <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                          <h1 className="font-xl font-bold">{designation}</h1>
+                                          <h1 className="font-xl font-bold">{score}%</h1>
+                                       </div>
+                                       <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                    </div>
+                                 </li>
+                              ))}
+                           </ul>
+                        ) : (
+                           <p className="text-gray-500">No PLO data available.</p>
+                        )}
                      </div>
                   ) : (
-                     <p className="text-center text-gray-500">No performance data available.</p>
+                     <p className="text-center text-gray-500">No performance data available</p>
                   )}
                </motion.div>
             )}

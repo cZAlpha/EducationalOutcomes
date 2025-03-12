@@ -692,12 +692,7 @@ class SectionPerformance(generics.RetrieveAPIView):
       
       return Response(performance_data)
    
-   def generate_performance_report(self, section):
-      """
-      Generate a performance report for the section.
-      Instead of computing average scores per embedded task, we now
-      compute the average score per CLO by using the TaskCLOMapping intermediary.
-      """
+   def generate_clo_performance(self, section):
       # Step 1: Get all Evaluation Instruments for the given section
       evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
       
@@ -733,8 +728,47 @@ class SectionPerformance(generics.RetrieveAPIView):
          clo_id: sum(scores) / len(scores) if scores else 0
          for clo_id, scores in clo_scores.items()
       }
+
+      return final_clo_performance
+   
+   def generate_plo_performance(self, section):
+      # Step 1: Get CLO performance using the existing function
+      clo_performance = self.generate_clo_performance(section)
       
-      return {"section_id": section.section_id, "performance": final_clo_performance}
+      # Step 2: Get all CLOs from the computed performance
+      clo_ids = clo_performance.keys()
+      
+      # Step 3: Get PLO mappings for these CLOs
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      
+      # Step 4: Group CLO scores by PLO
+      plo_scores = defaultdict(list)
+      for mapping in clo_plo_mappings:
+         clo_id = mapping.clo.clo_id  # CLO ID from mapping
+         plo_id = mapping.plo.plo_id  # PLO ID from mapping
+         clo_score = clo_performance.get(clo_id, 0)  # Get the CLO's average score
+         plo_scores[plo_id].append(clo_score)  # Append to PLO list
+      
+      # Step 5: Compute final PLO performance (simple average)
+      final_plo_performance = {
+         plo_id: sum(scores) / len(scores) if scores else 0
+         for plo_id, scores in plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def generate_performance_report(self, section):
+      """
+      Generate a performance report for the section.
+      Instead of computing average scores per embedded task, we now
+      compute the average score per CLO by using the TaskCLOMapping intermediary.
+      """
+      
+      clo_performance = self.generate_clo_performance(section)
+      
+      plo_performance = self.generate_plo_performance(section)
+      
+      return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
 
 
 # STOP - Section
