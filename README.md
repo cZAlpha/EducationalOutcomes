@@ -44,10 +44,11 @@ For UNIX OS':
 `source env/bin/activate`
 <br><br>
 And this command for Windows OS:
+<br>
 `.\env\Scripts\activate`
 <br><br>
 
-5. Perform the following command to install all required Python packages: 
+6. Perform the following command to install all required Python packages: 
 <br>
 `pip install -r requirements.txt`
 <br><br>
@@ -59,7 +60,7 @@ And this command for Windows OS:
 <br>
 `npm install` or `npm i`
 <br><br>
-3. This will automatically download all required Node JS packages.
+This will automatically download all required Node JS packages.
 <br><br>
 4. NOTE: This project was set up specifically for UNIX or UNIX-like OS'. Due to the way React JS handles explicit imports differently on differing OS', you MUST swap the contents of the Tailwind CSS configuration file in the frontend directory. Other than that, you should not run into any issues that are not explicity mentioned in this document.
 <br><br>
