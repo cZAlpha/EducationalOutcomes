@@ -32,33 +32,31 @@
 <br><br>
 2. Ensure you are in main git directory (same level as your virtual environment)
 <br><br>
-3. If you don't already have a Python 3.11.9 virtual environment, perform the following command to instantiate it: 
+3. If you don't already have a Python 3.11.9 virtual environment, perform the following command to instantiate it: <br>
 `python -m venv env`
-<br>
-This will instantiate a Python virtual environment called 'env'. DO NOT NAME IT 'venv', name it 'env'.
-<br><br>
-4. Now that you have a Python virtual environment, you must activate it before installing packages. 
-<br><br>
-For UNIX OS':
-<br>
-`source env/bin/activate`
-<br><br>
-And this command for Windows OS:
-<br>
-`.\env\Scripts\activate`
-<br><br>
+<br> This will instantiate a Python virtual environment called 'env'. DO NOT NAME IT 'venv', name it 'env'.  
 
-6. Perform the following command to install all required Python packages: 
+5. Now that you have a Python virtual environment, you must activate it before installing packages.  
+
+For UNIX OS':  
+`source env/bin/activate`  
+
+And this command for Windows OS:  
+`.\env\Scripts\activate`
+
 <br>
+
+6. Perform the following command to install all required Python packages: <br>
 `pip install -r requirements.txt`
+
 <br><br>
 
 # Installing Required Node Packages for Local Development
 1. Ensure you have Node.js downloaded and installed. On Windows, ensure that it is added to the PATH Environment Variables. On UNIX, this should be automatically handled.
 <br><br>
-2. Change directory into the 'frontend' directory and perform the following command:
-<br>
+2. Change directory into the 'frontend' directory and perform the following command:<br>
 `npm install` or `npm i`
+
 <br><br>
 This will automatically download all required Node JS packages.
 <br><br>
@@ -73,16 +71,16 @@ This will automatically download all required Node JS packages.
 3. Hit the split terminal button on VS code so that you have two terminal windows that are side by side
 <br><br>
 ### Frontend Server
-4. On the left terminal, change directory into the 'frontend' directory and perform the following command:
-<br>
+4. On the left terminal, change directory into the 'frontend' directory and perform the following command:<br>
 `npm run dev`
+
 <br><br>
 This will, in turn, start up the Node JS development server. Use the provided local network link to view the output of the Node JS frontend server.
 <br><br>
 ### Backend Server
-5. On the right aforementioned terminal window, change directories into the 'backend' directory. Ensure that the python virtual environment is activated (if not, use steps listed in previous sections to activate it). Then, perform the following command to startup the backend Django server:
-<br>
+5. On the right aforementioned terminal window, change directories into the 'backend' directory. Ensure that the python virtual environment is activated (if not, use steps listed in previous sections to activate it). Then, perform the following command to startup the backend Django server:<br>
 `python manage.py runserver`
+
 <br><br>
 
 # Database Setup
@@ -90,14 +88,16 @@ This will, in turn, start up the Node JS development server. Use the provided lo
 - Because of this, you will have to use Django's shell using the following command in order to manually add the required UserRole model entries used for tracking user roles:
 1. Create and activate your Python virtual environment (see above for help)
 2. Navigate to the backend directory
-3. Run this command to open Django's shell:
-<br>
+3. Run this command to open Django's shell:<br>
 `python manage.py shell`
-5. Run this command to import the model:
+
+<br>
+4. Run this command to import the model:
 <br>
 `from api.models import UserRole`
-7. Run this series of commands and select the 'Paste' option if prompted in order to add the correct entries (the permissions attribute is not currently used well, bear with me):
+5. Run this series of commands and select the 'Paste' option if prompted in order to add the correct entries (the permissions attribute is not currently used well, bear with me):
 <br>
+
 `UserRole.objects.create(`<br>
     `role_name='root',`<br>
     `role_description='Super administrator with full access',`<br>
