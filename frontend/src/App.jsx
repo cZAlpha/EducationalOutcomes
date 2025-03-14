@@ -10,6 +10,7 @@ import SpecificCourse from "./pages/SpecificCourse"
 import AddNewCourseManual from "./pages/AddNewCourseManual"
 import Sections from "./pages/Sections"
 import SpecificSection from "./pages/SpecificSection"
+import SpecificEvaluationInstrument from "./pages/SpecificEvaluationInstrument"
 import Tools from "./pages/Tools"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
@@ -118,6 +119,12 @@ function App() {
           <Route path="/sections/:sectionId" element={                 /* Specific Section page (Protected) */
             <ProtectedRoute>
               <SpecificSection />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/evaluation-instruments/:evaluationInstrumentId" element={ /* Specific Eval. Instru. page (Protected) */
+            <ProtectedRoute>
+              <SpecificEvaluationInstrument />
             </ProtectedRoute>
           }
           />

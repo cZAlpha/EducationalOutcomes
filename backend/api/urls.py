@@ -44,6 +44,7 @@ urlpatterns = [
       # Evaluation Instrument routing
    path("evaluation-instruments/", EvaluationInstrumentListCreate.as_view(), name="evaluation-instrument-list"),  # Route that returns all evaluation instruments
    path("evaluation-instruments/<int:pk>/", EvaluationInstrumentDetail.as_view(), name="evaluation-instrument-detail"),  # Retrieve, update, or delete a specific evaluation instrument
+   path("evaluation-instruments/<int:pk>/performance/", EvaluationInstrumentPerformance.as_view(), name="evaluation-instrument-detail"),  # Get performance indicators for a given evaluation instrument
       # Embedded Task routing
    path("embedded-tasks/", EmbeddedTaskListCreate.as_view(), name="embedded-task-list"),  # Route that returns all embedded tasks
    path("embedded-tasks/<int:pk>/", EmbeddedTaskDetail.as_view(), name="embedded-task-detail"),  # Retrieve, update, or delete a specific embedded task

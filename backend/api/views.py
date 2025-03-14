@@ -861,7 +861,7 @@ class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
    lookup_field = "pk"  # Use the primary key to find the instance
    
-   def get_queryset(self, request):
+   def get_queryset(self):
       return EvaluationInstrument.objects.all()
    
    def perform_update(self, request, serializer):
@@ -881,6 +881,116 @@ class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
       if not request.user.is_superuser:  # Checks for superuser status
             return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
+
+class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
+   """
+   This view retrieves the performance of a specific Evaluation Instrument.
+   It calculates:
+   - Task performance (avg score per task)
+   - CLO performance (avg score per CLO)
+   - PLO performance (avg score per PLO)
+   """
+   queryset = EvaluationInstrument.objects.all()
+   serializer_class = EvaluationInstrumentSerializer
+   lookup_field = "pk"
+   
+   def get(self, request, *args, **kwargs):
+      instrument_id = self.kwargs.get("pk")
+      
+      # Validate Evaluation Instrument
+      try:
+         evaluation_instrument = EvaluationInstrument.objects.get(pk=instrument_id)
+      except EvaluationInstrument.DoesNotExist:
+         raise NotFound(detail="Evaluation Instrument not found")
+      
+      # Generate performance report
+      performance_data = self.generate_performance_report(evaluation_instrument)
+      
+      return Response(performance_data)
+   
+   def generate_task_performance(self, evaluation_instrument):
+      """
+      Computes the average score for each embedded task linked to the evaluation instrument.
+      """
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=evaluation_instrument)
+      
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         avg_score = (
+            StudentTaskMapping.objects.filter(task=task)
+            .aggregate(avg_score=Avg("score"))["avg_score"]
+         )
+         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+      
+      return task_avg_scores
+   
+   def generate_clo_performance(self, evaluation_instrument):
+      """
+      Computes average score per CLO using tasks linked to the given Evaluation Instrument.
+      """
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=evaluation_instrument)
+      
+      # Get avg score per task
+      task_avg_scores = self.generate_task_performance(evaluation_instrument)
+      
+      # Get Task-CLO mappings
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+      
+      # Aggregate scores by CLO
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         clo_id = mapping.clo.clo_id
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_scores[clo_id].append(avg_score)
+      
+      # Compute final CLO performance
+      final_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_plo_performance(self, evaluation_instrument):
+      """
+      Computes average score per PLO based on CLO performance.
+      """
+      clo_performance = self.generate_clo_performance(evaluation_instrument)
+      
+      clo_ids = clo_performance.keys()
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      
+      plo_scores = defaultdict(list)
+      for mapping in clo_plo_mappings:
+         plo_id = mapping.plo.plo_id
+         clo_score = clo_performance.get(mapping.clo.clo_id, 0)
+         plo_scores[plo_id].append(clo_score)
+      
+      final_plo_performance = {
+         plo_id: sum(scores) / len(scores) if scores else 0
+         for plo_id, scores in plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def generate_performance_report(self, evaluation_instrument):
+      """
+      Generates the complete performance report.
+      Includes:
+      - Tasks performance
+      - CLO performance
+      - PLO performance
+      """
+      task_performance = self.generate_task_performance(evaluation_instrument)
+      clo_performance = self.generate_clo_performance(evaluation_instrument)
+      plo_performance = self.generate_plo_performance(evaluation_instrument)
+      
+      return {
+         "evaluation_instrument_id": evaluation_instrument.evaluation_instrument_id,
+         "tasks": task_performance,
+         "clo_performance": clo_performance,
+         "plo_performance": plo_performance
+      }
 # STOP - EvaluationInstrument
 
 
