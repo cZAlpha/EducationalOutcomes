@@ -6,6 +6,8 @@ import AddEvaluationInstrumentButton from "./AddNewEvaluationInstrumentButton";
 import FilterEvaluationInstrumentsBar from "./FilterEvaluationInstrumentsBar";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Accordion, AccordionSummary, AccordionDetails, Typography } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 
 function SpecificSectionInformation (section) {
@@ -240,44 +242,56 @@ function SpecificSectionInformation (section) {
                   {sectionPerformance ? (
                      <div className="w-full p-4 border bg-white rounded-lg shadow">
                         {/* CLO Performance */}
-                        <h4 className="font-bold text-lg mb-4">CLO Performance</h4>
-                        {sectionPerformance.CLOs?.length > 0 ? (
-                           <ul className="space-y-2">
-                              {sectionPerformance.CLOs.map(({ designation, description, score }) => (
-                                 <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                    <div className="flex flex-col gap-y-2">
-                                       <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                          <h1 className="font-xl font-bold">{designation}</h1>
-                                          <h1 className="font-xl font-bold">{score}%</h1>
-                                       </div>
-                                       <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                    </div>
-                                 </li>
-                              ))}
-                           </ul>
-                        ) : (
-                           <p className="text-gray-500">No CLO data available.</p>
-                        )}
+                        <Accordion>
+                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography className="font-bold text-lg">CLO Performance</Typography>
+                           </AccordionSummary>
+                           <AccordionDetails>
+                              {sectionPerformance.CLOs?.length > 0 ? (
+                                 <ul className="space-y-2">
+                                    {sectionPerformance.CLOs.map(({ designation, description, score }) => (
+                                       <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                          <div className="flex flex-col gap-y-2">
+                                             <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                                <h1 className="font-xl font-bold">{designation}</h1>
+                                                <h1 className="font-xl font-bold">{score}%</h1>
+                                             </div>
+                                             <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                          </div>
+                                       </li>
+                                    ))}
+                                 </ul>
+                              ) : (
+                                 <p className="text-gray-500">No CLO data available.</p>
+                              )}
+                           </AccordionDetails>
+                        </Accordion>
                         
                         {/* PLO Performance */}
-                        <h4 className="font-bold text-lg mt-6 mb-4">PLO Performance</h4>
-                        {sectionPerformance.PLOs?.length > 0 ? (
-                           <ul className="space-y-2">
-                              {sectionPerformance.PLOs.map(({ designation, description, score }) => (
-                                 <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                    <div className="flex flex-col gap-y-2">
-                                       <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                          <h1 className="font-xl font-bold">{designation}</h1>
-                                          <h1 className="font-xl font-bold">{score}%</h1>
-                                       </div>
-                                       <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                    </div>
-                                 </li>
-                              ))}
-                           </ul>
-                        ) : (
-                           <p className="text-gray-500">No PLO data available.</p>
-                        )}
+                        <Accordion>
+                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography className="font-bold text-lg">PLO Performance</Typography>
+                           </AccordionSummary>
+                           <AccordionDetails>
+                              {sectionPerformance.PLOs?.length > 0 ? (
+                                 <ul className="space-y-2">
+                                    {sectionPerformance.PLOs.map(({ designation, description, score }) => (
+                                       <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                          <div className="flex flex-col gap-y-2">
+                                             <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                                <h1 className="font-xl font-bold">{designation}</h1>
+                                                <h1 className="font-xl font-bold">{score}%</h1>
+                                             </div>
+                                             <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                          </div>
+                                       </li>
+                                    ))}
+                                 </ul>
+                              ) : (
+                                 <p className="text-gray-500">No PLO data available.</p>
+                              )}
+                           </AccordionDetails>
+                        </Accordion>
                      </div>
                   ) : (
                      <p className="text-center text-gray-500">No performance data available</p>
