@@ -76,14 +76,18 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                })
                : [];
             
-            // Map Task IDs to their corresponding 'name' (if applicable)
+            // Map Task IDs to their corresponding 'task_number'
             const mappedTasks = res.data.tasks
-               ? Object.entries(res.data.tasks).map(([taskId, score]) => ({
+            ? Object.entries(res.data.tasks).map(([taskId, score]) => {
+                  const taskObj = embeddedTasks.find(task => task.embedded_task_id === parseInt(taskId)); // Match by ID
+                  return {
                      task_id: parseInt(taskId),
-                     name: `Task ${taskId}`, // Update this if task names exist in another reference
+                     name: taskObj ? `Task ${taskObj.task_number}` : `Unknown Task (${taskId})`, // Use task_number
+                     text: taskObj ? taskObj.task_text : "",
                      score: parseFloat(score).toFixed(2),
-               }))
-               : [];
+                  };
+            })
+            : [];
             
             // Combine mapped CLOs, PLOs, and tasks into state
             setEvaluationInstrumentPerformance({
@@ -102,7 +106,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
    // START - CLO fetching and filtering
    const getCLOs = async () => {
       const filterCLOs = (unfilteredCLOs) => {
-         return unfilteredCLOs.filter(clo => clo.course === evaluationInstrument.evaluationInstrument.section.course);
+         return unfilteredCLOs.filter(clo => clo.course === evaluationInstrument.evaluationInstrument.section_details.course);
       };   
       try {
          const res = await api.get('/api/course-learning-objectives/');
@@ -131,18 +135,22 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
          await getEmbeddedTasks();
          await getCLOs();
          await getPLOs();
-         await getEvaluationInstrumentPerformance();
          setLoading(false); // Set loading to false when all data is fetched
       };
-      
+      console.log(evaluationInstrument.evaluationInstrument)
       fetchData();
    }, []);
    
-   useEffect(() => { // Performance Report Call
-      if (CLOs.length > 0 && PLOs.length > 0) {
-         getSectionPerformance();
+   useEffect(() => { 
+      console.log("CLOs:", CLOs);
+      console.log("PLOs:", PLOs);
+      console.log("Embedded Tasks:", embeddedTasks);
+   
+      if (CLOs.length > 0 && PLOs.length > 0 && embeddedTasks.length > 0) {
+         console.log("Calling getEvaluationInstrumentPerformance...");
+         getEvaluationInstrumentPerformance();
       }
-   }, [CLOs, PLOs]); // This ensures `getSectionPerformance()` runs only after `CLOs` is updated
+   }, [CLOs, PLOs, embeddedTasks]);
    
    
    // HTML STUFF
@@ -190,17 +198,19 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                      <p className="text-center text-gray-500">No evaluation instruments for this section</p>
                   ) : (
                      <div className="flex flex-col items-center gap-4">
-                        {embeddedTasks.map((task) => (     
-                           <div 
-                              key={task.embedded_task_id}
-                              className="w-[70%]"
-                           >
-                              <EmbeddedTaskCard 
-                                 questionNumber={task.task_number} 
-                                 questionText={task.task_text} 
-                              />
-                           </div>
-                        ))}
+                        {evaluationInstrumentPerformance.tasks ? (
+                           evaluationInstrumentPerformance.tasks.map(({ task_id, name, text, score }) => (
+                              <div key={task_id} className="w-[70%]">
+                                 <EmbeddedTaskCard 
+                                    questionNumber={name} 
+                                    questionText={text} 
+                                    questionScore={score}
+                                 />
+                              </div>
+                           ))
+                        ) : (
+                           <div>No info</div>
+                        )}
                      </div>
                   )}
                </div>
