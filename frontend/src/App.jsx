@@ -11,6 +11,7 @@ import AddNewCourseManual from "./pages/AddNewCourseManual"
 import Sections from "./pages/Sections"
 import SpecificSection from "./pages/SpecificSection"
 import SpecificEvaluationInstrument from "./pages/SpecificEvaluationInstrument"
+import AddEvaluationInstrument from "./pages/AddNewEvaluationInstrument"
 import Tools from "./pages/Tools"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
@@ -125,6 +126,12 @@ function App() {
           <Route path="/evaluation-instruments/:evaluationInstrumentId" element={ /* Specific Eval. Instru. page (Protected) */
             <ProtectedRoute>
               <SpecificEvaluationInstrument />
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/add-evaluation-instrument/manual/:sectionId" element={    /* Add new eval. instru. form page (Protected) */
+            <ProtectedRoute>
+              <AddEvaluationInstrument />
             </ProtectedRoute>
           }
           />

@@ -191,7 +191,9 @@ function SpecificSectionInformation (section) {
                   <div className="w-full flex flex-col gap-y-4 mb-6">
                      <div className="w-full flex flex-row items-center justify-between">
                         <h3 className="font-bold text-lg">Evaluation Instruments</h3>
-                        <AddEvaluationInstrumentButton />
+                        {section.section && section.section.section_id && (
+                           <AddEvaluationInstrumentButton sectionId={section.section.section_id} />
+                        )}
                      </div>
                      
                      {/* Filter Evaluation Instruments Bar */}
