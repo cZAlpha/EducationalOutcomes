@@ -7,6 +7,7 @@
 # To Do List:
 - Finish Frontend Programming
 - Add Announcements model to the backend to make the home page's announcement section dynamic
+- Add navigational buttons when you go fine-grain into course -> section -> evaluation instrument to make backtracking easier
 <br>
 
 # Home Page Preview ![Home Page Preview](frontend/src/assets/PreviewsForReadMe/homePage.png)
