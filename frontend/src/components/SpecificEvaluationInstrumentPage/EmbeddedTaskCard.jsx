@@ -35,7 +35,7 @@ const EmbeddedTaskCard = ({
                   {/* Question Score */}
                   <div className={`${questionScore ? getBackgroundColor(questionScore) : 'bg-white'} rounded-lg px-2`}>
                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {questionScore ?? ""}
+                        {questionScore + "%" ?? ""}
                      </Typography>
                   </div>
                </div>

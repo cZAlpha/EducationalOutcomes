@@ -89,11 +89,13 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
             })
             : [];
             
+            
             // Combine mapped CLOs, PLOs, and tasks into state
             setEvaluationInstrumentPerformance({
                CLOs: mappedCLOPerformance,
                PLOs: mappedPLOPerformance,
                tasks: mappedTasks,
+               overallScore: res.data.overall_average_score // No mapping or anything needed for this so just set it
             });
          
          } catch (err) {
@@ -158,9 +160,14 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
       <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg p-6">
          {/* Header */}
          {loading || (
-            <div className="flex flex-col gap-y-2 w-full mb-6 text-left">
-               <h1 className="font-bold text-2xl">{evaluationInstrument.evaluationInstrument?.name}</h1>
-               <h2 className="font-semi-bold text-lg">{evaluationInstrument.evaluationInstrument?.description}</h2>
+            <div className="flex flex-row justify-between gap-x-2 w-full mb-6 text-left">
+               <div className="flex flex-col gap-y-2">
+                  <h1 className="font-bold text-2xl">{evaluationInstrument.evaluationInstrument?.name}</h1>
+                  <h2 className="font-semi-bold text-lg">{evaluationInstrument.evaluationInstrument?.description}</h2>
+               </div>
+               <h3 className={`font-bold flex items-center text-lg px-4 rounded-lg ${evaluationInstrumentPerformance?.overallScore != null ? getBackgroundColor(evaluationInstrumentPerformance.overallScore) : ''}`}>
+                  {evaluationInstrumentPerformance?.overallScore?.toFixed(2) + "%" || 'N/A'}
+               </h3>
             </div>
          )}
          

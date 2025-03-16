@@ -973,6 +973,24 @@ class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
       
       return final_plo_performance
    
+   def generate_overall_average_score(self, evaluation_instrument):
+      """
+      Computes the overall average score for the evaluation instrument.
+      This is the average of all the task average scores.
+      """
+      task_performance = self.generate_task_performance(evaluation_instrument)
+      
+      # Calculate overall average score
+      total_score = sum(task_performance.values())
+      total_tasks = len(task_performance)
+      
+      if total_tasks > 0:
+         overall_avg = total_score / total_tasks
+      else:
+         overall_avg = 0
+      
+      return overall_avg
+   
    def generate_performance_report(self, evaluation_instrument):
       """
       Generates the complete performance report.
@@ -984,12 +1002,14 @@ class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
       task_performance = self.generate_task_performance(evaluation_instrument)
       clo_performance = self.generate_clo_performance(evaluation_instrument)
       plo_performance = self.generate_plo_performance(evaluation_instrument)
+      overall_average_score = self.generate_overall_average_score(evaluation_instrument)
       
       return {
          "evaluation_instrument_id": evaluation_instrument.evaluation_instrument_id,
          "tasks": task_performance,
          "clo_performance": clo_performance,
-         "plo_performance": plo_performance
+         "plo_performance": plo_performance,
+         "overall_average_score": overall_average_score
       }
 # STOP - EvaluationInstrument
 
