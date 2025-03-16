@@ -254,7 +254,7 @@ class EvaluationInstrument(models.Model):
 class EmbeddedTask(models.Model):
    embedded_task_id = models.BigAutoField(primary_key=True)
    evaluation_instrument = models.ForeignKey(EvaluationInstrument, on_delete=models.CASCADE) # If the associated eval. instrument is deleted, delete the tasks associated with it too
-   task_number = models.PositiveIntegerField(null=True, blank=True)  # The task number (optional)
+   task_number = models.PositiveIntegerField()  # The task number (optional)
    task_text = models.TextField(max_length=500, null=True, blank=True) # If your eval. instrument's text is longer than 500 words, that's on you!
    
    def __str__(self):
