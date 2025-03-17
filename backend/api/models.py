@@ -235,7 +235,7 @@ class EvaluationType(models.Model):
    description = models.CharField(max_length=250, null=True, blank=True)
    
    def __str__(self):
-      return f"{self.type_name} | {self.description[:20]}"
+      return f"{self.type_name} | ID:{self.evaluation_type_id} | {self.description[:20]}"
 
 
 # Evaluation Instrument

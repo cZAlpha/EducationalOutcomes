@@ -8,6 +8,7 @@ import api from '../api';
 
 const AddEvaluationInstrument = () => {
    const { sectionId } = useParams(); // To get the section id
+   const parsedSectionId = parseInt(sectionId, 10);
    const [loading, setLoading] = useState(true); // State to track loading status
    const [evaluationTypes, setEvaluationTypes] = useState([]); // Keeps a list of all evaluation types fetched from the server
    const [course, setCourse] = useState({});
@@ -15,9 +16,10 @@ const AddEvaluationInstrument = () => {
    
    // Step 1: Instrument Information
    const [instrumentInfo, setInstrumentInfo] = useState({
+      section: parsedSectionId,
       name: "",
       description: "",
-      type: "",
+      evaluation_type: null,
       file: null,
    });
    const [students, setStudents] = useState([]); // Array to hold students and their grades on questions
@@ -33,8 +35,29 @@ const AddEvaluationInstrument = () => {
    // Handle form input changes
    const handleInstrumentChange = (e) => {
       const { name, value } = e.target;
-      setInstrumentInfo((prev) => ({ ...prev, [name]: value }));
+      
+      if (name === 'evaluation_type') { // If the field is 'evaluation_type', we need to find the id
+         const evaluationType = evaluationTypes.find((type) => type.type_name === value);
+         const evaluationTypeId = evaluationType ? evaluationType.evaluation_type_id : null;
+         setInstrumentInfo((prev) => ({ ...prev, [name]: evaluationTypeId }));
+      } else {
+         // For 'name' and 'description', just update the field directly
+         setInstrumentInfo((prev) => ({ ...prev, [name]: value }));
+      }
    };
+   
+   const findEvaluationTypeName = () => {
+      // Assuming 'instrumentInfo' contains the 'evaluation_type' id
+      const evaluationTypeId = instrumentInfo.evaluation_type;
+      
+      // Find the corresponding evaluation type object by evaluation_type_id
+      const evaluationType = evaluationTypes.find((type) => type.evaluation_type_id === evaluationTypeId);
+      
+      // Return the type_name if found, or a default value (e.g., 'Unknown') if not found
+      return evaluationType ? evaluationType.type_name : 'Unknown';
+   };
+   
+   
    
    const handleFileChange = (e) => {
       setInstrumentInfo((prev) => ({ ...prev, file: e.target.files[0] }));
@@ -54,10 +77,10 @@ const AddEvaluationInstrument = () => {
    };   
    
    // Step 1 validation
-   const isStep1Valid = instrumentInfo.name && instrumentInfo.type && instrumentInfo.file;
+   const isStep1Valid = instrumentInfo.name && instrumentInfo.evaluation_type && instrumentInfo.file;
    
    // Step 2 validation (CLO mappings should not be empty)
-   const isStep2Valid = cloMappings.length > 0 && cloMappings.every(mapping => mapping.cloId);
+   const isStep2Valid = cloMappings.length > 0 && cloMappings.every(mapping => Array.isArray(mapping.cloIds) && mapping.cloIds.length > 0);
    
    // Handle navigation between steps
    const handleNext = () => {
@@ -206,6 +229,7 @@ const AddEvaluationInstrument = () => {
    const handleSubmit = async () => {
       const formData = {
          instrumentInfo, // Contains info. like the name and description, type of the eval. instrument
+         tasks, // Contains all of the questions (embedded tasks) for the given evaluation instrument
          students, // Contains all students who took the eval. instrument, as well as their grades on each task
          cloMappings, // Contains all Task <-> CLO mappings
       };
@@ -213,12 +237,8 @@ const AddEvaluationInstrument = () => {
       // Perform API call to submit the form data
       console.log("Form Data: ", formData);
       try {
-         // TODO: Adjust the route for creating new evaluation instruments to create the CLO mappings too!!!
-         // Also make sure the correct route it being used!
-         //const res = await api.post('/api/instruments/', formData);
-         //console.log("Response from server:", res.data);
-         //alert("Evaluation Instrument Data Successfully Sent!");
-         console.log("If you see this, you need to check the comments above this log statement")
+         const res = await api.post('/api/evaluation-instruments/', formData);
+         console.log("Response from server:", res.data);
       } catch (err) {
          console.error("Error posting Instrument:", err.response?.data || err.message);
          alert(`Error posting Instrument: ${err.response?.data?.error || err.message}`);
@@ -254,6 +274,11 @@ const AddEvaluationInstrument = () => {
    useEffect(() => {
       console.log("CLO Mappings: ", cloMappings);
    }, [cloMappings]);
+
+   // TESTING ONLY
+   useEffect(() => {
+      console.log("Evaluation Types: ", evaluationTypes);
+   }, [evaluationTypes]);
    
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
@@ -287,8 +312,8 @@ const AddEvaluationInstrument = () => {
                      <InputLabel>Type</InputLabel>
                      <Select
                         label="Type"
-                        name="type"
-                        value={instrumentInfo.type}
+                        name="evaluation_type"
+                        value={findEvaluationTypeName()}
                         onChange={handleInstrumentChange}
                         sx={{ textAlign: "left" }}
                      >

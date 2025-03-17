@@ -478,8 +478,6 @@ class CourseListCreate(generics.ListCreateAPIView):
       except Exception as e:
          return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    """
    A view for retrieving, updating, and deleting a specific Course instance.
@@ -769,8 +767,6 @@ class SectionPerformance(generics.RetrieveAPIView):
       plo_performance = self.generate_plo_performance(section)
       
       return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
-
-
 # STOP - Section
 
 
@@ -844,13 +840,74 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
       return Response(serializer.data)
    
    def post(self, request):
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
-      serializer = EvaluationInstrumentSerializer(data=request.data)
-      if serializer.is_valid():  # Checks for valid serializer
-         serializer.save()
-         return Response(serializer.data, status=status.HTTP_201_CREATED)
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      data = request.data
+      instrument_info = data.get('instrumentInfo')
+      clo_mappings = data.get('cloMappings')
+      students = data.get('students')
+      
+      if not instrument_info or not clo_mappings or not students:
+         return Response({"error": "Missing required fields: instrumentInfo, cloMappings, or students."}, status=status.HTTP_400_BAD_REQUEST)
+      
+      try:
+         with transaction.atomic():  # Use transaction to ensure that nothing is saved if any part of the process fails
+               # Step 1: Create Evaluation Instrument
+               instrument_data = {
+                  "section" : instrument_info.get("section"),
+                  "name": instrument_info.get("name"),
+                  "description": instrument_info.get("description"),
+                  "evaluation_type": instrument_info.get("evaluation_type"),
+               }
+               instrument_serializer = EvaluationInstrumentSerializer(data=instrument_data)
+               if not instrument_serializer.is_valid():
+                  return Response(instrument_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               instrument = instrument_serializer.save()
+               
+               # Step 2: Create Tasks for the Instrument
+               task_id_map = {}
+               for task_data in instrument_info.get("tasks", []):  
+                  task_serializer = EmbeddedTaskSerializer(data=task_data)
+                  if task_serializer.is_valid():
+                     task = task_serializer.save(evaluation_instrument=instrument)
+                     task_id_map[task.name] = task.id
+                  else:
+                     return Response(task_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               # Step 3: Create CLO Mappings for each Task
+               for mapping_data in clo_mappings:
+                  task_name = mapping_data.get("taskName")
+                  clo_ids = mapping_data.get("cloIds")  # List of CLO IDs to map
+                  if task_name not in task_id_map:
+                     return Response({"error": f"Task {task_name} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+                  task = EmbeddedTaskSerializer.objects.get(id=task_id_map[task_name])
+                  
+                  for clo_id in clo_ids:
+                     try:
+                           clo = CourseLearningObjective.objects.get(id=clo_id)
+                           TaskCLOMapping.objects.create(task=task, clo=clo)
+                     except CourseLearningObjective.DoesNotExist:
+                           return Response({"error": f"CLO with ID {clo_id} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+               
+               # Step 4: Create Student Objects if they do not exist
+               student_objects = []
+               for student_data in students:
+                  student_serializer = StudentSerializer(data=student_data)
+                  if student_serializer.is_valid():
+                     student, created = Student.objects.get_or_create(username=student_data['username'], defaults=student_data)
+                     student_objects.append(student)
+                  else:
+                     return Response(student_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               # Step 5: Create Student <-> Task Mappings
+               for student in student_objects:
+                  for task_name in task_id_map.keys():
+                     task = Task.objects.get(id=task_id_map[task_name])
+                     StudentTaskMapping.objects.create(student=student, task=task)
+               
+               return Response(instrument_serializer.data, status=status.HTTP_201_CREATED)
+      
+      except Exception as e:
+         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    """
