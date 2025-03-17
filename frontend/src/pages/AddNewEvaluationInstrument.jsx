@@ -139,6 +139,10 @@ const AddEvaluationInstrument = () => {
                   });
                });
                
+               let jsonData = {
+                  students: students,
+                  tasks: allQuestions
+               }
                console.log("Final Parsed Data:", jsonData);
                setStudents(students); // Set the students (including their scores) array to the students parsed from the CSV 
                setTasks(allQuestions); // Set the tasks array to the questions parsed from the CSV
@@ -221,6 +225,11 @@ const AddEvaluationInstrument = () => {
       }
    };
    
+   const handleFileRemove = () => {
+      // Reset the file state to null or empty along with all applicable other variables
+      setInstrumentInfo({ ...instrumentInfo, file: null });
+   };
+   
    useEffect(() => { // Call CLO get function only once the course is set
       if (course) { // Check that the course exists
          getCLOs();
@@ -292,8 +301,15 @@ const AddEvaluationInstrument = () => {
                   </FormControl>
                   
                   {/* File Upload */}
-                  <Button sx={{ marginTop: 4 }} variant="contained" color="primary" component="label" fullWidth>
-                     Upload File (CSV/Excel)
+                  <Button 
+                     sx={{ marginTop: 4 }} 
+                     variant="contained" 
+                     color="primary" 
+                     component="label" 
+                     fullWidth 
+                     disabled={!!instrumentInfo.file} // Disable if file exists
+                  >
+                     {instrumentInfo.file ? "File Uploaded" : "Upload File (CSV/Excel)"}
                      <input
                         type="file"
                         hidden
@@ -303,6 +319,26 @@ const AddEvaluationInstrument = () => {
                         }}
                      />
                   </Button>
+                  
+                  {/* Display file name and Remove button if file exists */}
+                  {instrumentInfo.file && (
+                     <div className="w-full flex justify-center">
+                        <div className="flex gap-2 items-center justify-center gap-x-8 w-[60%]"> 
+                           <Typography sx={{ marginTop: 2 }}>{instrumentInfo.file.name}</Typography>
+                           <Button 
+                              sx={{ marginTop: 2 }} 
+                              variant="outlined" 
+                              color="error" 
+                              onClick={() => {
+                                 // Handle file removal logic
+                                 handleFileRemove();
+                              }}
+                           >
+                              Remove File
+                           </Button>
+                        </div>
+                     </div>
+                  )}
                </Box>
             )}
             
