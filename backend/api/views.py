@@ -432,6 +432,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                print("Course Data: ", course_data)
                course_serializer = CourseSerializer(data=course_data)
                if not course_serializer.is_valid(): # If the course data is invalid, return 400 error
+                  transaction.set_rollback(True)
                   return Response(course_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                course = course_serializer.save()  # Save Course if the course data was valid
@@ -453,6 +454,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                      saved_clo = clo_serializer.save()
                      clo_id_map[clo.get("designation")] = saved_clo.clo_id  # Store for mapping
                   else:
+                     transaction.set_rollback(True)
                      return Response(clo_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                # Step 3: Create CLO-PLO Mappings
@@ -461,6 +463,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                   plo_id = mapping.get("plo")  # Using the correct key 'plo'
                                  
                   if clo_designation not in clo_id_map or not plo_id:
+                     transaction.set_rollback(True)
                      return Response({"error": "Invalid CLO-PLO mapping data."}, status=status.HTTP_400_BAD_REQUEST)
                                  
                   mapping_data = {
@@ -471,11 +474,13 @@ class CourseListCreate(generics.ListCreateAPIView):
                   if mapping_serializer.is_valid():
                      mapping_serializer.save()
                   else:
+                     transaction.set_rollback(True)
                      return Response(mapping_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                return Response(course_serializer.data, status=status.HTTP_201_CREATED)
       
       except Exception as e:
+         transaction.set_rollback(True)
          return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -844,6 +849,7 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
       instrument_info = data.get('instrumentInfo')
       clo_mappings = data.get('cloMappings')
       students = data.get('students')
+      tasks = data.get('tasks')
       
       if not instrument_info or not clo_mappings or not students:
          return Response({"error": "Missing required fields: instrumentInfo, cloMappings, or students."}, status=status.HTTP_400_BAD_REQUEST)
@@ -859,24 +865,28 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
                }
                instrument_serializer = EvaluationInstrumentSerializer(data=instrument_data)
                if not instrument_serializer.is_valid():
+                  transaction.set_rollback(True)
                   return Response(instrument_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                instrument = instrument_serializer.save()
                
                # Step 2: Create Tasks for the Instrument
                task_id_map = {}
-               for task_data in instrument_info.get("tasks", []):  
+               for task_data in tasks:  
                   task_serializer = EmbeddedTaskSerializer(data=task_data)
                   if task_serializer.is_valid():
                      task = task_serializer.save(evaluation_instrument=instrument)
                      task_id_map[task.name] = task.id
                   else:
+                     transaction.set_rollback(True)
                      return Response(task_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
+               print(f"Task_ID_Map: {task_id_map}")
                # Step 3: Create CLO Mappings for each Task
                for mapping_data in clo_mappings:
-                  task_name = mapping_data.get("taskName")
+                  task_name = mapping_data.get("taskId")
                   clo_ids = mapping_data.get("cloIds")  # List of CLO IDs to map
                   if task_name not in task_id_map:
+                     transaction.set_rollback(True)
                      return Response({"error": f"Task {task_name} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
                   task = EmbeddedTaskSerializer.objects.get(id=task_id_map[task_name])
                   
@@ -885,6 +895,7 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
                            clo = CourseLearningObjective.objects.get(id=clo_id)
                            TaskCLOMapping.objects.create(task=task, clo=clo)
                      except CourseLearningObjective.DoesNotExist:
+                           transaction.set_rollback(True)
                            return Response({"error": f"CLO with ID {clo_id} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
                
                # Step 4: Create Student Objects if they do not exist
@@ -892,22 +903,23 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
                for student_data in students:
                   student_serializer = StudentSerializer(data=student_data)
                   if student_serializer.is_valid():
-                     student, created = Student.objects.get_or_create(username=student_data['username'], defaults=student_data)
+                     student = Student.objects.create(username=student_data['username'], defaults=student_data)
                      student_objects.append(student)
                   else:
+                     transaction.set_rollback(True)
                      return Response(student_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                # Step 5: Create Student <-> Task Mappings
                for student in student_objects:
                   for task_name in task_id_map.keys():
-                     task = Task.objects.get(id=task_id_map[task_name])
+                     task = EmbeddedTask.objects.get(id=task_id_map[task_name])
                      StudentTaskMapping.objects.create(student=student, task=task)
                
                return Response(instrument_serializer.data, status=status.HTTP_201_CREATED)
       
       except Exception as e:
+         transaction.set_rollback(True)
          return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    """
@@ -930,14 +942,18 @@ class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
          return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
    
-   def perform_destroy(self, request, instance):
+   def destroy(self, request, *args, **kwargs):
       """
-      This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the instance.
+      Handles DELETE requests with optional pre-deletion logic.
       """
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      instance = self.get_object()
+      
+      # Custom logic before deletion (uncomment if needed)
+      # if not request.user.is_superuser:
+      #     return Response({"error": "Only superusers can delete Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      
       instance.delete()
+      return Response(status=status.HTTP_204_NO_CONTENT)
 
 class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
    """
