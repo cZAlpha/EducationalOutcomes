@@ -7,6 +7,7 @@ from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Avg
 from collections import defaultdict
+from django.db.models import Avg, F, ExpressionWrapper, FloatField
 
 # User-made imports
 from .serializers import * # Import serializers
@@ -432,6 +433,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                print("Course Data: ", course_data)
                course_serializer = CourseSerializer(data=course_data)
                if not course_serializer.is_valid(): # If the course data is invalid, return 400 error
+                  transaction.set_rollback(True)
                   return Response(course_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                course = course_serializer.save()  # Save Course if the course data was valid
@@ -453,6 +455,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                      saved_clo = clo_serializer.save()
                      clo_id_map[clo.get("designation")] = saved_clo.clo_id  # Store for mapping
                   else:
+                     transaction.set_rollback(True)
                      return Response(clo_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                # Step 3: Create CLO-PLO Mappings
@@ -461,6 +464,7 @@ class CourseListCreate(generics.ListCreateAPIView):
                   plo_id = mapping.get("plo")  # Using the correct key 'plo'
                                  
                   if clo_designation not in clo_id_map or not plo_id:
+                     transaction.set_rollback(True)
                      return Response({"error": "Invalid CLO-PLO mapping data."}, status=status.HTTP_400_BAD_REQUEST)
                                  
                   mapping_data = {
@@ -471,14 +475,13 @@ class CourseListCreate(generics.ListCreateAPIView):
                   if mapping_serializer.is_valid():
                      mapping_serializer.save()
                   else:
+                     transaction.set_rollback(True)
                      return Response(mapping_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                
                return Response(course_serializer.data, status=status.HTTP_201_CREATED)
       
       except Exception as e:
          return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    """
@@ -769,8 +772,6 @@ class SectionPerformance(generics.RetrieveAPIView):
       plo_performance = self.generate_plo_performance(section)
       
       return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
-
-
 # STOP - Section
 
 
@@ -844,13 +845,141 @@ class EvaluationInstrumentListCreate(generics.ListCreateAPIView):
       return Response(serializer.data)
    
    def post(self, request):
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
-      serializer = EvaluationInstrumentSerializer(data=request.data)
-      if serializer.is_valid():  # Checks for valid serializer
-         serializer.save()
-         return Response(serializer.data, status=status.HTTP_201_CREATED)
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+      data = request.data
+      instrument_info = data.get('instrumentInfo')
+      clo_mappings = data.get('cloMappings')
+      students = data.get('students')
+      tasks = data.get('tasks')
+      
+      if not instrument_info or not clo_mappings or not students:
+         return Response({"error": "Missing required fields: instrumentInfo, cloMappings, or students."}, status=status.HTTP_400_BAD_REQUEST)
+      
+      try:
+         with transaction.atomic():  # Use transaction to ensure that nothing is saved if any part of the process fails
+               print("\n" + "Step 1:")
+               # Step 1: Create Evaluation Instrument
+               instrument_data = {
+                  "section" : instrument_info.get("section"),
+                  "name": instrument_info.get("name"),
+                  "description": instrument_info.get("description"),
+                  "evaluation_type": instrument_info.get("evaluation_type"),
+               }
+               instrument_serializer = EvaluationInstrumentSerializer(data=instrument_data)
+               if not instrument_serializer.is_valid():
+                  transaction.set_rollback(True)
+                  return Response(instrument_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               instrument = instrument_serializer.save()
+               
+               # TESTING ONLY: Print out each task to check the contents of them and
+               # why they ain't getting created twin
+               print("\n" + "Step 2:")
+               for task in tasks: 
+                  task["evaluation_instrument"] = instrument.evaluation_instrument_id # Add the evaluation instrument to each task (bc we must make a relationship there using the PK for the FK)
+                  print("Task: ", task)
+               
+               # Step 2: Create Tasks for the Instrument
+               task_id_map = {}
+               for task_data in tasks:  
+                  task_serializer = EmbeddedTaskSerializer(data=task_data)
+                  if task_serializer.is_valid():
+                     task = task_serializer.save(evaluation_instrument=instrument)
+                     task_id_map[task_data["task_number"]] = task.embedded_task_id  # Store task ID using task number
+                  else:
+                     transaction.set_rollback(True)
+                     return Response(task_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               print("\n", "Step 2 has finished. task_id_map: ", task_id_map)
+               
+               print("\n", "Step 3 has started...", end="\n")
+               # Step 3: Create CLO Mappings for each Task
+               task_clo_mapping_list = [] # USED ONLY FOR TESTING!!!
+               for mapping_data in clo_mappings:
+                  task_number = mapping_data.get("task_number")  # Make sure this is the correct key
+                  clo_ids = mapping_data.get("cloIds")  # List of CLO IDs to map
+                  if task_number not in task_id_map:
+                     transaction.set_rollback(True)
+                     return Response({"error": f"Task {task_number} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+                  task = EmbeddedTask.objects.get(embedded_task_id=task_id_map[task_number])
+                  
+                  for clo_id in clo_ids:
+                     try:
+                           clo = CourseLearningObjective.objects.get(clo_id=clo_id)
+                           TaskCLOMapping.objects.create(task=task, clo=clo)
+                           task_clo_mapping_list.append((task, clo)) # Append the tuple obj to the list for viewing during testing
+                     except CourseLearningObjective.DoesNotExist:
+                           transaction.set_rollback(True)
+                           return Response({"error": f"CLO with ID {clo_id} does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+               print("\n", "Step 3 has ended. Produced: ", task_clo_mapping_list, end="\n")
+               
+               print("\n" + "Step 4 has started", end="\n")
+               # Step 4: Create Student Objects if they do not exist
+               student_objects = []
+               for student_data in students:                  
+                  # Extract only the useful data from student_data
+                  filtered_student_data = {
+                     'email': student_data.get('username', ''),  # assuming username is the d_number
+                     'first_name': student_data.get('firstName', ''),
+                     'last_name': student_data.get('lastName', '')
+                  }
+                  
+                  # Only proceed if the required data is valid
+                  if 'email' in filtered_student_data and filtered_student_data['email']:
+                     # Use get_or_create to avoid duplicates
+                     student, created = Student.objects.get_or_create(
+                           email=filtered_student_data['email'],
+                           defaults={
+                              'first_name': filtered_student_data['first_name'],
+                              'last_name': filtered_student_data['last_name']
+                           }
+                     )
+                     
+                     # If not created (i.e., student already exists), no need to do anything further
+                     if not created:
+                           print(f"Student with email {student.email} already exists. Skipping creation.")
+                     
+                     student_objects.append(student)
+                  else:
+                     transaction.set_rollback(True)
+                     return Response({'error': 'Invalid student data'}, status=status.HTTP_400_BAD_REQUEST)
+               print("\n", "Step 4 has ended. Produced: ", student_objects, end="\n")
+               
+               # Step 5: Create Student <-> Task Mappings
+               print("\n" + "Step 5: ")               
+               # Iterate over each student in the 'students' data from the form
+               for student_data in students:  # student_data now represents the form data, not the model object
+                  print(f"Student: {student_data['username']}")  # Accessing email/username in the form data
+                  
+                  # Retrieve the student object using email (which is the PK of the Student table)
+                  student = Student.objects.get(email=student_data['username'])
+                  
+                  # Iterate over each task the student has completed
+                  for task_data in student_data['tasks']:  # Here task_data is from the form data
+                     print(f"Task: {task_data['taskId']}")
+                     
+                     # Convert task_number to string to match task_id_map keys
+                     task_number_str = str(task_data['taskId'])
+                     
+                     # Retrieve the actual task id from the task_id_map using the string key
+                     task_id = task_id_map.get(task_number_str)
+                     
+                     if not task_id:
+                           # If task_id does not exist in task_id_map, raise an error
+                           raise ValueError(f"Task with task_number {task_data['task_number']} does not exist in task_id_map.")
+                     
+                     # Fetch the actual task using the task_id
+                     task = EmbeddedTask.objects.get(embedded_task_id=task_id)  # Use the correct task_id here
+                     
+                     # Create the StudentTaskMapping object
+                     StudentTaskMapping.objects.create(
+                           student=student,  # This should be the actual student object, not just the email
+                           task=task,
+                           score=task_data.get('manualScore', None),  # Assuming the score is available in 'manualScore'
+                           total_possible_score=task_data.get('possiblePoints', None)  # Assuming possiblePoints is available
+                     )
+               
+               return Response(instrument_serializer.data, status=status.HTTP_201_CREATED)
+      
+      except Exception as e:
+         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
    """
@@ -873,14 +1002,18 @@ class EvaluationInstrumentDetail(generics.RetrieveUpdateDestroyAPIView):
          return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
    
-   def perform_destroy(self, request, instance):
+   def destroy(self, request, *args, **kwargs):
       """
-      This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the instance.
+      Handles DELETE requests with optional pre-deletion logic.
       """
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      instance = self.get_object()
+      
+      # Custom logic before deletion (uncomment if needed)
+      # if not request.user.is_superuser:
+      #     return Response({"error": "Only superusers can delete Evaluation Instruments."}, status=status.HTTP_403_FORBIDDEN)
+      
       instance.delete()
+      return Response(status=status.HTTP_204_NO_CONTENT)
 
 class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
    """
@@ -916,11 +1049,18 @@ class EvaluationInstrumentPerformance(generics.RetrieveAPIView):
       
       task_avg_scores = {}
       for task in embedded_tasks:
-         avg_score = (
-            StudentTaskMapping.objects.filter(task=task)
-            .aggregate(avg_score=Avg("score"))["avg_score"]
+         # Calculate the normalized score (score / total_possible_score)
+         avg_normalized_score = (
+               StudentTaskMapping.objects
+               .filter(task=task)
+               .annotate(normalized_score=ExpressionWrapper(
+                  (F("score") / F("total_possible_score")) * 100, output_field=FloatField() # Normalizes to 100 AND NOT TO 1!!1
+               ))
+               .aggregate(avg_score=Avg("normalized_score"))["avg_score"]
          )
-         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+         
+         # Store the normalized average (default to 0 if None)
+         task_avg_scores[task.embedded_task_id] = avg_normalized_score if avg_normalized_score is not None else 0
       
       return task_avg_scores
    

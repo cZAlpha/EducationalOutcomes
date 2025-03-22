@@ -170,8 +170,8 @@ class EvaluationTypeSerializer(serializers.ModelSerializer):
 
 # Evaluation Instrument Serializer
 class EvaluationInstrumentSerializer(serializers.ModelSerializer):
-   section = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
-   evaluation_type = serializers.PrimaryKeyRelatedField(queryset=Semester.objects.all())  # Explicit FK validation
+   section = serializers.PrimaryKeyRelatedField(queryset=Section.objects.all())  # Explicit FK validation
+   evaluation_type = serializers.PrimaryKeyRelatedField(queryset=EvaluationType.objects.all())  # Explicit FK validation
    
    section_details = SectionSerializer(source='section', read_only=True)
    evaluation_type_details = EvaluationTypeSerializer(source='evaluation_type', read_only=True)
@@ -184,7 +184,7 @@ class EvaluationInstrumentSerializer(serializers.ModelSerializer):
 # Embedded Task Serializer
 class EmbeddedTaskSerializer(serializers.ModelSerializer):
    evaluation_instrument = serializers.PrimaryKeyRelatedField(queryset=EvaluationInstrument.objects.all())  # Explicit FK validation
-
+   
    class Meta:
       model = EmbeddedTask
       fields = ['embedded_task_id', 'evaluation_instrument', 'task_number', 'task_text']
@@ -229,7 +229,7 @@ class PLOCLOMappingSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
    class Meta:
       model = Student
-      fields = ['d_number', 'first_name', 'last_name']
+      fields = ['email', 'first_name', 'last_name']
 
 
 # Student Task Mapping Serializer

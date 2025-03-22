@@ -96,12 +96,13 @@ const AddNewCourseManual = () => {
    
    // Step 2 validation (CLO designation should be unique and in range 1-20)
    const isStep2Valid = cloList.length > 0 && cloList.every(clo => clo.designation >= 1 && clo.designation <= 20 && !cloList.some((otherClo, index) => otherClo.designation === clo.designation && index !== cloList.indexOf(clo)));
-      // Disable "Add Another CLO" button unless the last CLO is valid
-      const isAddCloDisabled = !(cloList.length === 0 || 
-         (cloList[cloList.length - 1].designation && 
-         cloList[cloList.length - 1].description && 
-         !cloList.some((clo, index) => clo.designation === cloList[cloList.length - 1].designation && index !== cloList.length - 1))
-      );
+   
+   // Disable "Add Another CLO" button unless the last CLO is valid
+   const isAddCloDisabled = !(cloList.length === 0 || 
+      (cloList[cloList.length - 1].designation && 
+      cloList[cloList.length - 1].description && 
+      !cloList.some((clo, index) => clo.designation === cloList[cloList.length - 1].designation && index !== cloList.length - 1))
+   );
    
    // Handle form input changes
    const handleCourseInfoChange = (e) => {

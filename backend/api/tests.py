@@ -458,12 +458,12 @@ def populate_database(): # Function to populate the database with random users a
    # Student Creation
    print("[+] Creating Students...")
    student_noah_klaus, created = Student.objects.get_or_create(
-      d_number = "D10686712",
+      email = "nbklaus21@students.desu.edu",
       first_name = "Noah",
       last_name = "Klaus"
    )
    student_ceasar_pereira, created = Student.objects.get_or_create(
-      d_number = "D10738409",
+      email = "cdpereira75@students.desu.edu",
       first_name = "Ceasar",
       last_name = "Pereira"
    )
