@@ -4,6 +4,7 @@ import { ArrowForward, ArrowBack, ResetTvSharp } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import Papa from "papaparse";
 import api from '../api';
+import { useNavigate } from "react-router-dom";
 
 
 const AddEvaluationInstrument = () => {
@@ -12,7 +13,11 @@ const AddEvaluationInstrument = () => {
    const [loading, setLoading] = useState(true); // State to track loading status
    const [evaluationTypes, setEvaluationTypes] = useState([]); // Keeps a list of all evaluation types fetched from the server
    const [course, setCourse] = useState({});
+   const navigate = useNavigate(); // Used to go to other pages 
    
+   const handleCancel = () => {
+      navigate(`/sections/${sectionId}`); // Go back to the specific section page
+   }
    
    // Step 1: Instrument Information
    const [instrumentInfo, setInstrumentInfo] = useState({
@@ -238,7 +243,7 @@ const AddEvaluationInstrument = () => {
       
       try {
          const res = await api.post('/api/evaluation-instruments/', formData);
-         console.log("Response from server:", res.data);
+         navigate(`/sections/${sectionId}`); // Go back to the specific section page
       } catch (err) {
          console.error("Error posting Instrument:", err.response?.data || err.message);
          alert(`Error posting Instrument: ${err.response?.data?.error || err.message}`);
@@ -306,6 +311,7 @@ const AddEvaluationInstrument = () => {
                      value={instrumentInfo.description}
                      onChange={handleInstrumentChange}
                      margin="normal"
+                     inputRef={(input) => input && (input.maxLength = 999)} // Set max length directly
                   />
                   
                   <FormControl fullWidth margin="normal">
@@ -420,20 +426,25 @@ const AddEvaluationInstrument = () => {
             
             {/* Navigation buttons */}
             <Box sx={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-               {currentStep === 2 && (
-               <IconButton onClick={handlePrev}>
-                  <ArrowBack />
-               </IconButton>
-               )}
                {currentStep === 1 && (
-               <IconButton onClick={handleNext} disabled={!isStep1Valid}>
-                  <ArrowForward />
-               </IconButton>
+                  <>
+                  <Button variant="outlined" color="error" onClick={handleCancel}>
+                     Cancel
+                  </Button>
+                  <IconButton onClick={handleNext} disabled={!isStep1Valid}>
+                     <ArrowForward />
+                  </IconButton>
+                  </>
                )}
                {currentStep === 2 && (
-               <Button variant="contained" onClick={handleSubmit} disabled={!isStep2Valid}>
-                  Submit
-               </Button>
+                  <>
+                     <IconButton onClick={handlePrev}>
+                        <ArrowBack />
+                     </IconButton>
+                     <Button variant="contained" onClick={handleSubmit} disabled={!isStep2Valid}>
+                        Submit
+                     </Button>
+                  </>
                )}
             </Box>
          </Box>
