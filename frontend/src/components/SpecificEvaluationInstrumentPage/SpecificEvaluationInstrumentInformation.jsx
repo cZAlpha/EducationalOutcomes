@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Accordion, AccordionSummary, AccordionDetails, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SettingsIcon from '@mui/icons-material/Settings';
 
 
 function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
@@ -180,21 +181,15 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                <h3 className={`font-bold flex items-center text-lg px-4 rounded-lg ${evaluationInstrumentPerformance?.overallScore != null ? getBackgroundColor(evaluationInstrumentPerformance.overallScore) : ''}`}>
                   {evaluationInstrumentPerformance?.overallScore?.toFixed(2) + "%" || 'N/A'}
                </h3>
-               {!isModalOpen && (
-                  <button
-                     className="px-4 py-2 bg-red-500 text-white rounded-md"
-                     onClick={() => setIsModalOpen(true)} // Show modal on button click
-                  >
-                     Delete
-                  </button>
-               )}               
             </div>
          )}
          
+         {/* Delete Modal */}
          {isModalOpen && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
                <div className="bg-white p-6 rounded-lg w-1/3">
-                  <h3 className="font-bold text-lg mb-4">Are you sure you want to delete this Evaluation Instrument?</h3>
+                  <h3 className="font-bold text-lg mb-2">Are you sure you want to delete this Evaluation Instrument?</h3>
+                  <p className="text-md italc mb-4">This is a permanant action that cannot be undone. You will be sent back to the specific section page for this current evaluation instrument.</p>
                   <div className="flex justify-between">
                      <button 
                         className="px-4 py-2 bg-red-500 text-white rounded-md" 
@@ -213,6 +208,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
             </div>
          )}
          
+         {/* Body */}
          {!isModalOpen && (
             <>
                {/* Selectors */}
@@ -231,6 +227,13 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                   >
                      Performance
                   </button>
+                  <button
+                     className={`px-4 py-2 rounded-md w-full font-bold
+                        ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                     onClick={() => setSelectedTab("Settings")}
+                  >
+                     <SettingsIcon />
+                  </button>
                </div>
                
                {/* Display Section */}
@@ -238,34 +241,34 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                   {selectedTab === "Embedded Tasks" ? (
                      <div className="w-full">
                         <div className="w-full flex flex-col gap-y-4 mb-6">
-                           <div className="w-full flex flex-row items-center justify-between">
-                              <h3 className="font-bold text-lg">Embedded Tasks</h3>
-                           </div>
+                        <div className="w-full flex flex-row items-center justify-between">
+                           <h3 className="font-bold text-lg">Embedded Tasks</h3>
                         </div>
-                        
+                        </div>
+
                         {loading ? (
-                           <LoadingIndicator />
+                        <LoadingIndicator />
                         ) : embeddedTasks.length === 0 ? (
-                           <p className="text-center text-gray-500">No evaluation instruments for this section</p>
+                        <p className="text-center text-gray-500">No evaluation instruments for this section</p>
                         ) : (
-                           <div className="flex flex-col items-center gap-4">
-                              {evaluationInstrumentPerformance.tasks ? (
-                                 evaluationInstrumentPerformance.tasks.map(({ task_id, name, text, score }) => (
-                                    <div key={task_id} className="w-[70%]">
-                                       <EmbeddedTaskCard 
-                                          questionNumber={name} 
-                                          questionText={text} 
-                                          questionScore={score}
-                                       />
-                                    </div>
-                                 ))
-                              ) : (
-                                 <div>No info</div>
-                              )}
-                           </div>
+                        <div className="flex flex-col items-center gap-4">
+                           {evaluationInstrumentPerformance.tasks ? (
+                              evaluationInstrumentPerformance.tasks.map(({ task_id, name, text, score }) => (
+                              <div key={task_id} className="w-[70%]">
+                                 <EmbeddedTaskCard 
+                                    questionNumber={name} 
+                                    questionText={text} 
+                                    questionScore={score}
+                                 />
+                              </div>
+                              ))
+                           ) : (
+                              <div>No info</div>
+                           )}
+                        </div>
                         )}
                      </div>
-                  ) : (
+                  ) : selectedTab === "Performance" ? (
                      <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -275,89 +278,115 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                         <h3 className="font-bold text-lg mb-4">Performance</h3>
                         {/* Content specific to Performance */}
                         {evaluationInstrumentPerformance ? (
-                           <div className="w-full p-4 border bg-white rounded-lg shadow">
-                              {/* Task Performance */}
-                              <Accordion>
-                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography className="font-bold text-lg">Task Performance</Typography>
-                                 </AccordionSummary>
-                                 <AccordionDetails>
-                                    {evaluationInstrumentPerformance.tasks?.length > 0 ? (
-                                       <ul className="space-y-2">
-                                          {evaluationInstrumentPerformance.tasks.map(({ task_id, name, score }) => (
-                                             <li key={task_id} className="bg-gray-100 p-2 rounded-lg">
-                                                <div className="flex flex-col gap-y-2">
-                                                   <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                                      <h1 className="font-xl font-bold">{name}</h1>
-                                                      <h1 className="font-xl font-bold">{score}%</h1>
-                                                   </div>
-                                                </div>
-                                             </li>
-                                          ))}
-                                       </ul>
-                                    ) : (
-                                       <p className="text-gray-500">No Task Performance data available.</p>
-                                    )}
-                                 </AccordionDetails>
-                              
-                              </Accordion>
-                              
-                              {/* CLO Performance */}
-                              <Accordion>
-                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography className="font-bold text-lg">CLO Performance</Typography>
-                                 </AccordionSummary>
-                                 <AccordionDetails>
-                                    {evaluationInstrumentPerformance.CLOs?.length > 0 ? (
-                                       <ul className="space-y-2">
-                                          {evaluationInstrumentPerformance.CLOs.map(({ designation, description, score }) => (
-                                             <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                                <div className="flex flex-col gap-y-2">
-                                                   <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                                      <h1 className="font-xl font-bold">{designation}</h1>
-                                                      <h1 className="font-xl font-bold">{score}%</h1>
-                                                   </div>
-                                                   <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                                </div>
-                                             </li>
-                                          ))}
-                                       </ul>
-                                    ) : (
-                                       <p className="text-gray-500">No CLO data available.</p>
-                                    )}
-                                 </AccordionDetails>
-                              </Accordion>
-                              
-                              {/* PLO Performance */}
-                              <Accordion>
-                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography className="font-bold text-lg">PLO Performance</Typography>
-                                 </AccordionSummary>
-                                 <AccordionDetails>
-                                    {evaluationInstrumentPerformance.PLOs?.length > 0 ? (
-                                       <ul className="space-y-2">
-                                          {evaluationInstrumentPerformance.PLOs.map(({ designation, description, score }) => (
-                                             <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                                <div className="flex flex-col gap-y-2">
-                                                   <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                                      <h1 className="font-xl font-bold">{designation}</h1>
-                                                      <h1 className="font-xl font-bold">{score}%</h1>
-                                                   </div>
-                                                   <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                                </div>
-                                             </li>
-                                          ))}
-                                       </ul>
-                                    ) : (
-                                       <p className="text-gray-500">No PLO data available.</p>
-                                    )}
-                                 </AccordionDetails>
-                              </Accordion>
-                           </div>
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           {/* Task Performance */}
+                           <Accordion>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography className="font-bold text-lg">Task Performance</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                              {evaluationInstrumentPerformance.tasks?.length > 0 ? (
+                                 <ul className="space-y-2">
+                                    {evaluationInstrumentPerformance.tasks.map(({ task_id, name, score }) => (
+                                    <li key={task_id} className="bg-gray-100 p-2 rounded-lg">
+                                       <div className="flex flex-col gap-y-2">
+                                          <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                          <h1 className="font-xl font-bold">{name}</h1>
+                                          <h1 className="font-xl font-bold">{score}%</h1>
+                                          </div>
+                                       </div>
+                                    </li>
+                                    ))}
+                                 </ul>
+                              ) : (
+                                 <p className="text-gray-500">No Task Performance data available.</p>
+                              )}
+                              </AccordionDetails>
+                           </Accordion>
+
+                           {/* CLO Performance */}
+                           <Accordion>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography className="font-bold text-lg">CLO Performance</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                              {evaluationInstrumentPerformance.CLOs?.length > 0 ? (
+                                 <ul className="space-y-2">
+                                    {evaluationInstrumentPerformance.CLOs.map(({ designation, description, score }) => (
+                                    <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                       <div className="flex flex-col gap-y-2">
+                                          <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                          <h1 className="font-xl font-bold">{designation}</h1>
+                                          <h1 className="font-xl font-bold">{score}%</h1>
+                                          </div>
+                                          <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                       </div>
+                                    </li>
+                                    ))}
+                                 </ul>
+                              ) : (
+                                 <p className="text-gray-500">No CLO data available.</p>
+                              )}
+                              </AccordionDetails>
+                           </Accordion>
+
+                           {/* PLO Performance */}
+                           <Accordion>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography className="font-bold text-lg">PLO Performance</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                              {evaluationInstrumentPerformance.PLOs?.length > 0 ? (
+                                 <ul className="space-y-2">
+                                    {evaluationInstrumentPerformance.PLOs.map(({ designation, description, score }) => (
+                                    <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                       <div className="flex flex-col gap-y-2">
+                                          <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                          <h1 className="font-xl font-bold">{designation}</h1>
+                                          <h1 className="font-xl font-bold">{score}%</h1>
+                                          </div>
+                                          <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                       </div>
+                                    </li>
+                                    ))}
+                                 </ul>
+                              ) : (
+                                 <p className="text-gray-500">No PLO data available.</p>
+                              )}
+                              </AccordionDetails>
+                           </Accordion>
+                        </div>
                         ) : (
-                           <p className="text-center text-gray-500">No performance data available</p>
+                        <p className="text-center text-gray-500">No performance data available</p>
                         )}
                      </motion.div>
+                  ) : selectedTab === "Settings" ? (
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="w-full"
+                     >
+                        <h3 className="font-bold text-lg mb-4">Settings</h3>
+                        {/* Content specific to Settings */}
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           <div className="flex flex-col justify-center items-center gap-4 mt-4">
+                              {!isModalOpen && (
+                                 <div className="flex flex-row gap-x-8 items-center justify-center w-[80%] bg-gray-100 px-4 py-2 rounded-md"> 
+                                    <p className="text-xl text-black">Delete this Evaluation Instrument?</p>
+                                    <button
+                                       className="px-4 py-2 bg-red-500 text-white rounded-md"
+                                       onClick={() => setIsModalOpen(true)} // Show modal on button click
+                                    >
+                                       Delete
+                                    </button>
+                                 </div>
+                              )}     
+                           </div>
+                        </div>
+                     </motion.div>
+                  ) : (
+                     <p className="text-center text-gray-500">Select a tab to view content</p>
                   )}
                </div>
             </>

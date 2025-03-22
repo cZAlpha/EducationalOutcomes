@@ -57,24 +57,23 @@ const AddEvaluationInstrument = () => {
       return evaluationType ? evaluationType.type_name : 'Unknown';
    };
    
-   
-   
    const handleFileChange = (e) => {
       setInstrumentInfo((prev) => ({ ...prev, file: e.target.files[0] }));
    };
    
    // handleCloMappingChange function
-   const handleCloMappingChange = (taskId, selectedCloIds) => {
-      setCloMappings((prevMappings) => {
-         const updatedMappings = prevMappings.filter(mapping => mapping.taskId !== taskId); // Remove existing mappings for the task
-         updatedMappings.push({
-            taskId,
-            cloIds: selectedCloIds, // Update with new CLOs
+   const handleCloMappingChange = (task_number, selectedCloIds) => {
+      if (task_number) {
+         setCloMappings((prevMappings) => {
+            return prevMappings.map(mapping =>
+               mapping.task_number === task_number 
+                  ? { ...mapping, cloIds: selectedCloIds }
+                  : mapping
+            ).concat(prevMappings.some(mapping => mapping.task_number === task_number) ? [] : [{ task_number, cloIds: selectedCloIds }]);
          });
-         console.log("Updated Task CLO Mapping | Task:", taskId, "CLO(s): ", selectedCloIds)
-         return updatedMappings;
-      });
-   };   
+      }
+      console.log("Updated Task CLO Mapping | Task Number:", task_number, "CLO(s):", selectedCloIds);
+   };
    
    // Step 1 validation
    const isStep1Valid = instrumentInfo.name && instrumentInfo.evaluation_type && instrumentInfo.file;
@@ -92,91 +91,6 @@ const AddEvaluationInstrument = () => {
    const handlePrev = () => {
       if (currentStep === 2) {
          setCurrentStep(1);
-      }
-   };
-   
-   // Handle file parsing (CSV and Excel)
-   const handleFileParse = (file) => {
-      if (!file) return;
-      
-      const fileExtension = file.name.split('.').pop().toLowerCase();
-      
-      if (fileExtension === "csv") {
-         // Parse CSV
-         Papa.parse(file, {
-            complete: (result) => {
-               console.log("CSV parsing complete:", result);
-               
-               const parsedData = result.data; // Array of rows from CSV
-               
-               // Assuming the first row contains headers, we'll start parsing from the second row
-               const students = [];
-               const allQuestions = [];
-               
-               // Parse each row for student and question data
-               parsedData.slice(1).forEach(row => {
-                  // Student information
-                  const username = row[0];
-                  const lastName = row[1];
-                  const firstName = row[2];
-                  const fullName = row[3];
-                  
-                  // To track questions answered by each student
-                  const studentQuestions = [];
-                  
-                  // Parse questions and their corresponding answers
-                  for (let i = 4; i < row.length; i += 6) {
-                     const questionId = row[i];
-                     const questionText = row[i + 1];
-                     const answer = row[i + 2];
-                     const possiblePoints = row[i + 3];
-                     const autoScore = row[i + 4];
-                     const manualScore = row[i + 5];
-                     
-                     // Add the question to the list if not already present
-                     if (!allQuestions.some(q => q.questionId === `q${questionId}`)) {
-                        allQuestions.push({
-                           questionId: `q${questionId}`,
-                           questionNumber: questionId,
-                           questionText: questionText
-                        });
-                     }
-                     
-                     // Add this question to the student's answered questions
-                     studentQuestions.push({
-                        questionId: `q${questionId}`,  // Ensure each question has a unique ID (q1, q2, q3, etc.)
-                        answer: answer,
-                        possiblePoints: possiblePoints,
-                        autoScore: autoScore,
-                        manualScore: manualScore
-                     });
-                  }
-                  
-                  // Add the student data with questions
-                  students.push({
-                     username: username,
-                     lastName: lastName,
-                     firstName: firstName,
-                     fullName: fullName,
-                     questions: studentQuestions
-                  });
-               });
-               
-               let jsonData = {
-                  students: students,
-                  tasks: allQuestions
-               }
-               console.log("Final Parsed Data:", jsonData);
-               setStudents(students); // Set the students (including their scores) array to the students parsed from the CSV 
-               setTasks(allQuestions); // Set the tasks array to the questions parsed from the CSV
-            },
-            header: false, // Set to true if you have headers in your CSV
-         });
-      } else if (fileExtension === "xlsx" || fileExtension === "xls") {
-         // Parse Excel (Add Excel parsing logic here)
-         console.log("Excel file selected", file);
-      } else {
-         alert("Invalid file type. Only CSV and Excel files are allowed.");
       }
    };
    
@@ -225,6 +139,91 @@ const AddEvaluationInstrument = () => {
    };
    // STOP  - Evaluation Instrument Types data fetching
    
+   // Handle file parsing (CSV and Excel)
+   const handleFileParse = (file) => {
+      if (!file) return;
+      
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      
+      if (fileExtension === "csv") {
+         // Parse CSV
+         Papa.parse(file, {
+            complete: (result) => {
+               console.log("CSV parsing complete:", result);
+               
+               const parsedData = result.data; // Array of rows from CSV
+               
+               // Assuming the first row contains headers, we'll start parsing from the second row
+               const students = [];
+               const allTasks = [];
+               
+               // Parse each row for student and task data
+               parsedData.slice(1).forEach(row => {
+                  // Student information
+                  const username = row[0];
+                  const lastName = row[1];
+                  const firstName = row[2];
+                  const fullName = row[3];
+                  
+                  // To track tasks answered by each student
+                  const studentTasks = [];
+                  
+                  // Parse tasks and their corresponding answers
+                  for (let i = 4; i < row.length; i += 6) {
+                     const taskId = row[i];
+                     const taskText = row[i + 1];
+                     const answer = row[i + 2];
+                     const possiblePoints = row[i + 3];
+                     const autoScore = row[i + 4];
+                     const manualScore = row[i + 5];
+                     
+                     // Add the task to the list if not already present
+                     if (!allTasks.some(t => t.taskId === `q${taskId}`)) {
+                        allTasks.push({
+                           taskId: `q${taskId}`,
+                           task_number: taskId,
+                           task_text: taskText
+                        });
+                     }
+                     
+                     // Add this task to the student's answered tasks
+                     studentTasks.push({
+                        taskId: taskId,  // Ensure each task has a unique ID (q1, q2, q3, etc.)
+                        answer: answer,
+                        possiblePoints: possiblePoints,
+                        autoScore: autoScore,
+                        manualScore: manualScore
+                     });
+                  }
+                  
+                  // Add the student data with tasks
+                  students.push({
+                     username: username,
+                     lastName: lastName,
+                     firstName: firstName,
+                     fullName: fullName,
+                     tasks: studentTasks
+                  });
+               });
+               
+               let jsonData = {
+                  students: students,
+                  tasks: allTasks
+               }
+               console.log("Final Parsed Data:", jsonData);
+               setStudents(students); // Set the students (including their scores) array to the students parsed from the CSV 
+               setTasks(allTasks); // Set the tasks array to the tasks parsed from the CSV
+            },
+            header: false, // Set to true if you have headers in your CSV
+         });
+      } else if (fileExtension === "xlsx" || fileExtension === "xls") {
+         // Parse Excel (Add Excel parsing logic here)
+         console.log("Excel file selected", file);
+      } else {
+         alert("Invalid file type. Only CSV and Excel files are allowed.");
+      }
+   };
+   
    // Handle form submission
    const handleSubmit = async () => {
       const formData = {
@@ -236,6 +235,7 @@ const AddEvaluationInstrument = () => {
       
       // Perform API call to submit the form data
       console.log("Form Data: ", formData);
+      
       try {
          const res = await api.post('/api/evaluation-instruments/', formData);
          console.log("Response from server:", res.data);
@@ -274,7 +274,7 @@ const AddEvaluationInstrument = () => {
    useEffect(() => {
       console.log("CLO Mappings: ", cloMappings);
    }, [cloMappings]);
-
+   
    // TESTING ONLY
    useEffect(() => {
       console.log("Evaluation Types: ", evaluationTypes);
@@ -374,16 +374,16 @@ const AddEvaluationInstrument = () => {
                      Map Tasks to CLOs
                   </Typography>
                   {tasks.map((task) => (
-                     <Box key={task.questionId} sx={{ marginBottom: 2 }}>
+                     <Box key={task.task_number} sx={{ marginBottom: 2 }}>
                         <div className="flex flex-col gap-y-2">
-                           <Typography variant="body1">{task.questionNumber}</Typography>
-                           <Typography variant="body1">{task.questionText.slice(0, 100)}</Typography>
+                           <Typography variant="body1">{task.task_number}</Typography>
+                           <Typography variant="body1">{task.task_text.slice(0, 100)}</Typography>
                         </div>
                         <FormControl fullWidth margin="normal">
                            <InputLabel>CLOs</InputLabel>
                            <Select
-                              value={cloMappings.find((mapping) => mapping.taskId === task.questionId)?.cloIds || []} //Use task.questionId
-                              onChange={(e) => handleCloMappingChange(task.questionId, e.target.value)} //Use task.questionId
+                              value={cloMappings.find((mapping) => mapping.task_number === task.task_number)?.cloIds || []}
+                              onChange={(e) => handleCloMappingChange(task.task_number, e.target.value)}                              
                               label="CLO"
                               multiple
                               renderValue={(selected) => {

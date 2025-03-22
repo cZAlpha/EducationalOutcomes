@@ -229,7 +229,7 @@ class PLOCLOMappingSerializer(serializers.ModelSerializer):
 class StudentSerializer(serializers.ModelSerializer):
    class Meta:
       model = Student
-      fields = ['d_number', 'first_name', 'last_name']
+      fields = ['email', 'first_name', 'last_name']
 
 
 # Student Task Mapping Serializer

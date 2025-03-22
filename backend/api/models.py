@@ -255,7 +255,7 @@ class EmbeddedTask(models.Model):
    embedded_task_id = models.BigAutoField(primary_key=True)
    evaluation_instrument = models.ForeignKey(EvaluationInstrument, on_delete=models.CASCADE) # If the associated eval. instrument is deleted, delete the tasks associated with it too
    task_number = models.PositiveIntegerField()  # The task number (optional)
-   task_text = models.TextField(max_length=500, null=True, blank=True) # If your eval. instrument's text is longer than 500 words, that's on you!
+   task_text = models.TextField(max_length=2000, null=True, blank=True) # If your eval. instrument's text is longer than 500 words, that's on you!
    
    def __str__(self):
       return f"Q{self.task_number} - from Eval. Instrument: {self.evaluation_instrument.name} | Description: {self.task_text[:20]}"
@@ -305,9 +305,9 @@ class PLOCLOMapping(models.Model):
 
 # Student
 class Student(models.Model):
-   d_number = models.CharField(max_length=9, unique=True)  # Username as D_Number (ID)
-   first_name = models.CharField(max_length=20)  # First name
-   last_name = models.CharField(max_length=40)  # Last name
+   email = models.CharField(max_length=100, primary_key=True)
+   first_name = models.CharField(max_length=20)
+   last_name = models.CharField(max_length=40)
    
    def __str__(self):
       return f"Student: {self.first_name} {self.last_name}"
@@ -316,11 +316,11 @@ class Student(models.Model):
 # Student Task Mapping
 class StudentTaskMapping(models.Model):  # This is basically just a gradebook disguised as a mapping model
    student_task_mapping_id = models.BigAutoField(primary_key=True)
-   student = models.ForeignKey(Student, on_delete=models.CASCADE)  # When the associated student is deleted, delete all grades of theirs
+   student = models.ForeignKey(Student, on_delete=models.CASCADE, to_field='email')
    task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)  # When the associated task is deleted, delete all grades associated with it
    score = models.FloatField()  # The student's score on the given task
    total_possible_score = models.FloatField()  # The total possible points attainable on the task (this allows us to do calculations later and lets us easily handle non-normalized scores)
-
+   
    class Meta:  # Allows for a pseudo-composite primary key to be used
       constraints = [
          models.UniqueConstraint(fields=['student', 'task'], name='unique_student_task')
