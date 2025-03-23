@@ -354,7 +354,7 @@ const AddEvaluationInstrument = () => {
                   {/* Display file name and Remove button if file exists */}
                   {instrumentInfo.file && (
                      <div className="w-full flex justify-center">
-                        <div className="flex gap-2 items-center justify-center gap-x-8 w-[60%]"> 
+                        <div className="flex flex-col md:flex-row gap-2 items-center justify-center gap-x-8 w-[60%]"> 
                            <Typography sx={{ marginTop: 2 }}>{instrumentInfo.file.name}</Typography>
                            <Button 
                               sx={{ marginTop: 2 }} 
