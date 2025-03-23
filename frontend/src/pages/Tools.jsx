@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import AddIcon from '@mui/icons-material/Add';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, DialogContentText, Autocomplete } from "@mui/material";
 import api from "../api";
+import LoadingIndicator from "../components/LoadingIndicator";
 
 
 function Tools() {
@@ -9,9 +10,12 @@ function Tools() {
    const [showCoursePerformanceReportForm, setShowCoursePerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Course performance report form
    const [showSectionPerformanceReportForm, setShowSectionPerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Section performance report form
    const [showEvaluationInstrumentPerformanceReportForm, setShowEvaluationInstrumentPerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Evaluation Instrument performance report form
+   const [isLoading, setIsLoading] = useState(false); // Add loading state
    
    // Courses
    const [courses, setCourses] = useState([]);
+   // Selected Course (from course performance report form)
+   const [selectedCourse, setSelectedCourse] = useState(null);
    
    // START - Course Data Fetching
    const getCourses = async () => {
@@ -20,7 +24,36 @@ function Tools() {
          .then((res) => setCourses(res.data))
          .catch((err) => alert(`Error fetching courses: ${err.message}`));
    };
-   // STOP  - Course Data Fetching   
+   // STOP  - Course Data Fetching 
+   
+   const handleSubmit = () => {
+      if (selectedCourse) {
+         setIsLoading(true); // Set loading state to true
+         
+         // Simulate loading (replace with your actual report generation logic)
+         setTimeout(() => {
+            console.log("Generating report for course:", selectedCourse);
+            setShowCoursePerformanceReportForm(false); // Close the modal
+            setIsLoading(false); // Set loading state to false
+            
+            // Replace this with your actual report generation logic
+            // generateReport(selectedCourse.id)
+            //   .then(reportData => {
+            //     // handle report data
+            //   })
+            //   .catch(error => {
+            //     // handle error
+            //   });
+            // });
+         }, 2000); // Simulate 2 seconds of loading
+         
+         
+      } else {
+         // Handle the case where no course is selected
+         console.log("Please select a course.");
+         // Optionally, display an error message to the user
+      }
+   };
    
    // ON MOUNT FUNCTION CALLS
    useEffect(() => { // On component mount, call all functions within this 
@@ -105,23 +138,38 @@ function Tools() {
          
          {/* Course Performance Report Modal*/}
          <Dialog open={showCoursePerformanceReportForm} maxWidth="sm" fullWidth>
-            <DialogTitle>Course Performance Report</DialogTitle>
-            <DialogContent>
-               <p>Choose a Course to generate a report for</p>
-               <Autocomplete
-                  fullWidth
-                  options={courses}
-                  getOptionLabel={(option) => option.name} 
-                  renderInput={(params) => <TextField {...params} label="Course Name" variant="outlined" margin="normal" />}
-                  onChange={(event, newValue) => console.log("Selected Course: ", newValue)}
-               />
-            </DialogContent>
-            <DialogActions>
-               <div className="flex flex-row justify-between w-full pl-4 pr-4 mb-8">
-               <Button color="error" variant="outlined" onClick={() => setShowCoursePerformanceReportForm(false)}>Cancel</Button>
-               <Button type="submit" color="primary" variant="contained">Submit</Button>
-               </div>
-            </DialogActions>
+            {!isLoading && (
+               <>
+                  <DialogTitle>Course Performance Report</DialogTitle>
+                  <DialogContent>
+                     <p>Choose a Course to generate a report for</p>
+                     <Autocomplete
+                        fullWidth
+                        options={courses}
+                        getOptionLabel={(option) => option.name} 
+                        renderInput={(params) => <TextField {...params} label="Course Name" variant="outlined" margin="normal" />}
+                        onChange={(event, newValue) => setSelectedCourse(newValue?.course_id)} // Update selectedCourse state
+                     />
+                  </DialogContent>
+                  <DialogActions>
+                     <div className="flex flex-row justify-between w-full pl-4 pr-4 mb-8">
+                        <Button color="error" variant="outlined" onClick={() => setShowCoursePerformanceReportForm(false)}>Cancel</Button>
+                        <Button type="submit" color="primary" variant="contained" onClick={handleSubmit}>Submit</Button>
+                     </div>
+                  </DialogActions>
+               </>
+            )}
+            {isLoading && (
+               <>
+                  <DialogTitle>Fetching Performance Information...</DialogTitle>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+                     <LoadingIndicator />
+                  </div>
+                  <DialogActions style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+                        <Button color="error" variant="outlined" onClick={() => setShowCoursePerformanceReportForm(false)}>Close</Button>
+                  </DialogActions>
+               </>
+            )}
          </Dialog>
          
       </div>   
