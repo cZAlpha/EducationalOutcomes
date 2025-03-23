@@ -8,8 +8,9 @@ function Home() {
             <h1 className="text-white text-4xl font-bold">Educational Outcomes</h1>
          </div>
          
+         {/* Hero Section */}
          <div className="flex justify-center items-center pt-4 pb-10">
-            <div className="flex flex-row w-[60%] rounded-2xl shadow-lg overflow-hidden">
+            <div className="flex flex-row w-[90%] md:w-[60%] rounded-2xl shadow-lg overflow-hidden">
                <img
                   src="https://collegesofdistinction.com/wp-content/uploads/2021/08/delaware-state-university-1.jpeg"
                   alt="DSU Campus Image"
@@ -25,12 +26,13 @@ function Home() {
             </div>
          </div>
          
+         {/* Announcements Section */}
          <div className="w-full flex justify-center mb-20"> 
-            <div className="flex flex-col justify-center items-center backdrop-blur-md bg-opacity-[80%] w-[60%] bg-gray-100 rounded-2xl shadow-lg p-8 space-y-6">
+            <div className="flex flex-col justify-center items-center backdrop-blur-md bg-opacity-[80%] w-[90%] md:w-[60%] bg-gray-100 rounded-2xl shadow-lg p-8 space-y-6">
                <h1 className="text-3xl font-semibold text-center">Announcements</h1>
                
-               <div className="flex flex-col space-y-6">
-                  <div className="w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
+               <div className="flex flex-col items-center space-y-6">
+                  <div className="w-full md:w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
                      <h2 className="text-xl font-semibold">Announcement Title 1</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">
@@ -38,7 +40,7 @@ function Home() {
                      </p>
                   </div>
                   
-                  <div className="w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
+                  <div className="w-full md:w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
                      <h2 className="text-xl font-semibold">Announcement Title 2</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">
@@ -46,7 +48,7 @@ function Home() {
                      </p>
                   </div>
                   
-                  <div className="w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
+                  <div className="w-full md:w-[600px] bg-white rounded-2xl shadow-md p-6 space-y-3">
                      <h2 className="text-xl font-semibold">Announcement Title 3</h2>
                      <h4 className="text-sm text-gray-600">Author Name</h4>
                      <p className="text-base text-gray-700 leading-relaxed">

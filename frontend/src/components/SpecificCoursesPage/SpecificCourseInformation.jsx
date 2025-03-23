@@ -220,7 +220,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                      value={instructor.length > 0 ? instructor[0].last_name : "N/A"}
                   />
                   <div className="flex gap-x-4 justify-between items-center">
-                     <Button variant="contained" color="error" onClick={handleCloseForm}>
+                     <Button variant="outlined" color="error" onClick={handleCloseForm}>
                         Cancel
                      </Button>
                      <Button variant="contained" color="primary" onClick={handleAddSection}>

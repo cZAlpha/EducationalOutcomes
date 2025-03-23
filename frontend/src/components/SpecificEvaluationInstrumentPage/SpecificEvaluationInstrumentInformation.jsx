@@ -254,7 +254,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                         <div className="flex flex-col items-center gap-4">
                            {evaluationInstrumentPerformance.tasks ? (
                               evaluationInstrumentPerformance.tasks.map(({ task_id, name, text, score }) => (
-                              <div key={task_id} className="w-[70%]">
+                              <div key={task_id} className="w-full md:w-[70%]">
                                  <EmbeddedTaskCard 
                                     questionNumber={name} 
                                     questionText={text} 
