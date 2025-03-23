@@ -245,7 +245,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                            <h3 className="font-bold text-lg">Embedded Tasks</h3>
                         </div>
                         </div>
-
+                        
                         {loading ? (
                         <LoadingIndicator />
                         ) : embeddedTasks.length === 0 ? (
@@ -303,7 +303,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                               )}
                               </AccordionDetails>
                            </Accordion>
-
+                           
                            {/* CLO Performance */}
                            <Accordion>
                               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -329,7 +329,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                               )}
                               </AccordionDetails>
                            </Accordion>
-
+                           
                            {/* PLO Performance */}
                            <Accordion>
                               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -372,7 +372,7 @@ function SpecificEvaluationInstrumentInformation (evaluationInstrument) {
                         <div className="w-full p-4 border bg-white rounded-lg shadow">
                            <div className="flex flex-col justify-center items-center gap-4 mt-4">
                               {!isModalOpen && (
-                                 <div className="flex flex-row gap-x-8 items-center justify-center w-[80%] bg-gray-100 px-4 py-2 rounded-md"> 
+                                 <div className="flex flex-row gap-x-8 items-center justify-center w-[80%] px-4 py-2 rounded-md"> 
                                     <p className="text-xl text-black">Delete this Evaluation Instrument?</p>
                                     <button
                                        className="px-4 py-2 bg-red-500 text-white rounded-md"

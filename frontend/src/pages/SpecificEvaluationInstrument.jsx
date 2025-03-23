@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from '../api';
-import { USER } from "../constants";
-import SpecificSectionInformation from "../components/SpecificSectionPage/SpecificSectionInformation";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { motion } from "framer-motion";
 import SpecificEvaluationInstrumentInformation from "../components/SpecificEvaluationInstrumentPage/SpecificEvaluationInstrumentInformation";
