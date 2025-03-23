@@ -1,3 +1,4 @@
+# Django Imports
 from django.db.models import Sum, Avg, F, ExpressionWrapper, FloatField
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
@@ -5,10 +6,26 @@ from rest_framework.exceptions import NotFound
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status, generics
+from django.http import FileResponse
 from collections import defaultdict
 from django.db import transaction
 
-# User-made imports
+# Graphing imports
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import base64
+import io
+
+# PDF imports
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER 
+from reportlab.lib.units import inch
+
+# User-made django imports
 from .serializers import * # Import serializers
 from .models import * # Import models
 
@@ -513,45 +530,60 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       instance.delete()
 
 class CoursePerformance(generics.RetrieveAPIView):
-      """
-      This view is meant to ascertain the course performance.
-      It retrieves the course based on the provided primary key (pk).
-      """
-      queryset = Course.objects.all()
-      serializer_class = SectionSerializer
-      lookup_field = "pk"
+   queryset = Course.objects.all()
+   serializer_class = SectionSerializer
+   lookup_field = "pk"
+   
+   def get(self, request, *args, **kwargs):
+      course_id = self.kwargs.get("pk")
       
-      def get(self, request, *args, **kwargs):
-         course_id = self.kwargs.get("pk")
+      # Fetch the course
+      try:
+         course = Course.objects.get(pk=course_id)
+      except Course.DoesNotExist:
+         raise NotFound(detail="Course not found")
       
-         # Check if the given course_id corresponds to a valid Course object
-         try:
-               course = Course.objects.get(pk=course_id)
-         except Course.DoesNotExist:
-               raise NotFound(detail="Course not found")
-         
-         # Step 1: Get all sections for the given course
-         sections = Section.objects.filter(course=course)
-         
-         # Step 2: Calculate the overall average grade for the course
-         overall_avg_grade = self.calculate_average_student_grade(sections)
-         
-         # Step 3: Calculate the CLO performance for the entire course
-         overall_clo_performance = self.generate_course_clo_performance(sections)
-         
-         # Step 4: Calculate the PLO performance for the entire course
-         overall_plo_performance = self.generate_course_plo_performance(sections)
-         
-         # Collect all performance data
-         performance_data = {
-               "overall_avg_grade": overall_avg_grade,
-               "clo_performance": overall_clo_performance,
-               "plo_performance": overall_plo_performance
-         }
-         
-         return Response(performance_data)
+      sections = Section.objects.filter(course=course)
       
-      def calculate_average_student_grade(self, sections):
+      # Compute performance metrics
+      overall_avg_grade = self.calculate_average_student_grade(sections)
+      overall_clo_performance = self.generate_course_clo_performance(sections)
+      overall_plo_performance = self.generate_course_plo_performance(sections)
+      print("overall_clo_performance", overall_clo_performance)
+      print("overall_plo_performance", overall_plo_performance)
+      
+      # Query CLOs and PLOs to get designations
+      clo_designations = {}
+      plo_designations = {}
+      # Assuming you have CLO and PLO models with a 'designation' field
+      for clo_id in overall_clo_performance.keys():
+         clo = CourseLearningObjective.objects.get(pk=clo_id)  # Replace CLO with your actual CLO model
+         clo_designations[clo_id] = clo.designation
+      
+      for plo_id in overall_plo_performance.keys():
+         plo = ProgramLearningObjective.objects.get(pk=plo_id)  # Replace PLO with your actual PLO model
+         plo_designations[plo_id] = plo.designation
+      
+      # Replace PK IDs with designations in performance dictionaries
+      clo_performance_with_designations = {
+         clo_designations[clo_id]: value
+         for clo_id, value in overall_clo_performance.items()
+      }
+      
+      plo_performance_with_designations = {
+         plo_designations[plo_id]: value
+         for plo_id, value in overall_plo_performance.items()
+      }
+      # Generate graphs
+      plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      clo_graph_path = self.create_bar_chart(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
+      box_plot_path = self.create_box_plot_for_sections(sections)
+      
+      # Create and return PDF
+      pdf_path = self.generate_pdf(course, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
+      return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Course_Performance.pdf")
+   
+   def calculate_average_student_grade(self, sections):
          """
          Calculate the average student grade for all sections in the course.
          """
@@ -566,94 +598,183 @@ class CoursePerformance(generics.RetrieveAPIView):
          
          return total_grade / total_students if total_students > 0 else 0
       
-      def generate_clo_performance(self, section):
-         """
-         Generate the CLO performance for a single section.
-         """
-         # Step 1: Get all Evaluation Instruments for the given section
-         evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-         
-         # Step 2: Get all Embedded Tasks from these Evaluation Instruments
-         embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
-         
-         # Step 3: Compute average score for each embedded task
-         # We'll store these in a dictionary keyed by the task's primary key (embedded_task_id)
-         task_avg_scores = {}
-         for task in embedded_tasks:
-            avg_score = (
-                  StudentTaskMapping.objects.filter(task=task)
-                  .aggregate(avg_score=Avg("score"))["avg_score"]
-            )
-            task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
-         
-         # Step 4: Get all TaskCLOMapping records for these embedded tasks.
-         # This junction model links EmbeddedTasks to CourseLearningObjectives (CLOs)
-         task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
-         
-         # Step 5: Group task scores by CLO. 
-         # For each mapping, retrieve the task's average score and append it to the list for that CLO.
-         clo_scores = defaultdict(list)
-         for mapping in task_clo_mappings:
-            # mapping.task is the EmbeddedTask instance
-            # mapping.clo is the related CLO instance.
-            avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
-            clo_id = mapping.clo.clo_id  # using clo_id as the primary key for CLO
-            clo_scores[clo_id].append(avg_score)
-         
-         # Step 6: Calculate the average score per CLO
-         final_clo_performance = {
+   def generate_clo_performance(self, section):
+      """
+      Generate the CLO performance for a single section.
+      """
+      # Step 1: Get all Evaluation Instruments for the given section
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      
+      # Step 2: Get all Embedded Tasks from these Evaluation Instruments
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
+      
+      # Step 3: Compute average score for each embedded task
+      # We'll store these in a dictionary keyed by the task's primary key (embedded_task_id)
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         avg_score = (
+               StudentTaskMapping.objects.filter(task=task)
+               .aggregate(avg_score=Avg("score"))["avg_score"]
+         )
+         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+      
+      # Step 4: Get all TaskCLOMapping records for these embedded tasks.
+      # This junction model links EmbeddedTasks to CourseLearningObjectives (CLOs)
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+      
+      # Step 5: Group task scores by CLO. 
+      # For each mapping, retrieve the task's average score and append it to the list for that CLO.
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         # mapping.task is the EmbeddedTask instance
+         # mapping.clo is the related CLO instance.
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_id = mapping.clo.clo_id  # using clo_id as the primary key for CLO
+         clo_scores[clo_id].append(avg_score)
+      
+      # Step 6: Calculate the average score per CLO
+      final_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in clo_scores.items()
+      }
+
+      return final_clo_performance
+   
+   def generate_course_clo_performance(self, sections):
+      """
+      Generate the CLO performance for all sections in the course.
+      """
+      all_clo_scores = defaultdict(list)
+      
+      for section in sections:
+            # Get CLO performance for the individual section
+            section_clo_performance = self.generate_clo_performance(section)
+            for clo_id, score in section_clo_performance.items():
+               all_clo_scores[clo_id].append(score)
+      
+      # Compute average CLO performance for the entire course
+      final_clo_performance = {
             clo_id: sum(scores) / len(scores) if scores else 0
-            for clo_id, scores in clo_scores.items()
-         }
-
-         return final_clo_performance
+            for clo_id, scores in all_clo_scores.items()
+      }
       
-      def generate_course_clo_performance(self, sections):
-         """
-         Generate the CLO performance for all sections in the course.
-         """
-         all_clo_scores = defaultdict(list)
-         
-         for section in sections:
-               # Get CLO performance for the individual section
-               section_clo_performance = self.generate_clo_performance(section)
-               for clo_id, score in section_clo_performance.items():
-                  all_clo_scores[clo_id].append(score)
-         
-         # Compute average CLO performance for the entire course
-         final_clo_performance = {
-               clo_id: sum(scores) / len(scores) if scores else 0
-               for clo_id, scores in all_clo_scores.items()
-         }
-         
-         return final_clo_performance
+      return final_clo_performance
+   
+   def generate_course_plo_performance(self, sections):
+      """
+      Generate the PLO performance for all sections in the course.
+      """
+      # Get CLO performance for the entire course
+      all_clo_performance = self.generate_course_clo_performance(sections)
+      clo_ids = all_clo_performance.keys()
       
-      def generate_course_plo_performance(self, sections):
-         """
-         Generate the PLO performance for all sections in the course.
-         """
-         # Get CLO performance for the entire course
-         all_clo_performance = self.generate_course_clo_performance(sections)
-         clo_ids = all_clo_performance.keys()
-         
-         all_plo_scores = defaultdict(list)
-         
-         # Get PLO performance for each CLO
-         clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
-         for mapping in clo_plo_mappings:
-               clo_id = mapping.clo.clo_id
-               plo_id = mapping.plo.plo_id
-               clo_score = all_clo_performance.get(clo_id, 0)
-               all_plo_scores[plo_id].append(clo_score)
-         
-         # Compute average PLO performance for the entire course
-         final_plo_performance = {
-               plo_id: sum(scores) / len(scores) if scores else 0
-               for plo_id, scores in all_plo_scores.items()
-         }
-         
-         return final_plo_performance
-
+      all_plo_scores = defaultdict(list)
+      
+      # Get PLO performance for each CLO
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      for mapping in clo_plo_mappings:
+            clo_id = mapping.clo.clo_id
+            plo_id = mapping.plo.plo_id
+            clo_score = all_clo_performance.get(clo_id, 0)
+            all_plo_scores[plo_id].append(clo_score)
+      
+      # Compute average PLO performance for the entire course
+      final_plo_performance = {
+            plo_id: sum(scores) / len(scores) if scores else 0
+            for plo_id, scores in all_plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def create_bar_chart(self, data, title, xlabel, ylabel):
+      """
+      Generate a bar chart and save it as an image file.
+      """
+      plt.figure(figsize=(6, 4))
+      plt.bar(data.keys(), data.values(), color='skyblue')
+      plt.xlabel(xlabel)
+      plt.ylabel(ylabel)
+      plt.title(title)
+      plt.xticks(rotation=0)
+      
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
+   
+   def create_box_plot_for_sections(self, sections):
+      """
+      Generate a box plot for student grades and save it as an image.
+      """
+      all_scores = []
+      for section in sections:
+         scores = StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section).values_list('score', flat=True)
+         all_scores.extend(scores)
+      
+      plt.figure(figsize=(6, 4))
+      plt.boxplot(all_scores, vert=True, patch_artist=True)
+      plt.title("Student Grade Distribution")
+      plt.ylabel("Scores")
+      plt.xticks([1], ["Grades"])
+      
+      img_path = "/tmp/box_plot.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
+   
+   def generate_pdf(self, course, avg_grade, clo_graph, plo_graph, box_plot):
+      """
+      Generate a PDF report containing the course performance data and graphs.
+      """
+      pdf_path = "/tmp/Course_Performance.pdf"
+      doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+      
+      elements = []
+      styles = getSampleStyleSheet()
+      
+      # Create a new style based on Heading1 and center align it.
+      centered_title_style = ParagraphStyle(
+         name='CenteredHeading1',
+         parent=styles['Heading1'],
+         alignment=TA_CENTER  # Set alignment to center
+      )
+      
+      width, height = letter
+      
+      # Title (Course Name) using centered style
+      title = Paragraph(f"Course Performance Report", centered_title_style)
+      elements.append(title)
+      course_name = Paragraph(f"{course.name}", styles['Heading2'])
+      elements.append(course_name)
+      
+      # Description (Course Description) with wrapping
+      description = Paragraph(f"{course.description}", styles['Normal'])
+      elements.append(description)
+      
+      # Overall Average Grade
+      avg_grade_text = Paragraph(f"Overall Average Grade: {avg_grade:.2f}", styles['Normal'])
+      elements.append(avg_grade_text)
+      
+      # Embed Graphs
+      # PLO Performance
+      plo_label = Paragraph("PLO Performance", styles['Normal'])
+      elements.append(plo_label)
+      plo_image = Image(plo_graph, width=4*inch, height=2.5*inch)
+      elements.append(plo_image)
+      # CLO Performance
+      clo_label = Paragraph("CLO Performance", styles['Normal'])
+      elements.append(clo_label)
+      clo_image = Image(clo_graph, width=4*inch, height=2.5*inch)
+      elements.append(clo_image)
+      # Student Grade Box Plot
+      box_plot_label = Paragraph("Student Grade Distribution", styles['Normal'])
+      elements.append(box_plot_label)
+      box_plot_image = Image(box_plot, width=4*inch, height=2.5*inch)
+      elements.append(box_plot_image)
+      
+      doc.build(elements)
+      
+      return pdf_path
 # STOP - Course
 
 
