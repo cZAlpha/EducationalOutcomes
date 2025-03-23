@@ -512,6 +512,29 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       if not request.user.is_superuser:  # Checks for superuser status
             return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
       instance.delete()
+
+class CoursePerformance(generics.RetrieveAPIView):
+   """
+   This view is meant to ascertain the course performance.
+   It retrieves the course based on the provided primary key (pk).
+   """
+   queryset = Section.objects.all()
+   serializer_class = SectionSerializer
+   lookup_field = "pk"
+   
+   def get(self, request, *args, **kwargs):
+      course_id = self.kwargs.get("pk")
+      
+      # Check if the given section_id corresponds to a valid Section object
+      try:
+         course = Course.objects.get(pk=course_id)
+      except Section.DoesNotExist:
+         raise NotFound(detail="Course not found")
+      
+      # Perform necessary logic for performance report generation here
+      performance_data = f"Dummy data for now! For course: {course}"
+      
+      return Response(performance_data)
 # STOP - Course
 
 

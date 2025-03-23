@@ -16,6 +16,8 @@ function Tools() {
    const [courses, setCourses] = useState([]);
    // Selected Course (from course performance report form)
    const [selectedCourse, setSelectedCourse] = useState(null);
+   // Object used to store the performance data gathered for the selectedCourse
+   const [coursePerformanceData, setCoursePerformanceData] = useState({}); 
    
    // START - Course Data Fetching
    const getCourses = async () => {
@@ -26,28 +28,26 @@ function Tools() {
    };
    // STOP  - Course Data Fetching 
    
-   const handleSubmit = () => {
+   // START - Course Performance Data Fetching 
+   const getCoursePerformance = async () => {
+      if (selectedCourse) {
+         api
+            .get(`/api/courses/${selectedCourse}/performance`)
+            .then((res) => setCoursePerformanceData(res.data))
+            .catch((err) => alert(`Error fetching course performance data: ${err.message}`));
+      } else {
+         // Handle the case where no course is selected
+         console.log("Error fetching course performance data due to no course being selected!");
+      }
+   };
+   // STOP  - Course Performance Data Fetching
+   
+   const handleSubmit = async () => {
       if (selectedCourse) {
          setIsLoading(true); // Set loading state to true
-         
-         // Simulate loading (replace with your actual report generation logic)
-         setTimeout(() => {
-            console.log("Generating report for course:", selectedCourse);
-            setShowCoursePerformanceReportForm(false); // Close the modal
-            setIsLoading(false); // Set loading state to false
-            
-            // Replace this with your actual report generation logic
-            // generateReport(selectedCourse.id)
-            //   .then(reportData => {
-            //     // handle report data
-            //   })
-            //   .catch(error => {
-            //     // handle error
-            //   });
-            // });
-         }, 2000); // Simulate 2 seconds of loading
-         
-         
+         await getCoursePerformance(); // Await the finishing of the grabbing of performance data
+         setShowCoursePerformanceReportForm(false); // Close the modal after data is grabbed
+         setIsLoading(false); // Set loading state to false
       } else {
          // Handle the case where no course is selected
          console.log("Please select a course.");
@@ -64,6 +64,11 @@ function Tools() {
       fetchData();
       console.log("Courses: ", courses);
    }, []);
+   
+   // TESTING ONLY
+   useEffect(() => {
+      console.log("Course Performance Data: ", coursePerformanceData);
+   }, [coursePerformanceData]);
    
    return (
       <div className="flex flex-col gap-y-10 items-center h-screen mt-12 justify-start"> {/* Main Container */}
