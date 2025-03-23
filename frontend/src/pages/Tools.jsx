@@ -93,12 +93,12 @@ function Tools() {
          
          {/* Container */}
          <div 
-            className={`flex flex-col justify-center space-y-6 w-[60vw] bg-[#ffffffb3] rounded-md px-8 py-8 mx-auto transition-opacity duration-300 ${
+            className={`flex flex-col justify-center space-y-6 w-[90vw] md:w-[60vw] bg-[#ffffffb3] rounded-md px-8 py-8 mx-auto transition-opacity duration-300 ${
                showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm ? "opacity-50 pointer-events-none" : "opacity-100"
             }`}
          >
             {/* Course Performance Evaluation */}
-            <div className="flex flex-col md:flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
+            <div className="flex flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
                <div className="flex flex-col gap-y-2 w-full">
                   <h1 className="text-2xl font-semi-bold">Course Performance Evaluation</h1>
                   <p className="text-sm text-gray-700">This will take your CLO to PLO mappings into account, and give your overall student performance indicators for your given CLOs and PLOs for the given course.</p>
@@ -113,42 +113,45 @@ function Tools() {
             </div>
             
             {/* Section Performance Evaluation */}
-            <div className="flex flex-col md:flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
+            <div className="flex flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
                <div className="flex flex-col gap-y-2 w-full">
                   <h1 className="text-2xl font-semi-bold">Section Performance Evaluation</h1>
                   <p className="text-sm text-gray-700">This will take your CLO to PLO mappings into account, and give your overall student performance indicators for your given CLOs and PLOs for the given section.</p>
                </div>
                <button 
                   className="ml-6 bg-blue-500 flex-grow text-white px-4 py-2 rounded-md w-[100px] h-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
+                  disabled={true}
+                  // UNCOMMENT THIS WHEN YOU ACTUALLY IMPLEMENT IT: disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
                >
                   <AddIcon />
                </button>
             </div>
             
             {/* Student Performance Evaluation */}
-            <div className="flex flex-col md:flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
+            <div className="flex flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
                <div className="flex flex-col gap-y-2 w-full">
                   <h1 className="text-2xl font-semi-bold">Student Performance Evaluation</h1>
                   <p className="text-sm text-gray-700">This will take into account all CLOs and PLOs a given student has completed evaluation instrument(s) for and given their performance indicators for each one.</p>
                </div>
                <button 
                   className="ml-6 bg-blue-500 flex-grow text-white px-4 py-2 rounded-md w-[100px] h-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
+                  disabled={true}
+                  // UNCOMMENT THIS WHEN YOU ACTUALLY IMPLEMENT IT: disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
                >
                   <AddIcon />
                </button>
             </div>
             
             {/* Evaluation Instrument Performance Evaluation */}
-            <div className="flex flex-col md:flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
+            <div className="flex flex-row items-stretch justify-between gap-4 w-full bg-gray-100 rounded-lg p-4">
                <div className="flex flex-col gap-y-2 w-full">
                   <h1 className="text-2xl font-semi-bold">Evaluation Instrument Performance Evaluation</h1>
                   <p className="text-sm text-gray-700">This will take a given evaluation instrument and give key indicators of student performance on the given CLOs for that evaluation instrument.</p>
                </div>
                <button 
                   className="ml-6 bg-blue-500 flex-grow text-white px-4 py-2 rounded-md w-[100px] h-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
+                  disabled={true}
+                  // UNCOMMENT THIS WHEN YOU ACTUALLY IMPLEMENT IT: disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
                >
                   <AddIcon />
                </button>
@@ -156,7 +159,7 @@ function Tools() {
          </div>
          
          {/* Course Performance Report Modal*/}
-         <Dialog open={showCoursePerformanceReportForm} maxWidth="md" fullWidth fullHeight>
+         <Dialog open={showCoursePerformanceReportForm} maxWidth="md" fullWidth>
             {!isLoading && !showCoursePerformancePdfViewer && (
                <>
                   <DialogTitle>Course Performance Report</DialogTitle>
@@ -189,7 +192,7 @@ function Tools() {
             {!isLoading && showCoursePerformancePdfViewer && (
                <>
                   <DialogTitle>Course Performance Report</DialogTitle>
-                  <DialogContent>
+                  <DialogContent style={{height: '90vh', overflowY: 'auto'}}>
                         {/* Create Blob and display size if ArrayBuffer exists */}
                         {coursePerformanceData instanceof ArrayBuffer && (
                               <>

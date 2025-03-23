@@ -15,7 +15,7 @@ const PdfViewer = ({ pdfData }) => {
    }, [pdfData]);
    
    return (
-      <div style={{ height: '600px' }}>
+      <div className='h-[380px] md:h-[600px]'>
          {pdfUrl ? (
                <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.0.279/build/pdf.worker.min.js`}>
                   <Viewer fileUrl={pdfUrl} />

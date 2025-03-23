@@ -130,9 +130,11 @@ function SpecificSection() {
    
    // HTML Stuff
    return (
-      <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
-         <div className="flex flex-col items-left text-left w-[60%]">
-            <div className="flex flex-row gap-x-4">
+      <div className="flex flex-col items-center justify-start w-full text-center p-4 md:p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
+         {/* Header Section*/}
+         <div className="flex flex-col items-left text-left w-full md:w-[60%]">
+            {/* Course Name - Section Number */}
+            <div className="flex flex-col md:flex-row gap-x-4">
                <motion.h1
                   className="font-bold text-3xl"
                   initial={{ opacity: 0 }}
@@ -142,15 +144,25 @@ function SpecificSection() {
                   {loading ? "Loading..." : course?.name || "N/A"}
                </motion.h1>
                <motion.p 
-                  className="font-bold text-3xl"
+                  className="font-bold text-3xl hidden md:block"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
                >
                   {loading ? "Loading..." : "—"}
                </motion.p>
+               {/* Mobile Version */}
                <motion.h1
-                  className="font-bold text-3xl"
+                  className="font-bold text-3xl block md:hidden"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
+                  {loading ? "Loading..." : "Section #: " + section?.section_number}
+               </motion.h1>
+               {/* Desktop Version */}
+               <motion.h1
+                  className="font-bold text-3xl hidden md:block"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
@@ -184,7 +196,8 @@ function SpecificSection() {
             </motion.h3>
          </div>
          
-         <div className="flex flex-col items-center justify-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
+         {/* Information Section */}
+         <div className="flex flex-col items-center justify-center w-full md:w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
             {!loading && instructor && section ? (
                <SpecificSectionInformation section={section} />
             ) : (

@@ -11,7 +11,7 @@ function NotFound() {
    // HTML
    return (
       <div className="w-full flex justify-center mt-32"> 
-         <div className="flex flex-col items-center justify-center p-4 text-center backdrop-blur-md bg-opacity-[80%] bg-gray-100 rounded-2xl shadow-lg w-[800px]">
+         <div className="flex flex-col items-center justify-center p-4 text-center backdrop-blur-md bg-opacity-[80%] bg-gray-100 rounded-2xl shadow-lg w-[80%] md:w-[800px]">
             <h1 style={{ paddingBottom: '30px' }}>404 Not Found</h1>
             <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
                The page you're looking for doesn't exist!

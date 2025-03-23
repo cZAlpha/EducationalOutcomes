@@ -167,11 +167,17 @@ function SpecificCourse() {
       }
    }, [loading, PLOs, PLOCLOMappings, CLOs.clo_id]);
    
+   
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
-         <div className="flex flex-col items-left text-left w-[60%]">
-            <h1 className="font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
-            <h2 className="font-semi-bold text-xl"></h2>
+         {/* Header Section */}
+         <div className="flex flex-col items-left text-left w-full md:w-[60%]">
+            {/* Mobile Course Info. Section*/}
+            <h1 className="block md:hidden font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"}</h1>
+            <h2 className="block md:hidden font-bold text-2xl">{loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h2>
+            {/* Desktop Course Info. Section*/}
+            <h1 className="hidden md:block font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
+            
             <h2 className="font-semi-bold text-xl">
                Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
             </h2>
@@ -200,7 +206,8 @@ function SpecificCourse() {
             )}
          </div>
          
-         <div className="flex flex-col items-center w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
+         {/* Information Section */}
+         <div className="flex flex-col items-center w-full md:w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
             {!loading && instructor ? (
                <SpecificCourseInformation 
                   course={course} 

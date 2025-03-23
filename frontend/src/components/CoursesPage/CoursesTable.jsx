@@ -7,26 +7,27 @@ import { useNavigate } from "react-router-dom";
 
 const CoursesTable = ({ courses, coursesPerPage = 5 }) => {
    const navigate = useNavigate(); // For navigating to specific course page
-
+   
    const [currentPage, setCurrentPage] = useState(1);
-
+   
    const totalPages = Math.ceil(courses.length / coursesPerPage);
    const indexOfLastCourse = currentPage * coursesPerPage;
    const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
    const currentCourses = courses.slice(indexOfFirstCourse, indexOfLastCourse);
-
+   
    const handleNextPage = () => {
       if (currentPage < totalPages) setCurrentPage(currentPage + 1);
    };
-
+   
    const handlePrevPage = () => {
       if (currentPage > 1) setCurrentPage(currentPage - 1);
    };
-
+   
    const handleCourseClick = (courseId) => { // Navigates to the given specific course page
       navigate(`/courses/${courseId}`);
    };
-
+   
+   
    return (
       <div className="w-full flex flex-col space-y-4">
          <div className="flex justify-center items-center space-x-4">
