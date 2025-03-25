@@ -7,20 +7,24 @@ import PdfViewer from "../components/ToolsPage/PDFViewer";
 
 
 function Tools() {
-   // State Vars for Modals
+   // START - State Vars for Modals
    const [showCoursePerformanceReportForm, setShowCoursePerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Course performance report form
    const [showSectionPerformanceReportForm, setShowSectionPerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Section performance report form
    const [showEvaluationInstrumentPerformanceReportForm, setShowEvaluationInstrumentPerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Evaluation Instrument performance report form
    const [isLoading, setIsLoading] = useState(false); // Add loading state
-   
+   const [isDownloading, setIsDownloading] = useState(false); // Another loading state to make a loading throbber appear on the download button for better UX feel
+   // STOP  - State Vars for Modals
+
+   // START - Courses Variables
    // Courses
    const [courses, setCourses] = useState([]);
-   // Selected Course (from course performance report form)
+      // Selected Course (from course performance report form)
    const [selectedCourse, setSelectedCourse] = useState(null);
-   // Object used to store the performance data gathered for the selectedCourse
+      // Object used to store the performance data gathered for the selectedCourse
    const [coursePerformanceData, setCoursePerformanceData] = useState({}); 
    const [showCoursePerformancePdfViewer, setShowCoursePerformancePdfViewer] = useState(false);
-
+   // STOP - Courses Variables
+   
    
    // START - Course Data Fetching
    const getCourses = async () => {
@@ -39,7 +43,7 @@ function Tools() {
                const res = await api.get(`/api/courses/${selectedCourse}/performance`, {
                   responseType: 'arraybuffer', // Important: Get the response as arraybuffer
                });
-
+               // Set the course data from the backend fetch
                setCoursePerformanceData(res.data); // pass the arraybuffer directly.
             } catch (err) {
                alert(`Error fetching course performance data: ${err.message}`);
@@ -52,6 +56,8 @@ function Tools() {
    };
    // STOP  - Course Performance Data Fetching
    
+   // START - Submit Course Performance Data
+      // NOTE: Probably Should make this work for all performance report generation modal(s)
    const handleSubmit = async () => {
       if (selectedCourse) {
          setIsLoading(true); // Set loading state to true
@@ -64,6 +70,17 @@ function Tools() {
          // Optionally, display an error message to the user
       }
    };
+   // STOP  - Submit Course Performance Data
+   
+   // START - Handle Download Throbber State
+   function handleDownloading() {
+      setIsDownloading(true);
+      // Wait 1 second before setting isDownloading to false
+      setTimeout(() => {
+         setIsDownloading(false);
+      }, 1000); 
+   }
+   // STOP  - Handle Download Throbber State
    
    // ON MOUNT FUNCTION CALLS
    useEffect(() => { // On component mount, call all functions within this 
@@ -75,14 +92,6 @@ function Tools() {
       console.log("Courses: ", courses);
    }, []);
    
-   // TESTING ONLY
-   useEffect(() => {
-      console.log("Course Performance Data: ", coursePerformanceData);
-   }, [coursePerformanceData]);
-   useEffect(() => {
-      console.log("Loading: ", isLoading);
-      console.log("showCoursePerformancePdfViewer: ", showCoursePerformancePdfViewer);
-   }, [isLoading, showCoursePerformancePdfViewer]);
    
    return (
       <div className="flex flex-col gap-y-10 items-center h-screen mt-12 justify-start"> {/* Main Container */}
@@ -191,7 +200,9 @@ function Tools() {
             
             {!isLoading && showCoursePerformancePdfViewer && (
                <>
+                  {/* Title */}
                   <DialogTitle>Course Performance Report</DialogTitle>
+                  {/* Content */}
                   <DialogContent style={{height: '90vh', overflowY: 'auto'}}>
                         {/* Create Blob and display size if ArrayBuffer exists */}
                         {coursePerformanceData instanceof ArrayBuffer && (
@@ -216,31 +227,63 @@ function Tools() {
                               </>
                         )}
                   </DialogContent>
+                  
+                  {/* Dialog Buttons */}
                   <DialogActions>
-                        <Button color="primary" variant="contained" onClick={() => {
-                           if (coursePerformanceData) { // Check if coursePerformanceData exists
-                              try {
-                                    const blob = new Blob([coursePerformanceData], { type: 'application/pdf' });
-                                    const url = URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.setAttribute('download', 'Course_Performance_Report.pdf');
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    link.remove();
-                              } catch (error) {
-                                    console.error("Error creating or downloading PDF:", error);
+                        {/* Download Button */}
+                        <Button color="primary" variant="contained" 
+                           sx={{
+                              minWidth: '40px',
+                              minHeight: '50px',
+                              backgroundColor: isDownloading ? 'grey' : '', // Set background color to grey if downloading
+                              '&:hover': {
+                                 backgroundColor: isDownloading ? 'grey' : '', // Ensure hover stays the same when downloading
+                              },
+                           }}
+                           onClick={() => {
+                              handleDownloading();
+                              if (coursePerformanceData) { // Check if coursePerformanceData exists
+                                 try {
+                                       const blob = new Blob([coursePerformanceData], { type: 'application/pdf' });
+                                       const url = URL.createObjectURL(blob);
+                                       const link = document.createElement('a');
+                                       link.href = url;
+                                       link.setAttribute('download', 'Course_Performance_Report.pdf');
+                                       document.body.appendChild(link);
+                                       link.click();
+                                       link.remove();
+                                 } catch (error) {
+                                       console.error("Error creating or downloading PDF:", error);
+                                 }
+                              } else {
+                                 console.error("coursePerformanceData is undefined or null.");
                               }
-                           } else {
-                              console.error("coursePerformanceData is undefined or null.");
                            }
-                        }}>
-                           Download PDF
+                        }>
+                           {isDownloading ?
+                                 <LoadingIndicator size="md" />
+                              :
+                                 `Download PDF` 
+                           }
+                           
                         </Button>
-                        <Button color="error" variant="outlined" onClick={() => {
-                           setShowCoursePerformanceReportForm(false);
-                           setShowCoursePerformancePdfViewer(false);
-                        }}>
+                        {/* Cancel Button */}
+                        <Button color="error" variant="outlined" 
+                           sx={{
+                              minWidth: '40px',
+                              minHeight: '50px',
+                              borderColor: 'error.main', // Border color for the outlined variant
+                              '&:hover': {
+                                 backgroundColor: 'error.main', // Background color when hovered
+                                 color: 'white', // Text color changes to white on hover
+                                 borderColor: 'error.main', // Ensure border color stays the same
+                              },
+                           }}
+                           onClick={() => {
+                              setShowCoursePerformanceReportForm(false);
+                              setShowCoursePerformancePdfViewer(false);
+                           }
+                        }>
                            Close
                         </Button>
                   </DialogActions>

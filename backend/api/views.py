@@ -584,7 +584,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       for clo_id in overall_clo_performance.keys():
          clo = CourseLearningObjective.objects.get(clo_id=clo_id)
          clo_objects[clo.clo_id] = clo
-
+      
       plo_objects = {}
       for plo_id in overall_plo_performance.keys():
          plo = ProgramLearningObjective.objects.get(plo_id=plo_id)
@@ -599,9 +599,6 @@ class CoursePerformance(generics.RetrieveAPIView):
          for plo_id in mapped_plos:
                if plo_id in plo_objects:
                   clo_plo_mappings[clo].append(plo_objects[plo_id])
-
-      # Print the CLO -> PLO mappings with actual objects
-      print("CLO <-> PLO Mappings: ", clo_plo_mappings)
       
       # Generate graphs
       plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
@@ -609,7 +606,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       box_plot_path = self.create_box_plot_for_sections(sections)
       
       # Create and return PDF
-      pdf_path = self.generate_pdf(course, sections, program_names, clo_plo_mappings, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
+      pdf_path = self.generate_pdf(course, sections, program_names, plo_objects, clo_plo_mappings, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Course_Performance.pdf")
    
    def calculate_average_student_grade(self, sections):
@@ -729,7 +726,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       Generate a bar chart and save it as an image file.
       """
       plt.figure(figsize=(6, 4))
-      plt.bar(data.keys(), data.values(), color='skyblue')
+      plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
       plt.xlabel(xlabel)
       plt.ylabel(ylabel)
       plt.title(title)
@@ -741,34 +738,40 @@ class CoursePerformance(generics.RetrieveAPIView):
       return img_path
    
    def create_box_plot_for_sections(self, sections):
-      # NOTE: This makes boxes for each section instead of simply finding all unique
-      #       student avg. grade and then box plotting that.
       """
       Generate a box plot for student average grades (normalized) across all tasks in each section and save it as an image.
       """
       section_averages = []  # Store student averages per section for a true box plot
-
+      
       for section in sections:
          student_scores = defaultdict(list)
-
+         
          # Fetch scores and total possible scores for each student grouped by student email
          for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
                normalized_score = entry.score / entry.total_possible_score  # Normalize the score
                student_scores[entry.student.email].append(normalized_score)
-
+         
          # Compute average normalized score per student
          student_avg_scores = [
                sum(scores) / len(scores) for scores in student_scores.values()
          ]
-
+         
          if student_avg_scores:  # Ensure section has data
                section_averages.append([avg * 100 for avg in student_avg_scores])  # Convert to percentage
-
+      
       if not section_averages:
          return None  # No data to plot
-
+      
       plt.figure(figsize=(8, 5))
-      plt.boxplot(section_averages, vert=True, patch_artist=True)
+      boxplot = plt.boxplot(section_averages, vert=True, patch_artist=True)
+      
+      # Style Stuff
+         # Change the box background color
+      for box in boxplot['boxes']:
+         box.set(facecolor='#2b7fff')  # Deep navy blue box background
+         # Change the line inside the box (the median line) to be thicker
+      for median in boxplot['medians']:
+         median.set(linewidth=3, color='#f82001')  # Thicker median line (black color)
       
       plt.title("Student Average Grade Distribution by Section")
       plt.ylabel("Average Grade (%)")
@@ -778,14 +781,14 @@ class CoursePerformance(generics.RetrieveAPIView):
       plt.xticks(range(1, len(sections) + 1), [f"Section {i+1}" for i in range(len(sections))])
       
       plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
-
+      
       img_path = "/tmp/box_plot.png"
       plt.savefig(img_path, bbox_inches='tight')
       plt.close()
       
       return img_path
    
-   def generate_pdf(self, course, sections, program_names, clo_plo_mappings, avg_grade, clo_graph, plo_graph, box_plot):
+   def generate_pdf(self, course, sections, program_names, clos, clo_plo_mappings, avg_grade, clo_graph, plo_graph, box_plot):
       """
       Generate a PDF report containing the course performance data and graphs.
       """
@@ -805,16 +808,29 @@ class CoursePerformance(generics.RetrieveAPIView):
       width, height = letter
       
       # Path to the static images
-      dsu_logo_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "dsu_logo.jpg")
+      dsu_logo_justwords_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "DSU_Logo_JustWords.png")
       pemacs_logo_long_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "PEMaCS_Logo_LongStandard.jpg")
       
-      # Ensure the image is added correctly (scaled down)
-      if os.path.exists(dsu_logo_image_path):
-         dsu_logo = Image(dsu_logo_image_path, width=1.5*inch, height=1.5*inch)
-         elements.append(dsu_logo)
-      if os.path.exists(pemacs_logo_long_image_path):
-         pemacs_logo_long = Image(pemacs_logo_long_image_path, width=1.5*inch, height=1.5*inch)
-         elements.append(pemacs_logo_long)
+      # Check if both images exist, then make a table to make them inline with each other at the top of the document
+      if os.path.exists(dsu_logo_justwords_image_path) and os.path.exists(pemacs_logo_long_image_path):
+         dsu_logo = Image(dsu_logo_justwords_image_path, width=3*inch, height=1*inch)
+         pemacs_logo_long = Image(pemacs_logo_long_image_path, width=4*inch, height=1.2*inch)
+         
+         # Adjust column widths to match image sizes
+         logo_table = Table(
+            [[dsu_logo, pemacs_logo_long]], 
+            colWidths=[3.2*inch, 4.2*inch]  # Make the first column wide enough
+         )
+         # Apply table styling
+         logo_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Center vertically
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),       # Align DSU logo to left
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),       # Align PEMaCS logo to left
+            ('LEFTPADDING', (0, 0), (0, 0), 0),      # Remove extra left padding
+            ('RIGHTPADDING', (0, 0), (0, 0), 5),     # Add space between logos
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Add spacing
+         ]))
+         elements.append(logo_table)  # Add table to PDF
       
       # Document title using centered style
       title = Paragraph(f"Course Performance Report", centered_title_style)
@@ -836,7 +852,6 @@ class CoursePerformance(generics.RetrieveAPIView):
       program_names_inline = "• " # A string to be concatonated to in order to list the programs
       for program_name in program_names:
          program_names_inline += program_name
-      print("Program Names Inline: ", program_names_inline)
       section_header = Paragraph(f"Sections:", styles['Heading4'])
       elements.append(section_header)
       for section in sections: # Iterate over sections
@@ -860,7 +875,7 @@ class CoursePerformance(generics.RetrieveAPIView):
          
          # Add a row to the table data
          table_data.append([clo_paragraph, plo_designations])
-
+      
       # Create the table
       table = Table(table_data, colWidths=[4*inch, 2.5*inch])
       # Define table styles
