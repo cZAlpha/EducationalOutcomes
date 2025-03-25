@@ -803,14 +803,18 @@ class CoursePerformance(generics.RetrieveAPIView):
       )
       
       width, height = letter
-
-      # Path to the static image
+      
+      # Path to the static images
       dsu_logo_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "dsu_logo.jpg")
-
-      # Ensure the image is added correctly (scaled to half size)
+      pemacs_logo_long_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "PEMaCS_Logo_LongStandard.jpg")
+      
+      # Ensure the image is added correctly (scaled down)
       if os.path.exists(dsu_logo_image_path):
-         logo = Image(dsu_logo_image_path, width=1.5*inch, height=1.5*inch)
-         elements.append(logo)
+         dsu_logo = Image(dsu_logo_image_path, width=1.5*inch, height=1.5*inch)
+         elements.append(dsu_logo)
+      if os.path.exists(pemacs_logo_long_image_path):
+         pemacs_logo_long = Image(pemacs_logo_long_image_path, width=1.5*inch, height=1.5*inch)
+         elements.append(pemacs_logo_long)
       
       # Document title using centered style
       title = Paragraph(f"Course Performance Report", centered_title_style)
@@ -827,7 +831,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       # Description (Course Description) with wrapping
       description = Paragraph(f"{course.description}", styles['Normal'])
       elements.append(description)
-
+      
       # Sections
       program_names_inline = "• " # A string to be concatonated to in order to list the programs
       for program_name in program_names:
@@ -838,7 +842,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       for section in sections: # Iterate over sections
          section_to_show = Paragraph(f"{program_names_inline} - {section.course.course_number} - {section.section_number} ({section.crn})", styles['Normal'])
          elements.append(section_to_show)
-
+      
       # START - CLO <-> PLO Mapping Table
       section_header = Paragraph(f"Course Learning Outcome to Program Learning Outcomes Map:", styles['Heading4'])
       elements.append(section_header)
