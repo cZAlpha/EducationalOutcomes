@@ -16,6 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import base64
 import io
+import os
 
 # PDF imports
 from reportlab.pdfgen import canvas
@@ -583,20 +584,30 @@ class CoursePerformance(generics.RetrieveAPIView):
       pdf_path = self.generate_pdf(course, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Course_Performance.pdf")
    
+   
    def calculate_average_student_grade(self, sections):
-         """
-         Calculate the average student grade for all sections in the course.
-         """
-         total_grade = 0
-         total_students = 0
-         
-         for section in sections:
-               # Get all the student scores for the section
-               student_scores = StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section)
-               total_grade += student_scores.aggregate(total=Sum('score'))['total'] or 0
-               total_students += student_scores.count()
-         
-         return total_grade / total_students if total_students > 0 else 0
+      """
+      Calculate the overall average student grade (normalized) across all sections in the course.
+      """
+      student_total_scores = defaultdict(lambda: [0, 0])  # {student_email: [total_score, total_possible]}
+
+      for section in sections:
+         # Get all student task mappings for the section
+         student_scores = StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section)
+
+         # Accumulate normalized scores per student
+         for entry in student_scores:
+               student_total_scores[entry.student.email][0] += entry.score
+               student_total_scores[entry.student.email][1] += entry.total_possible_score
+
+      # Compute each student's overall average, then average those
+      student_averages = [
+         (total_score / total_possible) * 100  # Convert to percentage
+         for total_score, total_possible in student_total_scores.values()
+         if total_possible > 0
+      ]
+
+      return sum(student_averages) / len(student_averages) if student_averages else 0
       
    def generate_clo_performance(self, section):
       """
@@ -703,23 +714,48 @@ class CoursePerformance(generics.RetrieveAPIView):
       return img_path
    
    def create_box_plot_for_sections(self, sections):
+      # NOTE: This makes boxes for each section instead of simply finding all unique
+      #       student avg. grade and then box plotting that.
       """
-      Generate a box plot for student grades and save it as an image.
+      Generate a box plot for student average grades (normalized) across all tasks in each section and save it as an image.
       """
-      all_scores = []
+      section_averages = []  # Store student averages per section for a true box plot
+
       for section in sections:
-         scores = StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section).values_list('score', flat=True)
-         all_scores.extend(scores)
+         student_scores = defaultdict(list)
+
+         # Fetch scores and total possible scores for each student grouped by student email
+         for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
+               normalized_score = entry.score / entry.total_possible_score  # Normalize the score
+               student_scores[entry.student.email].append(normalized_score)
+
+         # Compute average normalized score per student
+         student_avg_scores = [
+               sum(scores) / len(scores) for scores in student_scores.values()
+         ]
+
+         if student_avg_scores:  # Ensure section has data
+               section_averages.append([avg * 100 for avg in student_avg_scores])  # Convert to percentage
+
+      if not section_averages:
+         return None  # No data to plot
+
+      plt.figure(figsize=(8, 5))
+      plt.boxplot(section_averages, vert=True, patch_artist=True)
       
-      plt.figure(figsize=(6, 4))
-      plt.boxplot(all_scores, vert=True, patch_artist=True)
-      plt.title("Student Grade Distribution")
-      plt.ylabel("Scores")
-      plt.xticks([1], ["Grades"])
+      plt.title("Student Average Grade Distribution by Section")
+      plt.ylabel("Average Grade (%)")
+      plt.xlabel("Sections")
       
+      # Set x-ticks as section labels (1-based index for visualization)
+      plt.xticks(range(1, len(sections) + 1), [f"Section {i+1}" for i in range(len(sections))])
+      
+      plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
+
       img_path = "/tmp/box_plot.png"
       plt.savefig(img_path, bbox_inches='tight')
       plt.close()
+      
       return img_path
    
    def generate_pdf(self, course, avg_grade, clo_graph, plo_graph, box_plot):
@@ -740,11 +776,25 @@ class CoursePerformance(generics.RetrieveAPIView):
       )
       
       width, height = letter
+
+      # Path to the static image
+      dsu_logo_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "dsu_logo.jpg")
+
+      # Ensure the image is added correctly (scaled to half size)
+      if os.path.exists(dsu_logo_image_path):
+         logo = Image(dsu_logo_image_path, width=1.5*inch, height=1.5*inch)
+         elements.append(logo)
       
-      # Title (Course Name) using centered style
+      # Document title using centered style
       title = Paragraph(f"Course Performance Report", centered_title_style)
       elements.append(title)
-      course_name = Paragraph(f"{course.name}", styles['Heading2'])
+      
+      # Header (Course Information)
+      title = Paragraph(f"Course Information", styles['Heading2'])
+      elements.append(title)
+      
+      # Title (Course Name) 
+      course_name = Paragraph(f"{course.name}", styles['Heading4'])
       elements.append(course_name)
       
       # Description (Course Description) with wrapping
