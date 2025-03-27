@@ -579,7 +579,8 @@ class CoursePerformance(generics.RetrieveAPIView):
          for plo_id, value in overall_plo_performance.items()
       }
       
-      # Query CLOs and PLOs to get the actual objects by their IDs
+      # START - Get All CLOs and What PLOs They Correspond To
+         # Query CLOs and PLOs to get the actual objects by their IDs
       clo_objects = {}
       for clo_id in overall_clo_performance.keys():
          clo = CourseLearningObjective.objects.get(clo_id=clo_id)
@@ -599,14 +600,31 @@ class CoursePerformance(generics.RetrieveAPIView):
          for plo_id in mapped_plos:
                if plo_id in plo_objects:
                   clo_plo_mappings[clo].append(plo_objects[plo_id])
+      # STOP  - Get All CLOs and What PLOs They Correspond To
       
-      # Grab all program learning objects for this course
-      plos = ProgramLearningObjective.objects.filter(a_version=course.a_version.a_version_id)  # Fetch full objects, not just IDs
-      for plo in plos:
-         designation = str(plo.designation)
-         description = str(plo.description)
-         print(f"Designation: {designation}, Description Length: {len(description)}")
+      # START - PLOs For This Course
+      plos = ProgramLearningObjective.objects.filter( plo_id__in=[plo.plo_id for clo in clo_plo_mappings.values() for plo in clo] ) # Fetch only PLOs relevant to the class
+      # STOP  - PLOs For This Course
 
+      # START - Get All CLOs and What Types of Evaluation Instruments They Used
+         # Query CLOs and their associated evaluation instrument types
+      clo_evaluation_types = defaultdict(set)
+
+      for section in sections:
+         evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+         
+         for instrument in evaluation_instruments:
+            embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=instrument)
+            
+            for task in embedded_tasks:
+                  task_clo_mappings = TaskCLOMapping.objects.filter(task=task)
+                  
+                  for mapping in task_clo_mappings:
+                     clo_evaluation_types[mapping.clo.designation].add(instrument.evaluation_type)
+      
+      clo_evaluation_types = {clo: list(types) for clo, types in clo_evaluation_types.items()}
+      print(f"CLOs to Types: {clo_evaluation_types}")
+      # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
       
       # Generate graphs
       plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
@@ -614,7 +632,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       box_plot_path = self.create_box_plot_for_sections(sections)
       
       # Create and return PDF
-      pdf_path = self.generate_pdf(course, sections, program_names, plos, clo_plo_mappings, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
+      pdf_path = self.generate_pdf(course, sections, program_names, plos, clo_plo_mappings, clo_evaluation_types, overall_avg_grade, clo_graph_path, plo_graph_path, box_plot_path)
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Course_Performance.pdf")
    
    def calculate_average_student_grade(self, sections):
@@ -796,7 +814,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       
       return img_path
    
-   def generate_pdf(self, course, sections, program_names, program_learning_objectives, clo_plo_mappings, avg_grade, clo_graph, plo_graph, box_plot):
+   def generate_pdf(self, course, sections, program_names, program_learning_objectives, clo_plo_mappings, clo_evaluation_types, avg_grade, clo_graph, plo_graph, box_plot):
       """
       Generate a PDF report containing the course performance data and graphs.
       """
@@ -867,7 +885,7 @@ class CoursePerformance(generics.RetrieveAPIView):
          elements.append(section_to_show)
       
       # START - CLO <-> PLO Mapping Table
-      section_header = Paragraph(f"Course Learning Outcome to Program Learning Outcomes Map:", styles['Heading4'])
+      section_header = Paragraph(f"Course Learning Outcomes to Program Learning Outcomes Map:", styles['Heading4'])
       elements.append(section_header)
       # Create a table with CLO to PLO mappings
       table_data = []
@@ -917,7 +935,6 @@ class CoursePerformance(generics.RetrieveAPIView):
       table_data.append(['Designation', 'Description'])  # Header row
          # Iterate through the PLOs to populate the table data
       for plo in program_learning_objectives:
-         print("LOOP | PLO: ", plo)
          # Create a row for each PLO with its designation and description
          designation = str(plo.designation)  # Convert designation to string if it's not already
          description = str(plo.description)  # Convert description to string if it's not already
@@ -950,6 +967,50 @@ class CoursePerformance(generics.RetrieveAPIView):
          # Add the table to the document
       elements.append(table)
       # STOP - PLOs Table
+
+      # START - CLOs -> Evaluation Types Used
+      # Define section header for the table
+      section_header = Paragraph("Course Learning Objectives (CLOs) and Evaluation Types:", styles['Heading4'])
+      elements.append(section_header)
+      
+      # Create a table for CLOs with 'CLO Designation' and 'Evaluation Types' as headers
+      table_data = []
+      table_data.append(['CLO Designation', 'Evaluation Types'])  # Header row
+      
+      # Iterate through the CLOs to populate the table data
+      for clo, evaluation_types in clo_evaluation_types.items():
+         clo_designation = str(clo)  # Convert designation to string
+         evaluation_text = ', '.join(str(evaluation.type_name) for evaluation in evaluation_types)
+         evaluation_paragraph = Paragraph(evaluation_text, styles['BodyText'])
+         
+         # Add the row to the table data
+         table_data.append([clo_designation, evaluation_paragraph])
+      
+      # Create the table
+      table = Table(table_data, colWidths=[1.5*inch, 5*inch])
+      
+      # Define table styles
+      table_style = TableStyle([
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text initially
+         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Evaluation Types)
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+      ])
+      
+      table.setStyle(table_style)
+      
+      # Add the table to the document
+      elements.append(table)
+      # STOP  - CLOs -> Evaluation Types Used
       
       # Overall Average Grade
       avg_grade_text = Paragraph(f"Overall Average Grade: {avg_grade:.2f}", styles['Normal'])
