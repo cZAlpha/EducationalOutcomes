@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
 import AddIcon from '@mui/icons-material/Add';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, DialogContentText, Autocomplete } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, DialogContentText, Autocomplete, FormGroup, FormControlLabel, Checkbox } from "@mui/material";
 import api from "../api";
 import LoadingIndicator from "../components/LoadingIndicator";
 import PdfViewer from "../components/ToolsPage/PDFViewer";
 
 
 function Tools() {
+   // START - Semester Vars
+      // Semester (used to filter out sections and other objects related to time that are used to filter out things for the reports)
+   const [semesters, setSemesters] = useState([]);
+   // STOP  - Semester Vars
+   
    // START - State Vars for Modals
    const [showProgramPerformanceReportForm, setShowProgramPerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Program performance report form
    const [showCoursePerformanceReportForm, setShowCoursePerformanceReportForm] = useState(false); // Used to keep track of whether or not to show the Course performance report form
@@ -14,17 +19,31 @@ function Tools() {
    const [isLoading, setIsLoading] = useState(false); // Add loading state
    const [isDownloading, setIsDownloading] = useState(false); // Another loading state to make a loading throbber appear on the download button for better UX feel
    // STOP  - State Vars for Modals
-
+   
    // START - Courses Variables
-   // Courses
+      // Courses
    const [courses, setCourses] = useState([]);
       // Selected Course (from course performance report form)
    const [selectedCourse, setSelectedCourse] = useState(null);
+   // Courses Semester Vars
+      // Semesters that correspond to the user's currently selectedCourse (NOT sent to the backend, this is just for the user to see and select)
+   const [courseSemesters, setCourseSemesters] = useState([]); 
+      // This use state is used to store all the semesters that the user selected to whitelist filter (this is the thing sent to the backend to filter it there)
+   const [selectedCourseSemesters, setSelectedCourseSemesters] = useState([]); 
       // Object used to store the performance data gathered for the selectedCourse
    const [coursePerformanceData, setCoursePerformanceData] = useState({}); 
+      // A state var used to track whether the course performance pdf viewer should be shown
    const [showCoursePerformancePdfViewer, setShowCoursePerformancePdfViewer] = useState(false);
    // STOP - Courses Variables
    
+   // START - Sections Variable(s)
+      // Sections fetched from the backend are stored here
+   const [sections, setSections] = useState([]); 
+      // Filtered sections that are shown to the user in the Course Performance Report Form, filtered by 'courseSemesters' value (sections that are from the 'selectedCourse' var are stored in this var)
+   const [filteredSections, setFilteredSections] = useState([]);
+      // Excluded sections (sections that were selected to be discluded from the Course Performance Report generation, this will be directly sent to the backend!)
+   const [excludedSections, setExcludedSections] = useState([]);
+   // STOP  - Sections Variable(s)
    
    // START - Course Data Fetching
    const getCourses = async () => {
@@ -35,25 +54,117 @@ function Tools() {
    };
    // STOP  - Course Data Fetching 
    
+   // START - Semester Data Fetching
+   const getSemesters = async () => {
+      try {
+         const res = await api.get('/api/semesters/');
+         setSemesters(res.data);
+      } catch (err) {
+         alert(`Error fetching Semesters: ${err.message}`);
+      }
+   };
+   // STOP  - Semester Data Fetching
+   
+   // START - Course Semester Filtering 
+   function filterCourseSemesters(selectedCourseId, _filteredSections) {
+      if (selectedCourseId && semesters && _filteredSections) {
+         if (semesters.length === 0) { // Gracefully catch length error
+            console.log("Tools.jsx | filterCourseSemesters | No semesters to filter");
+         } else if  (_filteredSections.length === 0) {
+            console.log("Tools.jsx | filterCourseSemesters | No sections to filter with");
+         } else {
+            console.log("filterCourseSemesters | All Semesters: ", semesters);
+            console.log("filterCourseSemesters | Filtered Sections: ", _filteredSections);
+            // Filter semesters based on whether any filteredSection belongs to that semester
+            let filteredSemesters = [];
+            _filteredSections.forEach(section => {
+               // Check if the designation already exists in the filteredSemesters array
+               if (!filteredSemesters.some(semester => semester.designation === section.semester_details.designation)) {
+                  filteredSemesters.push(section.semester_details);
+               }
+            });
+            console.log("filterCourseSemesters | Filtered Semesters: ", filteredSemesters);
+            setCourseSemesters(filteredSemesters);
+         }
+      }
+   }
+   // STOP  - Course Semester Filtering 
+   
+   // START - Handle Section Toggle (allows for exclusion of certain sections from a Course Performance Report)
+   const handleSectionToggle = (event, sectionId) => {
+      if (event.target.checked) {
+         // Add to excludedSections if it's checked
+         setExcludedSections(prevExcludedSections => 
+            prevExcludedSections.filter(id => id !== sectionId)
+         );
+      } else {
+         // Prevent unchecking if it's the last section remaining
+         if (excludedSections.length === filteredSections.length - 1) {
+            alert("You must have at least one section selected!");
+            return;
+         }
+         
+         // Otherwise, remove sectionId from excludedSections
+         setExcludedSections(prevExcludedSections => 
+            [...prevExcludedSections, sectionId]
+         );
+      }
+   };
+   // STOP - Handle Section Toggle
+   
+   // START - Sections Fetching
+   const getSections = async () => {
+      try {
+         const res = await api.get('/api/sections/');
+         setSections(res.data); 
+      } catch (err) {
+         alert(`Error fetching Sections: ${err.message}`);
+      }
+   };
+   // STOP  - Sections Fetching
+   
+   // START - Filter Sections
+   function filterSections(selectedCourseId) {
+      console.log("filterSections | All sections: ", sections);
+      let filteredSections = sections.filter(section => section.course_details.course_id === selectedCourseId)
+      setFilteredSections(filteredSections);
+      console.log("filterSections | Filtered sections: ", filteredSections, " CourseId Passed: ", selectedCourseId);
+      filterCourseSemesters(selectedCourseId, filteredSections);
+   }  
+   // STOP  - Filter Sections
+   
    // START - Course Performance Data Fetching 
    const getCoursePerformance = async () => {
       if (selectedCourse) {
-            setIsLoading(true);
-            try {
-               const res = await api.get(`/api/courses/${selectedCourse}/performance`, {
-                  responseType: 'arraybuffer', // Important: Get the response as arraybuffer
-               });
+         setIsLoading(true);
+         
+         try {
+               // Construct query params
+            const params = new URLSearchParams();
+               // Append selectedCourseSemesters as an array of objects
+            selectedCourseSemesters.forEach((semester) => {
+                  params.append("selectedCourseSemesters", JSON.stringify(semester));
+            });
+               // Append excludedSection IDs
+            excludedSections.forEach((sectionId) => {
+                  params.append("excludedSection", sectionId);
+            });
+               // Call the backend
+            const res = await api.get(`/api/courses/${selectedCourse}/performance?${params.toString()}`, {
+                  responseType: "arraybuffer", // Important: Get the response as arraybuffer
+            });
                // Set the course data from the backend fetch
-               setCoursePerformanceData(res.data); // pass the arraybuffer directly.
-            } catch (err) {
-               alert(`Error fetching course performance data: ${err.message}`);
-            } finally {
-               setIsLoading(false);
-            }
+            setCoursePerformanceData(res.data);
+         } catch (err) {
+            alert(`Error fetching course performance data: ${err.message}`);
+         } finally {
+            setIsLoading(false);
+         }
       } else {
-            console.log("Error fetching course performance data due to no course being selected!");
+         console.log("Error fetching course performance data due to no course being selected!");
       }
    };
+   
    // STOP  - Course Performance Data Fetching
    
    // START - Submit Course Performance Data
@@ -86,11 +197,21 @@ function Tools() {
    useEffect(() => { // On component mount, call all functions within this 
       const fetchData = async () => {
          await getCourses();
+         await getSemesters();
+         await getSections();
       };
       
       fetchData();
-      console.log("Courses: ", courses);
    }, []);
+   
+   useEffect(() => {
+      console.log(" ");
+      console.log(" ");
+      console.log(" ");
+      console.log(" ");
+      console.log("Selected Semesters(s): ", selectedCourseSemesters);
+      console.log("Excluded Section(s): ", excludedSections);
+   }, [selectedCourseSemesters, excludedSections])
    
    
    return (
@@ -164,12 +285,96 @@ function Tools() {
                         options={courses}
                         getOptionLabel={(option) => option.name} 
                         renderInput={(params) => <TextField {...params} label="Course Name" variant="outlined" margin="normal" />}
-                        onChange={(event, newValue) => setSelectedCourse(newValue?.course_id)}
+                        onChange={(event, newValue) => {
+                           setSelectedCourse(newValue?.course_id);
+                           filterSections(newValue?.course_id);
+                           // FilterCourseSemesters is called within 'filterSections'! 
+                        }}
                      />
+                     {/* User is only allowed to select a semester to filter for only after they've chosen a course to filter for */}
+                     {selectedCourse && 
+                        <div className="mt-4">
+                           <p>Select semester(s) to generate the report from (optional)</p>
+                           <Autocomplete
+                              multiple
+                              fullWidth
+                              options={courseSemesters}
+                              getOptionLabel={(option) => String(option.designation)} // Ensure it's a string
+                              renderInput={(params) => <TextField {...params} label="Semester Designation" variant="outlined" margin="normal" />}
+                              onChange={(event, newValue) => setSelectedCourseSemesters(newValue)}
+                           />
+                        </div>
+                     }
+                     {/* User is only allowed to select a section (or set of sections) once they've selected a course and semester (or set of semesters) */}
+                     {(selectedCourseSemesters && (selectedCourseSemesters.length > 0)) && (
+                        <div className="mt-4">
+                           <p>By default, all sections of the selected semesters will be included. You may optionally choose to disclude any listed sections from your report.</p>
+                           
+                           <div className="mt-2">
+                              <FormGroup>
+                                 {/* Group sections by their semester */}
+                                 {selectedCourseSemesters.map((semester) => {
+                                    // Filter sections belonging to the current semester
+                                    const sectionsInSemester = filteredSections.filter(
+                                       (section) => section.semester_details.designation === semester.designation
+                                    );
+                                    
+                                    if (sectionsInSemester.length === 0) return null; // Skip if no sections for the semester
+                                    
+                                    return (
+                                       <div key={semester.semester_id}>
+                                          {/* Display the semester name at the top */}
+                                          <h3 className="text-xl">{semester.designation}</h3>
+                                          {sectionsInSemester.map((section) => (
+                                             <FormControlLabel
+                                                key={section.section_id}
+                                                control={
+                                                   <Checkbox
+                                                      checked={!excludedSections.includes(section.section_id)} // Checkboxes will be checked if the section is not in the excluded list
+                                                      onChange={(event) => handleSectionToggle(event, section.section_id)}
+                                                      name={section.section_id.toString()} // Ensure each checkbox has a unique name
+                                                   />
+                                                }
+                                                label={`${section.course_details.name} | Section ${section.section_number} | Instructor: ${section.instructor_details.last_name}`} 
+                                                sx={{
+                                                   display: "flex",
+                                                }}
+                                             />
+                                          ))}
+                                       </div>
+                                    );
+                                 })}
+                              </FormGroup>
+                           </div>
+                        </div>
+                     )}
                   </DialogContent>
                   <DialogActions>
-                     <Button color="error" variant="outlined" onClick={() => setShowCoursePerformanceReportForm(false)}>Cancel</Button>
-                     <Button type="submit" color="primary" variant="contained" onClick={handleSubmit}>Submit</Button>
+                     <Button 
+                        type="submit" 
+                        color="primary" 
+                        variant="contained" 
+                        onClick={() => {
+                           handleSubmit();
+                           setSelectedCourse(null);
+                           setSelectedCourseSemesters([]);
+                           setExcludedSections([]);
+                        }}
+                     >
+                     Submit
+                     </Button>
+                     <Button 
+                        color="error" 
+                        variant="outlined" 
+                        onClick={() => {
+                           setShowCoursePerformanceReportForm(false);
+                           setSelectedCourse(null);
+                           setSelectedCourseSemesters([]);
+                           setExcludedSections([]);
+                        }}
+                     >
+                     Cancel
+                     </Button>
                   </DialogActions>
                </>
             )}

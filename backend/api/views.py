@@ -4,15 +4,17 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import NotFound
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import BadRequest
 from rest_framework.response import Response
 from rest_framework import status, generics
 from django.http import FileResponse
 from collections import defaultdict
 from django.db import transaction
+import json
 
 # Graphing imports
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg") # Uses the 'Agg' backend for matplotlib to ensure no GUI instances are spun up, thus avoiding memory leaks and wasted processing power and time
 import matplotlib.pyplot as plt
 import base64
 import io
@@ -547,14 +549,52 @@ class CoursePerformance(generics.RetrieveAPIView):
       
       program_names = list(ProgramCourseMapping.objects.filter(course=course).values_list("program__designation", flat=True))
       
-      sections = Section.objects.filter(course=course)
+      # Extract query parameters from request
+      selectedCourseSemesters = request.query_params.getlist("selectedCourseSemesters", [])
+      excludedSections = request.query_params.getlist("excludedSection", [])
+      
+      # Convert excludedSections to integers
+      try:
+         excludedSections = [int(section_id) for section_id in excludedSections]
+      except ValueError:
+         raise BadRequest("Invalid excluded section ID format")
+      
+      # Parse selectedCourseSemesters into semester IDs
+      try:
+         if selectedCourseSemesters:  # Check if semesters were passed
+            semester_ids = []
+            
+            for entry in selectedCourseSemesters:
+                  try:
+                     semester_obj = json.loads(entry)  # Convert JSON string to dictionary
+                     semester_ids.append(int(semester_obj["semester_id"]))
+                  except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+                     raise BadRequest("Invalid semester format in selectedCourseSemesters")
+            
+            print("Semester IDs:", semester_ids)
+            sections = Section.objects.filter(course=course, semester_id__in=semester_ids)  # Whitelist filter
+         else:
+            sections = Section.objects.filter(course=course)  # No filtering if no semesters provided
+      except BadRequest as e:
+         raise e  # Raise a 400 Bad Request error with the message
+      
+      # Whitelist filtering (match semester_id)
+      print("Sections left after semester whitelisting: ", sections)
+      
+      # Blacklist filtering (exclude specific section IDs)
+      if excludedSections:
+         sections = sections.exclude(section_id__in=excludedSections)
+      print("Sections left after excludedSections filtering: ", sections)
+      
+      if len(sections) <= 0: # If there are no sections after filtering
+         raise BadRequest("There were no sections left after filtering!")
       
       # Compute performance metrics
       overall_avg_grade = self.calculate_average_student_grade(sections)
       overall_clo_performance = self.generate_course_clo_performance(sections)
       overall_plo_performance = self.generate_course_plo_performance(sections)
-      #print("overall_clo_performance", overall_clo_performance)
-      #print("overall_plo_performance", overall_plo_performance)
+      print("overall_clo_performance", overall_clo_performance)
+      print("overall_plo_performance", overall_plo_performance)
       
       # Query CLOs and PLOs to get designations
       clo_designations = {}
@@ -605,23 +645,19 @@ class CoursePerformance(generics.RetrieveAPIView):
       # START - PLOs For This Course
       plos = ProgramLearningObjective.objects.filter( plo_id__in=[plo.plo_id for clo in clo_plo_mappings.values() for plo in clo] ) # Fetch only PLOs relevant to the class
       # STOP  - PLOs For This Course
-
+      
       # START - Get All CLOs and What Types of Evaluation Instruments They Used
          # Query CLOs and their associated evaluation instrument types
       clo_evaluation_types = defaultdict(set)
-
+         # This algorithm right here is O(n^4), quite possibly the worst algorithm I've ever written.
       for section in sections:
          evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-         
          for instrument in evaluation_instruments:
             embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=instrument)
-            
             for task in embedded_tasks:
                   task_clo_mappings = TaskCLOMapping.objects.filter(task=task)
-                  
                   for mapping in task_clo_mappings:
                      clo_evaluation_types[mapping.clo.designation].add(instrument.evaluation_type)
-      
       clo_evaluation_types = {clo: list(types) for clo, types in clo_evaluation_types.items()}
       print(f"CLOs to Types: {clo_evaluation_types}")
       # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
@@ -661,38 +697,36 @@ class CoursePerformance(generics.RetrieveAPIView):
       
    def generate_clo_performance(self, section):
       """
-      Generate the CLO performance for a single section.
+      Generate the CLO performance for a single section, ensuring normalized scores.
       """
       # Step 1: Get all Evaluation Instruments for the given section
       evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-      
+
       # Step 2: Get all Embedded Tasks from these Evaluation Instruments
       embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
-      
-      # Step 3: Compute average score for each embedded task
-      # We'll store these in a dictionary keyed by the task's primary key (embedded_task_id)
+
+      # Step 3: Compute **normalized** average score for each embedded task
       task_avg_scores = {}
       for task in embedded_tasks:
-         avg_score = (
-               StudentTaskMapping.objects.filter(task=task)
-               .aggregate(avg_score=Avg("score"))["avg_score"]
-         )
-         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+         task_scores = StudentTaskMapping.objects.filter(task=task).values_list("score", "total_possible_score")
+
+         # Normalize each individual score
+         normalized_scores = [(score / total) * 100 for score, total in task_scores if total > 0]
+
+         # Compute the average normalized score for the task
+         avg_normalized_score = sum(normalized_scores) / len(normalized_scores) if normalized_scores else 0
+         task_avg_scores[task.embedded_task_id] = avg_normalized_score
       
-      # Step 4: Get all TaskCLOMapping records for these embedded tasks.
-      # This junction model links EmbeddedTasks to CourseLearningObjectives (CLOs)
+      # Step 4: Get all TaskCLOMapping records for these embedded tasks
       task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
-      
-      # Step 5: Group task scores by CLO. 
-      # For each mapping, retrieve the task's average score and append it to the list for that CLO.
+
+      # Step 5: Group normalized task scores by CLO
       clo_scores = defaultdict(list)
       for mapping in task_clo_mappings:
-         # mapping.task is the EmbeddedTask instance
-         # mapping.clo is the related CLO instance.
          avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
-         clo_id = mapping.clo.clo_id  # using clo_id as the primary key for CLO
+         clo_id = mapping.clo.clo_id
          clo_scores[clo_id].append(avg_score)
-      
+
       # Step 6: Calculate the average score per CLO
       final_clo_performance = {
          clo_id: sum(scores) / len(scores) if scores else 0
@@ -755,6 +789,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
       plt.xlabel(xlabel)
       plt.ylabel(ylabel)
+      plt.ylim(0, 100)  # Set y-axis range from 0 to 100
       plt.title(title)
       plt.xticks(rotation=0)
       
@@ -765,17 +800,20 @@ class CoursePerformance(generics.RetrieveAPIView):
    
    def create_box_plot_for_sections(self, sections):
       """
-      Generate a box plot for student average grades (normalized) across all tasks in each section and save it as an image.
+      Generate a box plot for student average grades (normalized) across all tasks in each section.
+      If no data is available, generate an empty box plot instead of returning None.
       """
       section_averages = []  # Store student averages per section for a true box plot
+      valid_sections = []  # List to store sections with data
       
-      for section in sections:
+      for idx, section in enumerate(sections):  # Use enumerate to track the index
          student_scores = defaultdict(list)
-         
+      
          # Fetch scores and total possible scores for each student grouped by student email
          for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
-               normalized_score = entry.score / entry.total_possible_score  # Normalize the score
-               student_scores[entry.student.email].append(normalized_score)
+               if entry.total_possible_score:  # Avoid division by zero
+                  normalized_score = entry.score / entry.total_possible_score  # Normalize the score
+                  student_scores[entry.student.email].append(normalized_score)
          
          # Compute average normalized score per student
          student_avg_scores = [
@@ -784,31 +822,35 @@ class CoursePerformance(generics.RetrieveAPIView):
          
          if student_avg_scores:  # Ensure section has data
                section_averages.append([avg * 100 for avg in student_avg_scores])  # Convert to percentage
-      
-      if not section_averages:
-         return None  # No data to plot
-      
-      plt.figure(figsize=(8, 5))
-      boxplot = plt.boxplot(section_averages, vert=True, patch_artist=True)
-      
-      # Style Stuff
-         # Change the box background color
-      for box in boxplot['boxes']:
-         box.set(facecolor='#2b7fff')  # Deep navy blue box background
-         # Change the line inside the box (the median line) to be thicker
-      for median in boxplot['medians']:
-         median.set(linewidth=3, color='#f82001')  # Thicker median line (black color)
-      
-      plt.title("Student Average Grade Distribution by Section")
-      plt.ylabel("Average Grade (%)")
-      plt.xlabel("Sections")
-      
-      # Set x-ticks as section labels (1-based index for visualization)
-      plt.xticks(range(1, len(sections) + 1), [f"Section {i+1}" for i in range(len(sections))])
-      
-      plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
+               valid_sections.append(f"Section {idx + 1}")  # Use idx to get the section number
       
       img_path = "/tmp/box_plot.png"
+      plt.figure(figsize=(8, 5))
+      
+      if section_averages:  
+         boxplot = plt.boxplot(section_averages, vert=True, patch_artist=True)
+         
+         # Style Stuff
+         for box in boxplot['boxes']:
+               box.set(facecolor='#2b7fff')  # Deep navy blue box background
+         
+         for median in boxplot['medians']:
+               median.set(linewidth=3, color='#f82001')  # Thicker median line
+         
+         plt.xticks(range(1, len(valid_sections) + 1), valid_sections)
+         plt.ylabel("Average Grade (%)")
+         plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
+         plt.title("Student Average Grade Distribution by Section")
+      
+      else:  # If there's no data, create an empty plot with a message
+         plt.text(0.5, 0.5, "No Data Available", fontsize=14, ha='center', va='center', transform=plt.gca().transAxes)
+         plt.xticks([])
+         plt.yticks([])
+         plt.box(False)
+         plt.title("Student Average Grade Distribution by Section")
+      
+      plt.xlabel("Sections")
+      
       plt.savefig(img_path, bbox_inches='tight')
       plt.close()
       
@@ -867,7 +909,7 @@ class CoursePerformance(generics.RetrieveAPIView):
       elements.append(title)
       
       # Title (Course Name) 
-      course_name = Paragraph(f"{course.name} - {course.course_number}", styles['Heading4'])
+      course_name = Paragraph(f"{course.name} - {course.course_number}", styles['Heading3'])
       elements.append(course_name)
       
       # Description (Course Description) with wrapping
@@ -875,36 +917,56 @@ class CoursePerformance(generics.RetrieveAPIView):
       elements.append(description)
       
       # Sections
-      program_names_inline = "• " # A string to be concatonated to in order to list the programs
+      # Title with no indentation
+      semester_title_style = styles['Heading4'].clone('title_style') #clone the style
+      semester_title_style.leftIndent = 0
+      semester_title = Paragraph("Sections Listed By Semester Designation:", semester_title_style)
+      elements.append(semester_title)
+      
+      program_names_inline = "• "
       for program_name in program_names:
          program_names_inline += program_name
-      section_header = Paragraph(f"Sections:", styles['Heading4'])
-      elements.append(section_header)
-      for section in sections: # Iterate over sections
-         section_to_show = Paragraph(f"{program_names_inline} - {section.course.course_number} - {section.section_number} ({section.crn})", styles['Normal'])
-         elements.append(section_to_show)
+      
+      sections_by_semester = defaultdict(list)
+      for section in sections:
+         sections_by_semester[section.semester.designation].append(section)
+      
+      for semester_designation in sorted(sections_by_semester, key=lambda x: int(x)):
+         # Semester Heading with indentation
+         semester_header_style = styles['Heading4'].clone(f'header_style_{semester_designation}') #clone the style
+         semester_header_style.leftIndent = 30
+         semester_header = Paragraph(f"{semester_designation}:", semester_header_style)
+         elements.append(semester_header)
+      
+         # List sections under this semester with indentation
+         for section in sections_by_semester[semester_designation]:
+            section_style = styles['Normal'].clone(f'section_style_{section.crn}') #clone the style
+            section_style.leftIndent = 50
+            section_to_show = Paragraph(
+                  f"{program_names_inline} {section.course.course_number} - {section.section_number} ({section.crn})",
+                  section_style
+            )
+            elements.append(section_to_show)
+
       
       # START - CLO <-> PLO Mapping Table
       section_header = Paragraph(f"Course Learning Outcomes to Program Learning Outcomes Map:", styles['Heading4'])
       elements.append(section_header)
-      # Create a table with CLO to PLO mappings
+         # Create a table with CLO to PLO mappings
       table_data = []
       table_data.append(['Course Learning Outcome', 'Program Learning Outcome(s)'])  # Header row
-      # Iterate through the clo_plo_mappings to populate the table data
+         # Iterate through the clo_plo_mappings to populate the table data
       for clo, plos in clo_plo_mappings.items():
-         # Build the list of PLO designations for each CLO
+            # Build the list of PLO designations for each CLO
          plo_designations = ', '.join([str(plo.designation) for plo in plos])
-         
-         # Wrap CLO description text using Paragraph for text wrapping
+            # Wrap CLO description text using Paragraph for text wrapping
          clo_text = f"{str(clo.designation)}. {clo.description}"
          clo_paragraph = Paragraph(clo_text, style=getSampleStyleSheet()['BodyText'])
-         
-         # Add a row to the table data
+            # Add a row to the table data
          table_data.append([clo_paragraph, plo_designations])
-      
       # Create the table
       table = Table(table_data, colWidths=[4*inch, 2.5*inch])
-      # Define table styles
+         # Define table styles
       table_style = TableStyle([
          ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
          ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
@@ -922,7 +984,7 @@ class CoursePerformance(generics.RetrieveAPIView):
          ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
       ])
       table.setStyle(table_style)
-      # Add the table to the document
+         # Add the table to the document
       elements.append(table)
       # STOP  - CLO <-> PLO Mapping Table
       

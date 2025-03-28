@@ -223,10 +223,10 @@ def populate_database(): # Function to populate the database with random users a
    # Semester Creation
    print("[+] Creating Semesters...")
    spring_2024_semester, created = Semester.objects.get_or_create(
-      designation = 20243 # NOTE: THIS IS NOT CORRECT, IS PLACEHOLDER
+      designation = 202403 # NOTE: THIS IS NOT CORRECT, IS PLACEHOLDER
    )
    fall_2024_semester, created = Semester.objects.get_or_create(
-      designation = 20251 # NOTE: THIS IS NOT CORRECT, IS PLACEHOLDER
+      designation = 202501 # NOTE: THIS IS NOT CORRECT, IS PLACEHOLDER
    )
    semester_list = [spring_2024_semester, fall_2024_semester]
    print("[+] Created Semesters: ", semester_list)
