@@ -3,6 +3,7 @@ import { Button, TextField, Typography, Box, IconButton, MenuItem, Select, FormC
 import { ArrowForward, ArrowBack } from "@mui/icons-material";
 import api from '../api';
 import { Link } from 'react-router-dom'; // Import Link if using react-router
+import { useNavigate } from "react-router-dom";
 
 
 const AddNewCourseManual = () => {
@@ -15,6 +16,9 @@ const AddNewCourseManual = () => {
    // NOTE: The view from the backend disallows non-super users from GET calling all users, therefore the GET call will only return the current user
    const [instructor, setInstructor] = useState(null); 
    // STOP  - Variables to hold data
+   
+   // Navigation
+   const navigate = useNavigate();
    
    // START - Program data fetching
    const getPrograms = async () => {
@@ -184,6 +188,7 @@ const AddNewCourseManual = () => {
          const res = await api.post('/api/courses/', formData);
          console.log("Response from server:", res.data); // REMOVE FOR PRODUCTION
          alert("Course Data Successfully Sent!");
+         navigate("/courses");
       } catch (err) {
          console.error("Error posting Course:", err.response?.data || err.message);
          alert(`Error posting Course: ${err.response?.data?.error || err.message}`);

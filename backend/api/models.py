@@ -167,7 +167,7 @@ class Program(models.Model):
    program_id = models.BigAutoField(primary_key=True)  # Auto-handled primary key
    designation = models.CharField(max_length=20) # The 'name' of the program such as "CSCI" or "IT"
    description = models.CharField(max_length=100, null=True, blank=True)  # Optional description
-
+   
    def __str__(self):
          return f"Program: {self.designation} | {self.description[:20]}"  # Gives program designation and description
 
