@@ -676,23 +676,23 @@ class CoursePerformance(generics.RetrieveAPIView):
       Calculate the overall average student grade (normalized) across all sections in the course.
       """
       student_total_scores = defaultdict(lambda: [0, 0])  # {student_email: [total_score, total_possible]}
-
+      
       for section in sections:
          # Get all student task mappings for the section
          student_scores = StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section)
-
+         
          # Accumulate normalized scores per student
          for entry in student_scores:
                student_total_scores[entry.student.email][0] += entry.score
                student_total_scores[entry.student.email][1] += entry.total_possible_score
-
+      
       # Compute each student's overall average, then average those
       student_averages = [
          (total_score / total_possible) * 100  # Convert to percentage
          for total_score, total_possible in student_total_scores.values()
          if total_possible > 0
       ]
-
+      
       return sum(student_averages) / len(student_averages) if student_averages else 0
       
    def generate_clo_performance(self, section):
@@ -701,38 +701,38 @@ class CoursePerformance(generics.RetrieveAPIView):
       """
       # Step 1: Get all Evaluation Instruments for the given section
       evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-
+      
       # Step 2: Get all Embedded Tasks from these Evaluation Instruments
       embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
-
+      
       # Step 3: Compute **normalized** average score for each embedded task
       task_avg_scores = {}
       for task in embedded_tasks:
          task_scores = StudentTaskMapping.objects.filter(task=task).values_list("score", "total_possible_score")
-
+         
          # Normalize each individual score
          normalized_scores = [(score / total) * 100 for score, total in task_scores if total > 0]
-
+         
          # Compute the average normalized score for the task
          avg_normalized_score = sum(normalized_scores) / len(normalized_scores) if normalized_scores else 0
          task_avg_scores[task.embedded_task_id] = avg_normalized_score
       
       # Step 4: Get all TaskCLOMapping records for these embedded tasks
       task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
-
+      
       # Step 5: Group normalized task scores by CLO
       clo_scores = defaultdict(list)
       for mapping in task_clo_mappings:
          avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
          clo_id = mapping.clo.clo_id
          clo_scores[clo_id].append(avg_score)
-
+      
       # Step 6: Calculate the average score per CLO
       final_clo_performance = {
          clo_id: sum(scores) / len(scores) if scores else 0
          for clo_id, scores in clo_scores.items()
       }
-
+      
       return final_clo_performance
    
    def generate_course_clo_performance(self, sections):
@@ -1292,11 +1292,22 @@ class SectionPerformance(generics.RetrieveAPIView):
       # We'll store these in a dictionary keyed by the task's primary key (embedded_task_id)
       task_avg_scores = {}
       for task in embedded_tasks:
+         # Aggregate the average score from StudentTaskMapping
          avg_score = (
             StudentTaskMapping.objects.filter(task=task)
             .aggregate(avg_score=Avg("score"))["avg_score"]
          )
-         task_avg_scores[task.embedded_task_id] = avg_score if avg_score is not None else 0
+         
+         # Aggregate the total possible score from StudentTaskMapping for the task
+         total_possible_score = (
+            StudentTaskMapping.objects.filter(task=task)
+            .aggregate(total_possible_score=Avg("total_possible_score"))["total_possible_score"]
+         )
+         
+         # Normalize the avg_score by total_possible_score
+         normalized_avg_score = ((avg_score / total_possible_score) * 100) if total_possible_score else 0
+         task_avg_scores[task.embedded_task_id] = normalized_avg_score if avg_score is not None else 0
+
       
       # Step 4: Get all TaskCLOMapping records for these embedded tasks.
       # This junction model links EmbeddedTasks to CourseLearningObjectives (CLOs)
