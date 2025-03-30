@@ -181,6 +181,10 @@ function SpecificCourse() {
             <h2 className="font-semi-bold text-xl">
                Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
             </h2>
+            <h3>Date Added: {course.date_added}</h3>
+            {course.date_removed && 
+               <h3 className="text-red-600 italic">Date Removed: {course.date_removed}</h3>
+            }
             <h4>
                {loading ? "Loading..." : course?.description ? 
                   showFullDescription ? 

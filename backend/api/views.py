@@ -515,13 +515,11 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
    def get_queryset(self):
       return Course.objects.all()
    
-   def perform_update(self, request, serializer):
+   def perform_update(self, serializer):
       """
-      This method is called when an update (PUT) request is made.
-      It allows us to add custom behavior during the update (e.g., adding more info).
+      This method is called when an update (PUT or PATCH) request is made.
+      It allows us to add custom behavior during the update.
       """
-      if not request.user.is_superuser:  # Checks for superuser status
-         return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
       serializer.save()
    
    def perform_destroy(self, request, instance):
@@ -534,6 +532,132 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       instance.delete()
 
 class CoursePerformance(generics.RetrieveAPIView):
+   queryset = Course.objects.all()
+   serializer_class = SectionSerializer
+   lookup_field = "pk"
+   
+   def get(self, *args, **kwargs):
+      course_id = self.kwargs.get("pk")
+      
+      # Fetch the course
+      try:
+         course = Course.objects.get(pk=course_id)
+      except Course.DoesNotExist:
+         raise NotFound(detail="Course not found")
+      
+      # Fetch all sections related to the course
+      sections = Section.objects.filter(course=course)
+      
+      # Compute performance metrics for each section and average them
+      all_clo_scores = defaultdict(list)
+      for section in sections:
+         section_clo_performance = self.generate_clo_performance(section)
+         for clo_id, score in section_clo_performance.items():
+               all_clo_scores[clo_id].append(score)
+      
+      # Calculate the average CLO performance
+      average_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in all_clo_scores.items()
+      }
+      
+      overall_plo_performance = self.generate_course_plo_performance(sections)
+      
+      print("average_clo_performance", average_clo_performance)
+      print("overall_plo_performance", overall_plo_performance)
+      
+      return Response({
+         "clo_performance": average_clo_performance,
+         "plo_performance": overall_plo_performance
+      })
+   
+   def generate_clo_performance(self, section):
+      """
+      Generate the CLO performance for a single section, ensuring normalized scores.
+      """
+      # Step 1: Get all Evaluation Instruments for the given section
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      
+      # Step 2: Get all Embedded Tasks from these Evaluation Instruments
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
+      
+      # Step 3: Compute **normalized** average score for each embedded task
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         task_scores = StudentTaskMapping.objects.filter(task=task).values_list("score", "total_possible_score")
+         
+         # Normalize each individual score
+         normalized_scores = [(score / total) * 100 for score, total in task_scores if total > 0]
+         
+         # Compute the average normalized score for the task
+         avg_normalized_score = sum(normalized_scores) / len(normalized_scores) if normalized_scores else 0
+         task_avg_scores[task.embedded_task_id] = avg_normalized_score
+      
+      # Step 4: Get all TaskCLOMapping records for these embedded tasks
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+      
+      # Step 5: Group normalized task scores by CLO
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_id = mapping.clo.clo_id
+         clo_scores[clo_id].append(avg_score)
+      
+      # Step 6: Calculate the average score per CLO
+      final_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_course_clo_performance(self, sections):
+      """
+      Generate the CLO performance for all sections in the course.
+      """
+      all_clo_scores = defaultdict(list)
+      
+      for section in sections:
+            # Get CLO performance for the individual section
+            section_clo_performance = self.generate_clo_performance(section)
+            for clo_id, score in section_clo_performance.items():
+               all_clo_scores[clo_id].append(score)
+      
+      # Compute average CLO performance for the entire course
+      final_clo_performance = {
+            clo_id: sum(scores) / len(scores) if scores else 0
+            for clo_id, scores in all_clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_course_plo_performance(self, sections):
+      """
+      Generate the PLO performance for all sections in the course.
+      """
+      # Get CLO performance for the entire course
+      all_clo_performance = self.generate_course_clo_performance(sections)
+      clo_ids = all_clo_performance.keys()
+      
+      all_plo_scores = defaultdict(list)
+      
+      # Get PLO performance for each CLO
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      for mapping in clo_plo_mappings:
+            clo_id = mapping.clo.clo_id
+            plo_id = mapping.plo.plo_id
+            clo_score = all_clo_performance.get(clo_id, 0)
+            all_plo_scores[plo_id].append(clo_score)
+      
+      # Compute average PLO performance for the entire course
+      final_plo_performance = {
+            plo_id: sum(scores) / len(scores) if scores else 0
+            for plo_id, scores in all_plo_scores.items()
+      }
+      
+      return final_plo_performance
+
+class CoursePerformanceReport(generics.RetrieveAPIView):
    queryset = Course.objects.all()
    serializer_class = SectionSerializer
    lookup_field = "pk"
@@ -593,8 +717,8 @@ class CoursePerformance(generics.RetrieveAPIView):
       overall_avg_grade = self.calculate_average_student_grade(sections)
       overall_clo_performance = self.generate_course_clo_performance(sections)
       overall_plo_performance = self.generate_course_plo_performance(sections)
-      print("overall_clo_performance", overall_clo_performance)
-      print("overall_plo_performance", overall_plo_performance)
+      #print("overall_clo_performance", overall_clo_performance)
+      #print("overall_plo_performance", overall_plo_performance)
       
       # Query CLOs and PLOs to get designations
       clo_designations = {}

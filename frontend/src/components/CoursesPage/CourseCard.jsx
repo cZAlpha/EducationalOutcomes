@@ -10,7 +10,7 @@ const CourseCard = ({
    a_version_details,
    date_added,
    date_removed,
-   }) => {
+}) => {
    return (
       <motion.div
          initial={{ opacity: 0, y: 20 }}
@@ -18,7 +18,15 @@ const CourseCard = ({
          transition={{ duration: 0.4 }}
          className="w-full"
       >
-         <Card sx={{ width: "100%", boxShadow: 3, borderRadius: 3, p: 2 }}>
+         <Card 
+            sx={{ 
+               width: "100%", 
+               boxShadow: 3, 
+               borderRadius: 3, 
+               p: 2, 
+               ...(date_removed && { backgroundColor: "#f0f0f0", opacity: 0.6 }) // Grey out card if date_removed exists
+            }}
+         >
             <CardContent sx={{ width: "100%", p: 0 }}>
                <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {name || ""}
