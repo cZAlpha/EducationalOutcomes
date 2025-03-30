@@ -4,12 +4,15 @@ import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Acco
 import AddIcon from "@mui/icons-material/Add";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import api from '../../api';
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import SettingsIcon from '@mui/icons-material/Settings';
 
 
 function SpecificCourseInformation({ course, semesters, instructor, sections, CLOs, PLOs, PLOCLOMappings }) {
    const navigate = useNavigate(); // For navigating to specific section page
-   
+   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // To track delete course modal visibility
+   const [isReinstateModalOpen, setIsReinstateModalOpen] = useState(false); // Tracks if the reinstate course model is open
    const [selectedTab, setSelectedTab] = useState("Sections");
    const [extraSections, setExtraSections] = useState([]); // Keeps track of added sections
    const [openForm, setOpenForm] = useState(false);
@@ -23,6 +26,18 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    const [error, setError] = useState(""); // To gracefully display errors to the user
    
    const [expandedCLO, setExpandedCLO] = useState(null); // State to track which CLO is expanded
+   const [coursePerformance, setCoursePerformance] = useState({}); // Obj to store the performance of the course
+   const [loading, setLoading] = useState(true); // State to track loading status
+   
+   
+   const getBackgroundColor = (score) => {
+      if (score < 70) return 'bg-red-500';
+      if (score < 80) return 'bg-orange-500';
+      if (score < 84) return 'bg-yellow-300';
+      if (score < 90) return 'bg-green-200';
+      if (score < 95) return 'bg-green-400';
+      return 'bg-green-600';
+   };
    
    // Create a mapping of CLOs to their corresponding PLOs
    const cloToPloMap = CLOs.reduce((acc, clo) => {
@@ -81,12 +96,102 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       navigate(`/sections/${sectionId}`);
    };
    
+   //  START - Remove Course
+   const handleRemove = async () => {
+      try {
+         // Get the current date in YYYY-MM-DD format
+         const currentDate = new Date().toISOString().split('T')[0]; // Extract the date part (YYYY-MM-DD)
+         console.log("Current Date: ", currentDate);
+         
+         // Send the PUT request with the required fields
+         await api.patch(`/api/courses/${course.course_id}/`, {
+            date_removed: currentDate, // Automatically set date_removed to current date
+         });
+         navigate("/courses/");
+      } catch (err) {
+         alert(`Error updating course: ${err.message}`);
+      }
+   };
+   //  STOP  - Remove Course
+   
+   //  START - Reinstate Course
+   const handleReinstate = async () => {
+      try {
+         // Send the PUT request with null to remove date_removed
+         await api.patch(`/api/courses/${course.course_id}/`, {
+            date_removed: null, // Set date_removed to null
+         });
+         navigate("/courses/");
+      } catch (err) {
+         alert(`Error updating course: ${err.message}`);
+      }
+   };
+   //  STOP  - Reinstate Course
+   
+   // START - Course Performance data fetching
+   const getCoursePerformance = async () => {
+      try {
+         const res = await api.get(`/api/courses/${course.course_id}/performance/`);
+         
+         if (!res.data || (!res.data.clo_performance && !res.data.plo_performance)) {
+            setCoursePerformance({});
+            return;
+         }
+         
+         // Map CLO IDs to their corresponding 'designation' and 'description'
+         const mappedCLOPerformance = res.data.clo_performance
+            ? Object.entries(res.data.clo_performance).map(([cloId, score]) => {
+                  const cloObj = CLOs.find(clo => clo.clo_id === parseInt(cloId)); // Match CLO object by ID
+                  return {
+                     designation: cloObj ? cloObj.designation : `Unknown CLO (${cloId})`,
+                     description: cloObj ? cloObj.description : "",
+                     score: parseFloat(score).toFixed(2),
+                  };
+            })
+            : [];
+         
+         // Map PLO IDs to their corresponding 'designation' and 'description'
+         const mappedPLOPerformance = res.data.plo_performance
+            ? Object.entries(res.data.plo_performance).map(([ploId, score]) => {
+                  const ploObj = PLOs.find(plo => plo.plo_id === parseInt(ploId)); // Match PLO object by ID
+                  return {
+                     designation: ploObj ? ploObj.designation : `Unknown PLO (${ploId})`,
+                     description: ploObj ? ploObj.description : "",
+                     score: parseFloat(score).toFixed(2),
+                  };
+            })
+            : [];
+         
+         // Combine CLO and PLO performance into state
+         setCoursePerformance({
+            CLOs: mappedCLOPerformance,
+            PLOs: mappedPLOPerformance,
+         });
+         console.log("Course Performance: ", {
+            CLOs: mappedCLOPerformance,
+            PLOs: mappedPLOPerformance,
+         } )
+      } catch (err) {
+         alert(`Error fetching Performance Data: ${err.message}`);
+      }
+   };   
+   // STOP - Course Performance data fetching
+   
+   
+   useEffect(() => {
+      const fetchData = async () => {
+         await getCoursePerformance();
+         setLoading(false); // Set loading to false when all data is fetched
+      };
+      
+      fetchData();
+   }, [])
    
    // HTML STUFF
    return (
       <div className="w-full max-w-3xl bg-white shadow-lg rounded-lg p-6">
          {/* Selectors */}
-         <div className="w-full flex justify-between mb-4 gap-x-4">
+         <div className="w-full flex flex-col md:flex-row justify-between mb-4 gap-x-4 gap-y-2">
             <button
                className={`px-4 py-2 rounded-md w-full font-bold
                   ${selectedTab === "Sections" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
@@ -101,88 +206,265 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
             >
                CLO Mappings
             </button>
+            <button
+               className={`px-4 py-2 rounded-md w-full font-bold 
+                  ${selectedTab === "Performance" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+               onClick={() => setSelectedTab("Performance")}
+            >
+               Performance
+            </button>
+            <button
+               className={`px-4 py-2 rounded-md w-full font-bold 
+                  ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+               onClick={() => setSelectedTab("Settings")}
+            >
+               <SettingsIcon />
+            </button>
          </div>
          
-         {/* Display Section */}
-         <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
-            {selectedTab === "Sections" ? (
-               <div>
-                  <div className="flex justify-between items-center mb-4">
-                     <h3 className="font-bold text-lg">Sections</h3>
-                     <IconButton onClick={handleOpenForm} color="primary">
-                        <AddIcon />
-                     </IconButton>
+         {/* Delete Modal */}
+         {isDeleteModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+               <div className="bg-white p-6 rounded-lg w-[80%] md:w-1/3">
+                  <h3 className="font-bold text-lg mb-2">Are you sure you want to remove this Course?</h3>
+                  <p className="text-md italc mb-4">This will de-list the Course as active.</p>
+                  <div className="flex justify-between">
+                     <button 
+                        className="px-4 py-2 bg-red-500 text-white rounded-md" 
+                        onClick={handleRemove}
+                     >
+                        Yes, Remove
+                     </button>
+                     <button 
+                        className="px-4 py-2 bg-gray-300 text-black rounded-md" 
+                        onClick={() => setIsDeleteModalOpen(false)}
+                     >
+                        Cancel
+                     </button>
                   </div>
-                  {sections.length > 0 || extraSections.length > 0 ? (
-                     <div className="flex flex-col gap-4">
-                        {sections.map((section, index) => (
-                           <div
-                              key={section.section_id}
-                              className="w-full"
-                              onClick={(e) => handleSectionClick(section.section_id, e)}
-                              style={{ cursor: "pointer", pointerEvents: "auto" }}
-                           >                        
+               </div>
+            </div>
+         )}
+         
+         {/* Reinstate Modal */}
+         {isReinstateModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+               <div className="bg-white p-6 rounded-lg w-[80%] md:w-1/3">
+                  <h3 className="font-bold text-lg mb-2">Are you sure you want to reinstate this Course?</h3>
+                  <p className="text-md italc mb-4">This will list the Course as active.</p>
+                  <div className="flex justify-between">
+                     <button 
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md" 
+                        onClick={handleReinstate}
+                     >
+                        Yes, Reinstate
+                     </button>
+                     <button 
+                        className="px-4 py-2 bg-gray-300 text-black rounded-md" 
+                        onClick={() => setIsReinstateModalOpen(false)}
+                     >
+                        Cancel
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
+         
+         {/* Display Section */}
+         {!isDeleteModalOpen && (
+            <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
+               {selectedTab === "Sections" ? (
+                  <div>
+                     <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-lg">Sections</h3>
+                        <IconButton onClick={handleOpenForm} color="primary">
+                           <AddIcon />
+                        </IconButton>
+                     </div>
+                     {sections.length > 0 || extraSections.length > 0 ? (
+                        <div className="flex flex-col gap-4">
+                           {sections.map((section, index) => (
+                              <div
+                                 key={section.section_id}
+                                 className="w-full"
+                                 onClick={(e) => handleSectionClick(section.section_id, e)}
+                                 style={{ cursor: "pointer", pointerEvents: "auto" }}
+                              >                        
+                                 <SpecificCoursesSectionCard
+                                    key={`existing-${index}`}
+                                    course={section.course_details.name} 
+                                    section_number={section.section_number}
+                                    semester={section.semester_details.designation} 
+                                    crn={section.crn}
+                                    instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
+                                 />
+                              </div>
+                           ))}
+                           {extraSections.map((section, index) => (
                               <SpecificCoursesSectionCard
-                                 key={`existing-${index}`}
-                                 course={section.course_details.name} 
+                                 key={`extra-${index}`}
+                                 course_name={section.course_name}
                                  section_number={section.section_number}
-                                 semester={section.semester_details.designation} 
+                                 semester={section.semester}
                                  crn={section.crn}
                                  instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
                               />
-                           </div>
-                        ))}
-                        {extraSections.map((section, index) => (
-                           <SpecificCoursesSectionCard
-                              key={`extra-${index}`}
-                              course_name={section.course_name}
-                              section_number={section.section_number}
-                              semester={section.semester}
-                              crn={section.crn}
-                              instructor={section.instructor_details ? `${section.instructor_details.last_name}` : "N/A"}
-                           />
-                        ))}
-                     </div>
-                  ) : (
-                     <p>No sections available.</p>
-                  )}
-               </div>
-            ) : (
-               <div>
-                  {CLOs.map((clo) => (
-                  <Accordion key={clo.clo_id}>
-                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <div className="flex flex-col gap-y-1">
-                           <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
-                           <p className="pl-4">{clo.description}</p>
+                           ))}
                         </div>
-                     </AccordionSummary>
-                     <AccordionDetails>
-                        {cloToPloMap[clo.clo_id]?.length > 0 ? (
-                        <Card variant="outlined">
-                           <CardContent>
-                              <Typography variant="subtitle1" fontWeight="bold">
-                              Mapped PLOs:
-                              </Typography>
-                              <ul className="flex flex-col gap-y-1 text-left pt-2">
-                              {cloToPloMap[clo.clo_id].map((plo) => (
-                                 <li key={plo.plo_id}>
-                                    <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
-                                 </li>
-                              ))}
-                              </ul>
-                           </CardContent>
-                        </Card>
-                        ) : (
-                        <Typography color="textSecondary">No mapped PLOs.</Typography>
-                        )}
-                     </AccordionDetails>
-                  </Accordion>
-                  ))}
-               </div>
-            )}
-         </div>
-         
+                     ) : (
+                        <p>No sections available.</p>
+                     )}
+                  </div>
+               ) : selectedTab === "CLO Mappings" ? (
+                  <div>
+                     <h1 className="font-bold text-md mb-6">CLO Mappings</h1>
+                     {CLOs.map((clo) => (
+                     <Accordion key={clo.clo_id}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                           <div className="flex flex-col gap-y-1">
+                              <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
+                              <p className="pl-4">{clo.description}</p>
+                           </div>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                           {cloToPloMap[clo.clo_id]?.length > 0 ? (
+                           <Card variant="outlined">
+                              <CardContent>
+                                 <Typography variant="subtitle1" fontWeight="bold">
+                                 Mapped PLOs:
+                                 </Typography>
+                                 <ul className="flex flex-col gap-y-1 text-left pt-2">
+                                 {cloToPloMap[clo.clo_id].map((plo) => (
+                                    <li key={plo.plo_id}>
+                                       <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
+                                    </li>
+                                 ))}
+                                 </ul>
+                              </CardContent>
+                           </Card>
+                           ) : (
+                           <Typography color="textSecondary">No mapped PLOs.</Typography>
+                           )}
+                        </AccordionDetails>
+                     </Accordion>
+                     ))}
+                  </div>
+               ) : selectedTab === "Performance" ? (
+                  coursePerformance ? (
+                     <>
+                        <h1 className="font-bold text-md mb-6">Performance</h1>
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           {/* CLO Performance */}
+                           <Accordion>
+                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className="font-bold text-lg">CLO Performance</Typography>
+                                 </AccordionSummary>
+                                 <AccordionDetails>
+                                    {coursePerformance.CLOs && coursePerformance.CLOs.length > 0 ? (
+                                       <ul className="space-y-2">
+                                             {coursePerformance.CLOs.map((clo) => (
+                                                <li key={clo.designation} className="bg-gray-100 p-2 rounded-lg">
+                                                   <div className="flex flex-col gap-y-2">
+                                                         <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(clo.score)}`}>
+                                                            <h1 className="font-xl font-bold">{clo.designation}</h1>
+                                                            <h1 className="font-xl font-bold">{clo.score}%</h1>
+                                                         </div>
+                                                         <p className="text-left pl-4 pr-4 pb-2">{clo.description}</p>
+                                                   </div>
+                                                </li>
+                                             ))}
+                                       </ul>
+                                    ) : (
+                                       <p className="text-gray-500">No CLO data available.</p>
+                                    )}
+                                 </AccordionDetails>
+                           </Accordion>
+                           
+                           {/* PLO Performance */}
+                           <Accordion>
+                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className="font-bold text-lg">PLO Performance</Typography>
+                                 </AccordionSummary>
+                                 <AccordionDetails>
+                                    {coursePerformance.PLOs && coursePerformance.PLOs.length > 0 ? (
+                                       <ul className="space-y-2">
+                                             {coursePerformance.PLOs.map((plo) => (
+                                                <li key={plo.designation} className="bg-gray-100 p-2 rounded-lg">
+                                                   <div className="flex flex-col gap-y-2">
+                                                         <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(plo.score)}`}>
+                                                            <h1 className="font-xl font-bold">{plo.designation}</h1>
+                                                            <h1 className="font-xl font-bold">{plo.score}%</h1>
+                                                         </div>
+                                                         <p className="text-left pl-4 pr-4 pb-2">{plo.description}</p>
+                                                   </div>
+                                                </li>
+                                             ))}
+                                       </ul>
+                                    ) : (
+                                       <p className="text-gray-500">No PLO data available.</p>
+                                    )}
+                                 </AccordionDetails>
+                           </Accordion>
+                        </div>
+                     </>
+                  ) : (
+                        <div>Loading Performance Data...</div> // Or any loading/placeholder content
+                  )
+               ) : (selectedTab === "Settings" ? (
+                  course.date_removed === null ? (
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="w-full"
+                     >
+                        <h3 className="font-bold text-lg mb-4">Settings</h3>
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           <div className="flex flex-col justify-center items-center gap-4 mt-4">
+                                 {!isDeleteModalOpen && (
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Remove this Course?</p>
+                                       <button
+                                          className="px-4 py-2 bg-red-500 text-white rounded-md"
+                                          onClick={() => setIsDeleteModalOpen(true)} // Show modal on button click
+                                       >
+                                          Remove
+                                       </button>
+                                    </div>
+                                 )}
+                           </div>
+                        </div>
+                     </motion.div>
+                  ) : (
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="w-full"
+                     >
+                        <h3 className="font-bold text-lg mb-4">Settings</h3>
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           <div className="flex flex-col justify-center items-center gap-4 mt-4">
+                                 {!isReinstateModalOpen && (
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Reinstate this Course?</p>
+                                       <button
+                                          className="px-4 py-2 bg-blue-500 text-white rounded-md"
+                                          onClick={() => setIsReinstateModalOpen(true)} // Show modal on button click
+                                       >
+                                          Reinstate
+                                       </button>
+                                    </div>
+                                 )}
+                           </div>
+                        </div>
+                     </motion.div>
+                  ) 
+               ) : ( 
+                  <div>Select a tab, no tab selected.</div>
+               ))}
+            </div>
+         )}
          
          {/* Dialog Form for Adding a New Section */}
          <Dialog 
@@ -220,11 +502,11 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                      value={instructor.length > 0 ? instructor[0].last_name : "N/A"}
                   />
                   <div className="flex gap-x-4 justify-between items-center">
-                     <Button variant="outlined" color="error" onClick={handleCloseForm}>
-                        Cancel
-                     </Button>
                      <Button variant="contained" color="primary" onClick={handleAddSection}>
                         Add Section
+                     </Button>
+                     <Button variant="outlined" color="error" onClick={handleCloseForm}>
+                        Cancel
                      </Button>
                   </div>
                </div>

@@ -90,7 +90,6 @@ function SpecificSectionInformation (section) {
    const getSectionPerformance = async () => {
       try {
          const res = await api.get(`/api/sections/${section.section.section_id}/performance/`);
-         console.log("SECTION PERFORMANCE: ", res.data);
          
          if (!res.data || (!res.data.clo_performance && !res.data.plo_performance)) {
             setSectionPerformance({});

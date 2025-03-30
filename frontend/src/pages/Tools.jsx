@@ -150,7 +150,7 @@ function Tools() {
                   params.append("excludedSection", sectionId);
             });
                // Call the backend
-            const res = await api.get(`/api/courses/${selectedCourse}/performance?${params.toString()}`, {
+            const res = await api.get(`/api/courses/${selectedCourse}/performancereport?${params.toString()}`, {
                   responseType: "arraybuffer", // Important: Get the response as arraybuffer
             });
                // Set the course data from the backend fetch

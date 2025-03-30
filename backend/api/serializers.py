@@ -122,9 +122,11 @@ class CourseSerializer(serializers.ModelSerializer):
       return value
    
    def validate_date_removed(self, value):
-      if value and value < self.initial_data.get('date_added'):
+      # Check if value is provided (not None) and if it is earlier than date_added
+      if value and self.initial_data.get('date_added') and value < self.initial_data.get('date_added'):
          raise ValidationError("The date_removed cannot be earlier than the date_added.")
       return value
+
 
 
 # Program Course Mapping Serializer
