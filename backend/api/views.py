@@ -1566,8 +1566,36 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       # STOP  - Get All CLOs and What PLOs They Correspond To
       print("CLO-PLO Mappings: ", clo_plo_mappings)
       
+      # START - Get PLO & CLO Performance with Designations
+         # Query CLOs and PLOs to get designations
+      clo_designations = {}
+      plo_designations = {}
+      
+      for clo_id in overall_clo_performance.keys():
+         clo = CourseLearningObjective.objects.get(pk=clo_id) 
+         clo_designations[clo_id] = clo.designation
+      
+      for plo_id in overall_plo_performance.keys():
+         plo = ProgramLearningObjective.objects.get(pk=plo_id) 
+         plo_designations[plo_id] = plo.designation
+      # Replace PK IDs with designations in performance dictionaries
+      clo_performance_with_designations = {
+         clo_designations[clo_id]: value
+         for clo_id, value in overall_clo_performance.items()
+      }
+      plo_performance_with_designations = {
+         plo_designations[plo_id]: value
+         for plo_id, value in overall_plo_performance.items()
+      }
+      # STOP  - Get PLO & CLO Performance with Designations
+      
+      # Generate graphs
+      plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      clo_graph_path = self.create_bar_chart(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
+      box_plot_path = self.create_box_plot_for_section(section)
+      
       # Generate PDF
-      pdf_path = self.generate_pdf(performance_data, section, clo_plo_mappings)
+      pdf_path = self.generate_pdf(performance_data, section, clo_plo_mappings, clo_graph_path, plo_graph_path, box_plot_path)
       
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Section_Performance.pdf")
    
@@ -1672,65 +1700,59 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       plt.close()
       return img_path
    
-   def create_box_plot_for_sections(self, sections):
+   def create_box_plot_for_section(self, section):
       """
-      Generate a box plot for student average grades (normalized) across all tasks in each section.
+      Generate a box plot for student average grades (normalized) in a given section.
       If no data is available, generate an empty box plot instead of returning None.
       """
-      section_averages = []  # Store student averages per section for a true box plot
-      valid_sections = []  # List to store sections with data
+      student_scores = defaultdict(list)
       
-      for idx, section in enumerate(sections):  # Use enumerate to track the index
-         student_scores = defaultdict(list)
+      # Fetch scores and total possible scores for each student grouped by student email
+      for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
+         if entry.total_possible_score:  # Avoid division by zero
+               normalized_score = entry.score / entry.total_possible_score  # Normalize the score
+               student_scores[entry.student.email].append(normalized_score)
       
-         # Fetch scores and total possible scores for each student grouped by student email
-         for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
-               if entry.total_possible_score:  # Avoid division by zero
-                  normalized_score = entry.score / entry.total_possible_score  # Normalize the score
-                  student_scores[entry.student.email].append(normalized_score)
-         
-         # Compute average normalized score per student
-         student_avg_scores = [
-               sum(scores) / len(scores) for scores in student_scores.values()
-         ]
-         
-         if student_avg_scores:  # Ensure section has data
-               section_averages.append([avg * 100 for avg in student_avg_scores])  # Convert to percentage
-               valid_sections.append(f"Section {idx + 1}")  # Use idx to get the section number
+      # Compute average normalized score per student
+      student_avg_scores = [
+         sum(scores) / len(scores) for scores in student_scores.values()
+      ]
       
       img_path = "/tmp/box_plot.png"
-      plt.figure(figsize=(8, 5))
+      plt.figure(figsize=(6, 5))  # Adjusted size for a single section
       
-      if section_averages:  
+      if student_avg_scores:  # Ensure section has data
+         section_averages = [avg * 100 for avg in student_avg_scores]  # Convert to percentage
          boxplot = plt.boxplot(section_averages, vert=True, patch_artist=True)
          
          # Style Stuff
          for box in boxplot['boxes']:
-               box.set(facecolor='#2b7fff')  # Deep navy blue box background
+            box.set(facecolor='#2b7fff')  # Deep navy blue box background
          
          for median in boxplot['medians']:
-               median.set(linewidth=3, color='#f82001')  # Thicker median line
+            median.set(linewidth=3, color='#f82001')  # Thicker median line
          
-         plt.xticks(range(1, len(valid_sections) + 1), valid_sections)
+         plt.xticks([])  # Remove x-axis ticks completely
+         plt.xlabel("")
          plt.ylabel("Average Grade (%)")
          plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
-         plt.title("Student Average Grade Distribution by Section")
+         plt.title(f"Student Average Grade Distribution")
       
       else:  # If there's no data, create an empty plot with a message
          plt.text(0.5, 0.5, "No Data Available", fontsize=14, ha='center', va='center', transform=plt.gca().transAxes)
          plt.xticks([])
          plt.yticks([])
          plt.box(False)
-         plt.title("Student Average Grade Distribution by Section")
+         plt.title(f"Student Average Grade Distribution")
       
-      plt.xlabel("Sections")
+      plt.xlabel("Section")
       
       plt.savefig(img_path, bbox_inches='tight')
       plt.close()
       
       return img_path
    
-   def generate_pdf(self, performance_data, section, clo_plo_mappings):
+   def generate_pdf(self, performance_data, section, clo_plo_mappings, clo_graph, plo_graph, box_plot):
       """
       Generate a PDF from the performance data using ReportLab, saving to a file.
       """
@@ -1739,10 +1761,39 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       styles = getSampleStyleSheet()
       elements = []
       
+      # Path to the static images
+      dsu_logo_justwords_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "DSU_Logo_JustWords.png")
+      pemacs_logo_long_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "PEMaCS_Logo_LongStandard.jpg")
+      
+      # Check if both images exist, then make a table to make them inline with each other at the top of the document
+      if os.path.exists(dsu_logo_justwords_image_path) and os.path.exists(pemacs_logo_long_image_path):
+         dsu_logo = Image(dsu_logo_justwords_image_path, width=3*inch, height=1*inch)
+         pemacs_logo_long = Image(pemacs_logo_long_image_path, width=4*inch, height=1.2*inch)
+         
+         # Adjust column widths to match image sizes
+         logo_table = Table(
+            [[dsu_logo, pemacs_logo_long]], 
+            colWidths=[3.2*inch, 4.2*inch]  # Make the first column wide enough
+         )
+         # Apply table styling
+         logo_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Center vertically
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),       # Align DSU logo to left
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),       # Align PEMaCS logo to left
+            ('LEFTPADDING', (0, 0), (0, 0), 0),      # Remove extra left padding
+            ('RIGHTPADDING', (0, 0), (0, 0), 5),     # Add space between logos
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Add spacing
+         ]))
+         elements.append(logo_table)  # Add table to PDF
+      
       elements.append(Paragraph("Section Performance Report", styles['Title']))
       elements.append(Spacer(1, 12))
       elements.append(Paragraph(f"{section.course.name} #{section.section_number} ({section.crn}) | Semester: {section.semester.designation}", styles['Heading2']))
-      elements.append(Spacer(1, 24))
+      elements.append(Spacer(1, 4))
+      
+      # Description (Course Description) with wrapping
+      description = Paragraph(f"{section.course.description}", styles['Normal'])
+      elements.append(description)
       
       # Instructor Comment Section
       elements.append(Paragraph("Instructor Comments:", styles['Heading3']))
@@ -1891,6 +1942,23 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       
       elements.append(plo_table)
       
+      # Embed Graphs
+      # PLO Performance
+      plo_label = Paragraph("PLO Performance", styles['Normal'])
+      elements.append(plo_label)
+      plo_image = Image(plo_graph, width=4*inch, height=2.5*inch)
+      elements.append(plo_image)
+      # CLO Performance
+      clo_label = Paragraph("CLO Performance", styles['Normal'])
+      elements.append(clo_label)
+      clo_image = Image(clo_graph, width=4*inch, height=2.5*inch)
+      elements.append(clo_image)
+      # Student Grade Box Plot
+      box_plot_label = Paragraph("Student Grade Distribution", styles['Normal'])
+      elements.append(box_plot_label)
+      box_plot_image = Image(box_plot, width=4*inch, height=2.5*inch)
+      elements.append(box_plot_image)
+
       doc.build(elements)
       return pdf_path # Return the path to the created PDF
 # STOP - Section
