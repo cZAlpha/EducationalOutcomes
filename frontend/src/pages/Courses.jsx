@@ -4,11 +4,13 @@ import FilterCoursesBar from "../components/CoursesPage/FilterCoursesBar";
 import CoursesTable from "../components/CoursesPage/CoursesTable";
 import api from '../api';
 import { USER } from "../constants";
+import LoadingIndicator from "../components/LoadingIndicator";
+
 
 function Courses() {
    // START - Variables
    const [currentUser, setCurrentUser] = useState(null); // Stores the user object
-   
+   const [loading, setLoading] = useState(true);
    const [courses, setCourses] = useState([]); // Used to store the courses fetched from the api call
    const [filteredCourses, setFilteredCourses] = useState([]); // Used to store filtered courses
    const [programs, setPrograms] = useState([]); // Used to store the programs fetched  from the api call
@@ -21,7 +23,7 @@ function Courses() {
    // STOP  - Variables
    
    // START - User Data Fetching
-   const getUserData = () => {
+   const getUserData = async () => {
       try {
          const userData = JSON.parse(localStorage.getItem(USER));
          if (userData) {
@@ -37,7 +39,7 @@ function Courses() {
    // STOP  - User Data Fetching
    
    // START - Course Data Fetching
-   const getCourses = () => {
+   const getCourses = async () => {
       api
          .get('/api/courses/')
          .then((res) => setCourses(res.data))
@@ -47,7 +49,7 @@ function Courses() {
    // STOP  - Course Data Fetching   
    
    // START - Program Data Fetching
-   const getPrograms = () => {
+   const getPrograms = async () => {
       api
          .get('/api/programs/')
          .then((res) => setPrograms(res.data))
@@ -56,7 +58,7 @@ function Courses() {
    // STOP  - Program Data Fetching
    
    // START - Program Course Mapping Data Fetching
-   const getProgramCourseMappings = () => {
+   const getProgramCourseMappings = async () => {
       api
          .get('/api/program-course-mappings/')
          .then((res) => setProgramCourseMappings(res.data))
@@ -75,7 +77,7 @@ function Courses() {
       }));
    };
    
-      // ON FILTER CHANGE CALLS
+   // ON FILTER CHANGE CALLS
    useEffect(() => { 
       const applyFilters = () => {
          let updatedCourses = [...courses];
@@ -120,18 +122,8 @@ function Courses() {
    };
    // STOP  - Refresh handling from FilterCoursesBar component
    
-   // CONSOLE LOGGING AND MAPPING OF PROGRAMS ONTO COURSES
-   useEffect(() => {
-      if (courses.length > 0) {
-         console.log("Courses: ", courses);
-      }
-      if (programs.length > 0) {
-         console.log("Programs: ", programs);
-      }
-      if (programCourseMappings.length > 0) {
-         console.log("Program Course Mappings: ", programCourseMappings);
-      }
-      
+   // MAPPING OF PROGRAMS ONTO COURSES
+   useEffect(() => {      
       // Ensure courses and programCourseMappings are available
       if (courses.length > 0 && programCourseMappings.length > 0) {
          // Create a lookup object for program names by ID
@@ -156,10 +148,15 @@ function Courses() {
    
    // ON MOUNT FUNCTION CALLS
    useEffect(() => { // On component mount, call all functions within this 
-      getUserData(); // Gets user data from local storage (NEEDS TO BE CHANGED TO AN AUTH CONTEXT)
-      getProgramCourseMappings();
-      getCourses(); // Fetches courses from the backend through the api
-      getPrograms();
+      const fetchData = async () => {
+         await getUserData(); // Gets user data from local storage (NEEDS TO BE CHANGED TO AN AUTH CONTEXT)
+         await getProgramCourseMappings();
+         await getPrograms();
+         await getCourses(); // Fetches courses from the backend through the api
+         setLoading(false); // Set loading to false when all data is fetched
+      };
+      
+      fetchData();      
    }, []);
    
    
@@ -174,9 +171,19 @@ function Courses() {
             <FilterCoursesBar onFilterChange={handleFilterChange} onRefresh={handleRefresh} />
          </div>
          
-         <div className="min-w-[200px] md:min-w-[600px] text-left">
-            <CoursesTable courses={filteredCourses} coursesPerPage={filters.recordsPerPage} />
-         </div>
+         {loading ? 
+            (
+               <LoadingIndicator />
+            ) :
+            (
+               <div className="min-w-[200px] md:min-w-[600px] text-left">
+                  <CoursesTable courses={filteredCourses} coursesPerPage={filters.recordsPerPage} />
+               </div>
+            )
+            
+         }
+         
+         
       </div>
    );
 }
