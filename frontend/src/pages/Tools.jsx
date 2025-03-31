@@ -39,6 +39,12 @@ function Tools() {
    // START - Sections Variable(s)
       // Sections fetched from the backend are stored here
    const [sections, setSections] = useState([]); 
+      // The section that the user selects for a section performance report, will be sent to the backend (should be the ID [pk] of the selected section rather than the obj itself)
+   const [selectedSection, setSelectedSection] = useState([]);
+      // Section performance data grabbed from the backend
+   const [sectionPerformanceData, setSectionPerformanceData] = useState({});
+      // A state var used to track whether the section performance pdf viewer should be shown
+   const [showSectionPerformancePdfViewer, setShowSectionPerformancePdfViewer] = useState(false);
       // Filtered sections that are shown to the user in the Course Performance Report Form, filtered by 'courseSemesters' value (sections that are from the 'selectedCourse' var are stored in this var)
    const [filteredSections, setFilteredSections] = useState([]);
       // Excluded sections (sections that were selected to be discluded from the Course Performance Report generation, this will be directly sent to the backend!)
@@ -161,11 +167,32 @@ function Tools() {
             setIsLoading(false);
          }
       } else {
-         console.log("Error fetching course performance data due to no course being selected!");
+         alert("Error fetching course performance data due to no course being selected!");
       }
    };
-   
    // STOP  - Course Performance Data Fetching
+   
+   // START - Section Performance Data Fetching 
+   const getSectionPerformance = async () => {
+      if (selectedSection) {
+         setIsLoading(true); // Set loading to be true because it is loading
+         try {
+            // Call the backend
+            const res = await api.get(`/api/sections/${selectedSection}/performancereport`, {
+                  responseType: "arraybuffer", // Important: Get the response as arraybuffer
+            });
+               // Set the section data from the backend fetch
+            setSectionPerformanceData(res.data);
+         } catch (err) {
+            alert(`Error fetching section performance data: ${err.message}`);
+         } finally {
+            setIsLoading(false); // After all is said and done, set loading to false
+         }
+      } else {
+         alert("Error fetching section performance data due to no section being selected!");
+      }
+   };
+   // STOP  - Section Performance Data Fetching
    
    // START - Submit Course Performance Data
       // NOTE: Probably Should make this work for all performance report generation modal(s)
@@ -175,10 +202,15 @@ function Tools() {
          await getCoursePerformance(); // Await the finishing of the grabbing of performance data
          setIsLoading(false); // Stop loading indicator
          setShowCoursePerformancePdfViewer(true); // Switch to PDF viewer after data is loaded
+      } else if (selectedSection) {
+         setIsLoading(true); // Set loading state to true
+         await getSectionPerformance(); // Await the finishing of the grabbing of performance data
+         setIsLoading(false); // Stop loading indicator
+         setShowSectionPerformancePdfViewer(true); // Switch to PDF viewer after data is loaded
       } else {
          // Handle the case where no course is selected
-         console.log("Please select a course.");
-         // Optionally, display an error message to the user
+         console.log("Please select a program, course, or section to get a performance report for.");
+         // Maybe display an error message to the user?
       }
    };
    // STOP  - Submit Course Performance Data
@@ -203,15 +235,6 @@ function Tools() {
       
       fetchData();
    }, []);
-   
-   useEffect(() => {
-      console.log(" ");
-      console.log(" ");
-      console.log(" ");
-      console.log(" ");
-      console.log("Selected Semesters(s): ", selectedCourseSemesters);
-      console.log("Excluded Section(s): ", excludedSections);
-   }, [selectedCourseSemesters, excludedSections])
    
    
    return (
@@ -265,8 +288,8 @@ function Tools() {
                </div>
                <button 
                   className="ml-6 bg-blue-500 flex-grow text-white px-4 py-2 rounded-md w-[100px] h-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={true}
-                  // UNCOMMENT THIS WHEN YOU ACTUALLY IMPLEMENT IT: disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showEvaluationInstrumentPerformanceReportForm}
+                  onClick={() => setShowSectionPerformanceReportForm(true)}
+                  disabled={showCoursePerformanceReportForm || showSectionPerformanceReportForm || showProgramPerformanceReportForm}
                >
                   <AddIcon />
                </button>
@@ -480,7 +503,151 @@ function Tools() {
                </>
             )}
          </Dialog>
-      
+         
+         {/* Section Performance Report Modal*/}
+         <Dialog open={showSectionPerformanceReportForm} maxWidth="md" fullWidth>
+            {!isLoading && !showSectionPerformancePdfViewer && (
+               <>
+                  <DialogTitle>Section Performance Report</DialogTitle>
+                  <DialogContent>
+                     <p>Choose a Section to generate a report for</p>
+                     <Autocomplete
+                        fullWidth
+                        options={sections}
+                        getOptionLabel={(option) => (option.course_details.name + " " + option.section_number + " | (" + option.crn + ")" + " | " + option.semester_details.designation)} 
+                        renderInput={(params) => <TextField {...params} label="Sections" variant="outlined" margin="normal" />}
+                        onChange={(event, newValue) => {
+                           setSelectedSection(newValue?.section_id);
+                        }}
+                     />
+                  </DialogContent>
+                  <DialogActions>
+                     <Button 
+                        type="submit" 
+                        color="primary" 
+                        variant="contained" 
+                        onClick={() => {
+                           handleSubmit(); // This calls the function to get the performance from the backend
+                           setSelectedSection(null);
+                        }}
+                     >
+                     Submit
+                     </Button>
+                     <Button 
+                        color="error" 
+                        variant="outlined" 
+                        onClick={() => {
+                           setShowSectionPerformanceReportForm(false);
+                           setSelectedSection(null);
+                        }}
+                     >
+                     Cancel
+                     </Button>
+                  </DialogActions>
+               </>
+            )}
+            
+            {isLoading && (
+               <>
+                  <DialogTitle>Fetching Performance Information...</DialogTitle>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+                     <LoadingIndicator />
+                  </div>
+               </>
+            )}
+            
+            {!isLoading && showSectionPerformancePdfViewer && (
+               <>
+                  {/* Title */}
+                  <DialogTitle>Section Performance Report</DialogTitle>
+                  {/* Content */}
+                  <DialogContent style={{height: '90vh', overflowY: 'auto'}}>
+                        {/* Create Blob and display size if ArrayBuffer exists */}
+                        {sectionPerformanceData instanceof ArrayBuffer && (
+                              <>
+                                 <div className="mb-6"> {/* Contains the filename and filesize */}
+                                    <p>
+                                       <span className="font-semibold">Filename:</span> <span>Section_Performance_Report.pdf</span>
+                                    </p>
+                                    
+                                    {/* Create a blob from the array buffer to get the size. */}
+                                    {/* Calculate file size in KB or MB */}
+                                    {(() => {
+                                       const fileSizeInBytes = new Blob([sectionPerformanceData], { type: 'application/pdf' }).size;
+                                       if (fileSizeInBytes < 1024 * 1024) {
+                                          return <p><span className="font-semibold">Size:</span> {(fileSizeInBytes / 1024).toFixed(2)} KB</p>;
+                                       } else {
+                                          return <p><span className="font-semibold">Size:</span> {(fileSizeInBytes / (1024 * 1024)).toFixed(2)} MB</p>;
+                                       }
+                                    })()}
+                                 </div>
+                                 <PdfViewer pdfData={sectionPerformanceData} />
+                              </>
+                        )}
+                  </DialogContent>
+                  
+                  {/* Dialog Buttons */}
+                  <DialogActions>
+                        {/* Download Button */}
+                        <Button color="primary" variant="contained" 
+                           sx={{
+                              minWidth: '40px',
+                              minHeight: '50px',
+                              backgroundColor: isDownloading ? 'grey' : '', // Set background color to grey if downloading
+                              '&:hover': {
+                                 backgroundColor: isDownloading ? 'grey' : '', // Ensure hover stays the same when downloading
+                              },
+                           }}
+                           onClick={() => {
+                              handleDownloading();
+                              if (sectionPerformanceData) { // Check if sectionPerformanceData exists
+                                 try {
+                                       const blob = new Blob([sectionPerformanceData], { type: 'application/pdf' });
+                                       const url = URL.createObjectURL(blob);
+                                       const link = document.createElement('a');
+                                       link.href = url;
+                                       link.setAttribute('download', 'Section_Performance_Report.pdf');
+                                       document.body.appendChild(link);
+                                       link.click();
+                                       link.remove();
+                                 } catch (error) {
+                                       console.error("Error creating or downloading PDF:", error);
+                                 }
+                              } else {
+                                 console.error("sectionPerformanceData is undefined or null.");
+                              }
+                           }
+                        }>
+                           {isDownloading ?
+                                 <LoadingIndicator size="md" />
+                              :
+                                 `Download PDF` 
+                           }
+                           
+                        </Button>
+                        {/* Cancel Button */}
+                        <Button color="error" variant="outlined" 
+                           sx={{
+                              minWidth: '40px',
+                              minHeight: '50px',
+                              borderColor: 'error.main', // Border color for the outlined variant
+                              '&:hover': {
+                                 backgroundColor: 'error.main', // Background color when hovered
+                                 color: 'white', // Text color changes to white on hover
+                                 borderColor: 'error.main', // Ensure border color stays the same
+                              },
+                           }}
+                           onClick={() => {
+                              setShowSectionPerformanceReportForm(false);
+                              setShowSectionPerformancePdfViewer(false);
+                           }
+                        }>
+                           Close
+                        </Button>
+                  </DialogActions>
+               </>
+            )}
+         </Dialog>
       </div>   
    );
 }
