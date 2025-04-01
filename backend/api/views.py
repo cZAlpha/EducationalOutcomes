@@ -791,8 +791,8 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
       # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
       
       # Generate graphs
-      plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
-      clo_graph_path = self.create_bar_chart(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
+      plo_graph_path = self.create_bar_chart_plos(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      clo_graph_path = self.create_bar_chart_clos(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
       box_plot_path = self.create_box_plot_for_sections(sections)
       
       # Create and return PDF
@@ -909,7 +909,7 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
       
       return final_plo_performance
    
-   def create_bar_chart(self, data, title, xlabel, ylabel):
+   def create_bar_chart_plos(self, data, title, xlabel, ylabel):
       """
       Generate a bar chart and save it as an image file.
       """
@@ -920,6 +920,28 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
       plt.ylim(0, 100)  # Set y-axis range from 0 to 100
       plt.title(title)
       plt.xticks(rotation=0)
+      
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
+   
+   def create_bar_chart_clos(self, data, title, xlabel, ylabel):
+      """
+      Generate a bar chart and save it as an image file.
+      """
+      plt.figure(figsize=(6, 4))
+      plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
+      plt.xlabel(xlabel)
+      plt.ylabel(ylabel)
+      plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+      plt.title(title)
+      plt.xticks(rotation=0)
+      # Convert x-ticks from strings to integers
+      x_ticks = sorted([int(x) for x in data.keys()])
+      
+      # Ensure x-axis ticks are whole numbers
+      plt.xticks(np.arange(min(x_ticks), max(x_ticks) + 1, 1), rotation=0)
       
       img_path = f"/tmp/{title.replace(' ', '_')}.png"
       plt.savefig(img_path, bbox_inches='tight')
@@ -1615,8 +1637,8 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       # STOP  - Get PLO & CLO Performance with Designations
       
       # Generate graphs
-      plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
-      clo_graph_path = self.create_bar_chart(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
+      plo_graph_path = self.create_bar_chart_plos(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      clo_graph_path = self.create_bar_chart_clos(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
       box_plot_path = self.create_box_plot_for_section(section)
       
       # Generate PDF
@@ -1704,7 +1726,7 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       plo_performance = self.generate_plo_performance(section)
       return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
    
-   def create_bar_chart(self, data, title, xlabel, ylabel):
+   def create_bar_chart_plos(self, data, title, xlabel, ylabel):
       """
       Generate a bar chart and save it as an image file.
       """
@@ -1715,6 +1737,28 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       plt.ylim(0, 100)  # Set y-axis range from 0 to 100
       plt.title(title)
       plt.xticks(rotation=0)
+      
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
+   
+   def create_bar_chart_clos(self, data, title, xlabel, ylabel):
+      """
+      Generate a bar chart and save it as an image file.
+      """
+      plt.figure(figsize=(6, 4))
+      plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
+      plt.xlabel(xlabel)
+      plt.ylabel(ylabel)
+      plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+      plt.title(title)
+      plt.xticks(rotation=0)
+      # Convert x-ticks from strings to integers
+      x_ticks = sorted([int(x) for x in data.keys()])
+      
+      # Ensure x-axis ticks are whole numbers
+      plt.xticks(np.arange(min(x_ticks), max(x_ticks) + 1, 1), rotation=0)
       
       img_path = f"/tmp/{title.replace(' ', '_')}.png"
       plt.savefig(img_path, bbox_inches='tight')
@@ -1882,21 +1926,27 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       # START - PLOs table
       section_header = Paragraph("Program Learning Outcomes (PLOs):", styles['Heading4'])
       elements.append(section_header)
-         # Create table data with header
+      
+      # Create table data with header
       table_data = [['Designation', 'Description']]
-         # Populate table data with PLO designations and descriptions
-      for plo in program_learning_objectives.values():  # Iterate over PLO objects directly
+      
+      # Sort PLOs by their designation (single-letter reference)
+      sorted_plos = sorted(program_learning_objectives.values(), key=lambda plo: plo.designation)
+      
+      # Populate table data with sorted PLO designations and descriptions
+      for plo in sorted_plos:
          table_data.append([plo.designation, Paragraph(plo.description, style=getSampleStyleSheet()['BodyText'])])
       
       # Create the table
       table = Table(table_data, colWidths=[inch, 5.5 * inch])
-         # Define table styles
+      
+      # Define table styles
       table_style = TableStyle([
          ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
          ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
          ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
          ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text
-         ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Left-align text in the first column (Designations)
+         ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Center-align text in the first column (Designations)
          ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Descriptions)
          ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
          ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
@@ -1908,9 +1958,10 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
          ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
       ])
       table.setStyle(table_style)
-         # Add the table to the document
+      
+      # Add the table to the document
       elements.append(table)
-      # STOP  - PLOs table
+      # STOP - PLOs table
       
       # START - CLOs -> Evaluation Types Used
          # Define section header for the table

@@ -374,6 +374,10 @@ function Tools() {
                   </DialogContent>
                   <DialogActions>
                      <Button 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                        }}
                         type="submit" 
                         color="primary" 
                         variant="contained" 
@@ -387,6 +391,16 @@ function Tools() {
                      Submit
                      </Button>
                      <Button 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                           borderColor: 'error.main', // Border color for the outlined variant
+                           '&:hover': {
+                              backgroundColor: 'error.main', // Background color when hovered
+                              color: 'white', // Text color changes to white on hover
+                              borderColor: 'error.main', // Ensure border color stays the same
+                           },
+                        }}
                         color="error" 
                         variant="outlined" 
                         onClick={() => {
@@ -523,6 +537,10 @@ function Tools() {
                   </DialogContent>
                   <DialogActions>
                      <Button 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                        }}
                         type="submit" 
                         color="primary" 
                         variant="contained" 
@@ -534,6 +552,16 @@ function Tools() {
                      Submit
                      </Button>
                      <Button 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                           borderColor: 'error.main', // Border color for the outlined variant
+                           '&:hover': {
+                              backgroundColor: 'error.main', // Background color when hovered
+                              color: 'white', // Text color changes to white on hover
+                              borderColor: 'error.main', // Ensure border color stays the same
+                           },
+                        }}
                         color="error" 
                         variant="outlined" 
                         onClick={() => {

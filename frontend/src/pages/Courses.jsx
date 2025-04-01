@@ -3,7 +3,6 @@ import AddCourseButton from "../components/CoursesPage/AddNewCourseButton";
 import FilterCoursesBar from "../components/CoursesPage/FilterCoursesBar";
 import CoursesTable from "../components/CoursesPage/CoursesTable";
 import api from '../api';
-import { USER } from "../constants";
 import LoadingIndicator from "../components/LoadingIndicator";
 
 
@@ -21,22 +20,6 @@ function Courses() {
       recordsPerPage: 5,
    });
    // STOP  - Variables
-   
-   // START - User Data Fetching
-   const getUserData = async () => {
-      try {
-         const userData = JSON.parse(localStorage.getItem(USER));
-         if (userData) {
-            setCurrentUser(userData);
-         } else {
-            setCurrentUser(null);
-         }
-      } catch (error) {
-         console.error("Account Component | Error loading user from localStorage:", error);
-         setCurrentUser(null);
-      }
-   };
-   // STOP  - User Data Fetching
    
    // START - Course Data Fetching
    const getCourses = async () => {
@@ -149,7 +132,6 @@ function Courses() {
    // ON MOUNT FUNCTION CALLS
    useEffect(() => { // On component mount, call all functions within this 
       const fetchData = async () => {
-         await getUserData(); // Gets user data from local storage (NEEDS TO BE CHANGED TO AN AUTH CONTEXT)
          await getProgramCourseMappings();
          await getPrograms();
          await getCourses(); // Fetches courses from the backend through the api
