@@ -4,7 +4,6 @@ import SectionsTable from "../components/SectionsPage/SectionsTable";
 import { Tooltip, IconButton } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import api from '../api';
-import { USER } from "../constants";
 
 
 const Sections = () => {

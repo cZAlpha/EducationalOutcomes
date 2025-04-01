@@ -1,6 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import Dashboard from './pages/Dashboard' // Page imports (and no, you can't do it all in one line because React is dumb)
-import UserDashboard from "./pages/UserDashboard"
 import { AuthProvider } from "./components/AuthProvider"
 import Login from "./pages/Login" 
 import Home from "./pages/Home"
@@ -75,18 +73,6 @@ function App() {
         <PersistentGradient /* Adds a persistent gradient that is on every page */ />
         <Navbar /* Global navbar */ /> 
         <Routes>
-          {/* <Route path="/dashboard" element={ // MIGHT NOT USE THIS!!!!
-              <ProtectedRoute>
-                <Dashboard /> 
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/userdashboard" element={ // MIGHT NOT USE THIS!!!!
-              <ProtectedRoute>
-                <UserDashboard /> 
-              </ProtectedRoute>
-            }
-          /> */}
           <Route path="/account" element={                             /* Account page (Protected) */
             <ProtectedRoute>
               <Account/>
