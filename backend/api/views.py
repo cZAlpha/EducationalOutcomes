@@ -10,28 +10,32 @@ from rest_framework import status, generics
 from django.http import FileResponse
 from collections import defaultdict
 from django.db import transaction
-import json
+
+# User-made django imports
+from .serializers import * # Import serializers
+from .models import * # Import models
 
 # Graphing imports
 import matplotlib
 matplotlib.use("Agg") # Uses the 'Agg' backend for matplotlib to ensure no GUI instances are spun up, thus avoiding memory leaks and wasted processing power and time
 import matplotlib.pyplot as plt
-import base64
-import io
-import os
+
 
 # PDF imports
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER 
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 
-# User-made django imports
-from .serializers import * # Import serializers
-from .models import * # Import models
+# Misc. imports
+import numpy as np
+import base64
+import json
+import io
+import os
 
 
 # TODO:
@@ -1071,7 +1075,30 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
                   section_style
             )
             elements.append(section_to_show)
-
+      
+      # Instructor Comment Section
+      elements.append(Paragraph("Instructor Comments:", styles['Heading3']))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
       
       # START - CLO <-> PLO Mapping Table
       section_header = Paragraph(f"Course Learning Outcomes to Program Learning Outcomes Map:", styles['Heading4'])
@@ -1153,7 +1180,7 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
          # Add the table to the document
       elements.append(table)
       # STOP - PLOs Table
-
+      
       # START - CLOs -> Evaluation Types Used
       # Define section header for the table
       section_header = Paragraph("Course Learning Objectives (CLOs) and Evaluation Types:", styles['Heading4'])
@@ -1493,6 +1520,551 @@ class SectionPerformance(generics.RetrieveAPIView):
       plo_performance = self.generate_plo_performance(section)
       
       return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
+
+class SectionPerformanceReport(generics.RetrieveAPIView):
+   """
+   This view is meant to ascertain the section performance.
+   It retrieves the section based on the provided primary key (pk).
+   """
+   queryset = Section.objects.all()
+   serializer_class = SectionSerializer
+   lookup_field = "pk"
+   
+   def get(self, request, *args, **kwargs):
+      section_id = self.kwargs.get("pk")
+      
+      # Check if the given section_id corresponds to a valid Section object
+      try:
+         section = Section.objects.get(pk=section_id)
+      except Section.DoesNotExist:
+         raise NotFound(detail="Section not found")
+      
+      # Perform necessary logic for performance report generation here
+      performance_data = self.generate_performance_report(section)
+      
+      # Compute performance metrics
+      overall_plo_performance = self.generate_plo_performance(section)
+      overall_clo_performance = self.generate_clo_performance(section)
+      
+      # START - Get All CLOs and What PLOs They Correspond To
+         # Query CLOs and PLOs to get the actual objects by their IDs
+      clo_objects = {}
+      for clo_id in overall_clo_performance.keys():
+         clo = CourseLearningObjective.objects.get(clo_id=clo_id)
+         clo_objects[clo.clo_id] = clo
+      
+      plo_objects = {}
+      for plo_id in overall_plo_performance.keys():
+         plo = ProgramLearningObjective.objects.get(plo_id=plo_id)
+         plo_objects[plo.plo_id] = plo
+      # Construct CLO → PLO mappings dictionary using the junction table with actual objects
+      clo_plo_mappings = {}
+      for clo_id, clo in clo_objects.items():
+         # Get the mapped PLOs from the junction table
+         mapped_plos = PLOCLOMapping.objects.filter(clo_id=clo_id).values_list("plo_id", flat=True)
+         # Store the PLO objects in the dictionary
+         clo_plo_mappings[clo] = []
+         for plo_id in mapped_plos:
+               if plo_id in plo_objects:
+                  clo_plo_mappings[clo].append(plo_objects[plo_id])
+      # STOP  - Get All CLOs and What PLOs They Correspond To
+      
+      # START - Get all PLOs
+      program_learning_objectives = {}
+      for plo_id in overall_plo_performance.keys():
+         plo = ProgramLearningObjective.objects.get(plo_id=plo_id)
+         program_learning_objectives[plo.plo_id] = plo
+      # STOP  - Get all PLOs
+      
+      # START - Get All CLOs and What Types of Evaluation Instruments They Used
+         # Query CLOs and their associated evaluation instrument types
+      clo_evaluation_types = defaultdict(set)
+         # This algorithm right here is O(n^4), quite possibly the worst algorithm I've ever written.
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      for instrument in evaluation_instruments:
+         embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=instrument)
+         for task in embedded_tasks:
+               task_clo_mappings = TaskCLOMapping.objects.filter(task=task)
+               for mapping in task_clo_mappings:
+                  clo_evaluation_types[mapping.clo.designation].add(instrument.evaluation_type)
+      clo_evaluation_types = {clo: list(types) for clo, types in clo_evaluation_types.items()}
+      print(f"CLOs to Types: {clo_evaluation_types}")
+      # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
+      
+      # START - Get PLO & CLO Performance with Designations
+         # Query CLOs and PLOs to get designations
+      clo_designations = {}
+      plo_designations = {}
+      
+      for clo_id in overall_clo_performance.keys():
+         clo = CourseLearningObjective.objects.get(pk=clo_id) 
+         clo_designations[clo_id] = clo.designation
+      
+      for plo_id in overall_plo_performance.keys():
+         plo = ProgramLearningObjective.objects.get(pk=plo_id) 
+         plo_designations[plo_id] = plo.designation
+      # Replace PK IDs with designations in performance dictionaries
+      clo_performance_with_designations = {
+         clo_designations[clo_id]: value
+         for clo_id, value in overall_clo_performance.items()
+      }
+      plo_performance_with_designations = {
+         plo_designations[plo_id]: value
+         for plo_id, value in overall_plo_performance.items()
+      }
+      # STOP  - Get PLO & CLO Performance with Designations
+      
+      # Generate graphs
+      plo_graph_path = self.create_bar_chart(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      clo_graph_path = self.create_bar_chart(clo_performance_with_designations, "CLO Performance", "CLOs", "Average Score")
+      box_plot_path = self.create_box_plot_for_section(section)
+      
+      # Generate PDF
+      pdf_path = self.generate_pdf(performance_data, section, clo_plo_mappings, program_learning_objectives, clo_evaluation_types, clo_graph_path, plo_graph_path, box_plot_path)
+      
+      return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Section_Performance.pdf")
+   
+   def generate_clo_performance(self, section):
+      # Step 1: Get all Evaluation Instruments for the given section
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+
+      # Step 2: Get all Embedded Tasks from these Evaluation Instruments
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
+
+      # Step 3: Compute average score for each embedded task
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         avg_score = (
+               StudentTaskMapping.objects.filter(task=task)
+               .aggregate(avg_score=Avg("score"))["avg_score"]
+         )
+         
+         total_possible_score = (
+               StudentTaskMapping.objects.filter(task=task)
+               .aggregate(total_possible_score=Avg("total_possible_score"))["total_possible_score"]
+         )
+         
+         normalized_avg_score = ((avg_score / total_possible_score) * 100) if total_possible_score else 0
+         task_avg_scores[task.embedded_task_id] = normalized_avg_score if avg_score is not None else 0
+
+      # Step 4: Get all CLOs for the section's course
+      all_clos = CourseLearningObjective.objects.filter(course=section.course)
+
+      # Step 5: Get all TaskCLOMapping records for these embedded tasks
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+
+      # Step 6: Group task scores by CLO
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_scores[mapping.clo.clo_id].append(avg_score)
+
+      # Step 7: Compute average score per CLO
+      final_clo_performance = {}
+      for clo in all_clos:
+         if clo.clo_id in clo_scores:
+               scores = clo_scores[clo.clo_id]
+               final_clo_performance[clo.clo_id] = sum(scores) / len(scores) if scores else 0
+         else:
+               final_clo_performance[clo.clo_id] = -1  # No tasks mapped to this CLO
+
+      return final_clo_performance
+   
+   def generate_plo_performance(self, section):
+      # Step 1: Get CLO performance using the existing function
+      clo_performance = self.generate_clo_performance(section)
+      
+      # Step 2: Get all CLOs from the computed performance
+      clo_ids = clo_performance.keys()
+      
+      # Step 3: Get PLO mappings for these CLOs
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      
+      # Step 4: Group CLO scores by PLO
+      plo_scores = defaultdict(list)
+      for mapping in clo_plo_mappings:
+         clo_id = mapping.clo.clo_id  # CLO ID from mapping
+         plo_id = mapping.plo.plo_id  # PLO ID from mapping
+         clo_score = clo_performance.get(clo_id, 0)  # Get the CLO's average score
+         plo_scores[plo_id].append(clo_score)  # Append to PLO list
+      
+      # Step 5: Compute final PLO performance (simple average)
+      final_plo_performance = {
+         plo_id: sum(scores) / len(scores) if scores else 0
+         for plo_id, scores in plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def generate_performance_report(self, section):
+      """
+      Generate a performance report for the section.
+      """
+      clo_performance = self.generate_clo_performance(section)
+      plo_performance = self.generate_plo_performance(section)
+      return {"section_id": section.section_id, "clo_performance": clo_performance, "plo_performance": plo_performance}
+   
+   def create_bar_chart(self, data, title, xlabel, ylabel):
+      """
+      Generate a bar chart and save it as an image file.
+      """
+      plt.figure(figsize=(6, 4))
+      plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
+      plt.xlabel(xlabel)
+      plt.ylabel(ylabel)
+      plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+      plt.title(title)
+      plt.xticks(rotation=0)
+      
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
+   
+   def create_box_plot_for_section(self, section):
+      """
+      Generate a box plot for student average grades (normalized) in a given section.
+      If no data is available, generate an empty box plot instead of returning None.
+      """
+      student_scores = defaultdict(list)
+      
+      # Fetch scores and total possible scores for each student grouped by student email
+      for entry in StudentTaskMapping.objects.filter(task__evaluation_instrument__section=section):
+         if entry.total_possible_score:  # Avoid division by zero
+               normalized_score = entry.score / entry.total_possible_score  # Normalize the score
+               student_scores[entry.student.email].append(normalized_score)
+      
+      # Compute average normalized score per student
+      student_avg_scores = [
+         sum(scores) / len(scores) for scores in student_scores.values()
+      ]
+      
+      img_path = "/tmp/box_plot.png"
+      plt.figure(figsize=(6, 5))  # Adjusted size for a single section
+      
+      if student_avg_scores:  # Ensure section has data
+         section_averages = [avg * 100 for avg in student_avg_scores]  # Convert to percentage
+         boxplot = plt.boxplot(section_averages, vert=True, patch_artist=True)
+         
+         # Style Stuff
+         for box in boxplot['boxes']:
+            box.set(facecolor='#2b7fff')  # Deep navy blue box background
+         
+         for median in boxplot['medians']:
+            median.set(linewidth=3, color='#f82001')  # Thicker median line
+         
+         plt.xticks([])  # Remove x-axis ticks completely
+         plt.xlabel("")
+         plt.ylabel("Average Grade (%)")
+         plt.ylim(0, 100)  # Ensure y-axis runs from 0% to 100%
+         plt.title(f"Student Average Grade Distribution")
+      
+      else:  # If there's no data, create an empty plot with a message
+         plt.text(0.5, 0.5, "No Data Available", fontsize=14, ha='center', va='center', transform=plt.gca().transAxes)
+         plt.xticks([])
+         plt.yticks([])
+         plt.box(False)
+         plt.title(f"Student Average Grade Distribution")
+      
+      plt.xlabel("Section")
+      
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      
+      return img_path
+   
+   def generate_pdf(self, performance_data, section, clo_plo_mappings, program_learning_objectives, clo_evaluation_types, clo_graph, plo_graph, box_plot):
+      """
+      Generate a PDF from the performance data using ReportLab, saving to a file.
+      """
+      pdf_path = "/tmp/Section_Performance.pdf"
+      doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+      styles = getSampleStyleSheet()
+      elements = []
+      
+      # Path to the static images
+      dsu_logo_justwords_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "DSU_Logo_JustWords.png")
+      pemacs_logo_long_image_path = os.path.join(settings.BASE_DIR, "api", "static", "images", "PEMaCS_Logo_LongStandard.jpg")
+      
+      # Check if both images exist, then make a table to make them inline with each other at the top of the document
+      if os.path.exists(dsu_logo_justwords_image_path) and os.path.exists(pemacs_logo_long_image_path):
+         dsu_logo = Image(dsu_logo_justwords_image_path, width=3*inch, height=1*inch)
+         pemacs_logo_long = Image(pemacs_logo_long_image_path, width=4*inch, height=1.2*inch)
+         
+         # Adjust column widths to match image sizes
+         logo_table = Table(
+            [[dsu_logo, pemacs_logo_long]], 
+            colWidths=[3.2*inch, 4.2*inch]  # Make the first column wide enough
+         )
+         # Apply table styling
+         logo_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Center vertically
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),       # Align DSU logo to left
+            ('ALIGN', (1, 0), (1, 0), 'LEFT'),       # Align PEMaCS logo to left
+            ('LEFTPADDING', (0, 0), (0, 0), 0),      # Remove extra left padding
+            ('RIGHTPADDING', (0, 0), (0, 0), 5),     # Add space between logos
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Add spacing
+         ]))
+         elements.append(logo_table)  # Add table to PDF
+      
+      elements.append(Paragraph("Section Performance Report", styles['Title']))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(f"{section.course.name} #{section.section_number} ({section.crn}) | Semester: {section.semester.designation}", styles['Heading2']))
+      elements.append(Spacer(1, 4))
+      
+      # Description (Course Description) with wrapping
+      description = Paragraph(f"{section.course.description}", styles['Normal'])
+      elements.append(description)
+      
+      # Instructor Comment Section
+      elements.append(Paragraph("Instructor Comments:", styles['Heading3']))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      elements.append(Paragraph(
+         "__________________________________________________________________________________",
+         styles['Normal']
+      ))
+      elements.append(Spacer(1, 12))
+      
+      # START - CLO <-> PLO Mapping Table
+      section_header = Paragraph(f"Course Learning Outcomes to Program Learning Outcomes Map:", styles['Heading4'])
+      elements.append(section_header)
+         # Create a table with CLO to PLO mappings
+      table_data = []
+      table_data.append(['Course Learning Outcome', 'Program Learning Outcome(s)'])  # Header row
+         # Iterate through the clo_plo_mappings to populate the table data
+      for clo, plos in clo_plo_mappings.items():
+            # Build the list of PLO designations for each CLO
+         plo_designations = ', '.join([str(plo.designation) for plo in plos])
+            # Wrap CLO description text using Paragraph for text wrapping
+         clo_text = f"{str(clo.designation)}. {clo.description}"
+         clo_paragraph = Paragraph(clo_text, style=getSampleStyleSheet()['BodyText'])
+            # Add a row to the table data
+         table_data.append([clo_paragraph, plo_designations])
+      # Create the table
+      table = Table(table_data, colWidths=[4*inch, 2.5*inch])
+         # Define table styles
+      table_style = TableStyle([
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text (header, initially)
+         ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Left-align text in the first column (CLO descriptions)
+         ('ALIGN', (1, 1), (-1, -1), 'CENTER'),  # Center-align text in the second column (PLOs)
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+      ])
+      table.setStyle(table_style)
+         # Add the table to the document
+      elements.append(table)
+      # STOP  - CLO <-> PLO Mapping Table
+      
+      # START - PLOs table
+      section_header = Paragraph("Program Learning Outcomes (PLOs):", styles['Heading4'])
+      elements.append(section_header)
+         # Create table data with header
+      table_data = [['Designation', 'Description']]
+         # Populate table data with PLO designations and descriptions
+      for plo in program_learning_objectives.values():  # Iterate over PLO objects directly
+         table_data.append([plo.designation, Paragraph(plo.description, style=getSampleStyleSheet()['BodyText'])])
+      
+      # Create the table
+      table = Table(table_data, colWidths=[inch, 5.5 * inch])
+         # Define table styles
+      table_style = TableStyle([
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text
+         ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Left-align text in the first column (Designations)
+         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Descriptions)
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+      ])
+      table.setStyle(table_style)
+         # Add the table to the document
+      elements.append(table)
+      # STOP  - PLOs table
+      
+      # START - CLOs -> Evaluation Types Used
+         # Define section header for the table
+      section_header = Paragraph("Course Learning Objectives (CLOs) and Evaluation Types:", styles['Heading4'])
+      elements.append(section_header)
+         # Create a table for CLOs with 'CLO Designation' and 'Evaluation Types' as headers
+      table_data = []
+      table_data.append(['CLO Designation', 'Evaluation Types'])  # Header row
+         # Iterate through the CLOs to populate the table data
+      for clo, evaluation_types in clo_evaluation_types.items():
+         clo_designation = str(clo)  # Convert designation to string
+         evaluation_text = ', '.join(str(evaluation.type_name) for evaluation in evaluation_types)
+         evaluation_paragraph = Paragraph(evaluation_text, styles['BodyText'])
+         
+         # Add the row to the table data
+         table_data.append([clo_designation, evaluation_paragraph])
+      
+      # Create the table
+      table = Table(table_data, colWidths=[1.5*inch, 5*inch])
+      
+      # Define table styles
+      table_style = TableStyle([
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text initially
+         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Evaluation Types)
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+      ])
+      
+      table.setStyle(table_style)
+      
+      # Add the table to the document
+      elements.append(table)
+      # STOP  - CLOs -> Evaluation Types Used
+      
+      # START - PLO Performance Table w/ Designations
+      elements.append(Paragraph("PLO Performance", styles['Heading3']))
+      plo_data = [["PLO", "Average Score"]]  # Header row
+      
+      # Define a style for wrapping text at 200 characters
+      plo_style = ParagraphStyle(
+         "PLOStyle",
+         parent=styles["Normal"],
+         wordWrap="CJK",  # Ensures text wraps properly
+         maxLineLength=200  # Helps keep the text contained within the cell
+      )
+      
+      for plo_id, score in performance_data['plo_performance'].items():
+         # Query the ProgramLearningObjective model to get the PLO designation
+         try:
+            plo = ProgramLearningObjective.objects.get(plo_id=plo_id)  # Fetch the PLO by its id
+            plo_designation = plo.designation  # Get designation
+            plo_description = plo.description  # Get description
+         except ProgramLearningObjective.DoesNotExist:
+            plo_designation = "Unknown PLO"
+            plo_description = "No description available"
+         
+         # Create a wrapped paragraph for the PLO column
+         plo_text = Paragraph(f"<b>{plo_designation}:</b> {plo_description}", plo_style)
+         
+         if score != -1: # Check for unused PLO
+            plo_data.append([plo_text, f"{score:.2f}%"])  # Append formatted text
+         else:
+            plo_data.append([plo_text, "N/A"])  # Append formatted text
+      
+      plo_table = Table(plo_data, colWidths=[350, 100])  # Adjust width as needed
+      
+      plo_table.setStyle(TableStyle([
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Left-align PLO column
+         ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Center-align score column
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+         ('GRID', (0, 0), (-1, -1), 1, colors.black)
+      ]))
+      
+      elements.append(plo_table)
+      # STOP  - PLO Performance Table with designations
+      
+      # START - CLO Performance Table w/ Designations
+      elements.append(Paragraph("CLO Performance", styles['Heading3']))
+      clo_data = [["CLO", "Average Score"]]  # Header row
+      
+      # Define a style for wrapping text at 200 characters
+      clo_style = ParagraphStyle(
+         "CLOStyle",
+         parent=styles["Normal"],
+         wordWrap="CJK",  # Ensures text wraps properly
+         maxLineLength=200  # This indirectly helps keep the text within bounds
+      )
+      
+      for clo_id, score in performance_data['clo_performance'].items():
+         # Query the CourseLearningObjectives model to get the CLO designation based on the clo_id
+         try:
+            clo = CourseLearningObjective.objects.get(clo_id=clo_id)  # Fetch the CLO by its id
+            clo_designation = clo.designation  # Grab designation
+            clo_description = clo.description  # Grab description
+         except CourseLearningObjective.DoesNotExist:
+            clo_designation = "Unknown CLO"
+            clo_description = "No description available"
+         
+         # Create a wrapped paragraph for the CLO column
+         clo_text = Paragraph(f"<b>{clo_designation}:</b> {clo_description}", clo_style)
+         
+         if score != -1: # Check for non-used CLOs (-1 scores)
+            clo_data.append([clo_text, f"{score:.2f}%"])  # Append wrapped text
+         else: 
+            clo_data.append([clo_text, "N/A"])  # Append wrapped text
+      
+      clo_table = Table(clo_data, colWidths=[350, 100])  
+      
+      clo_table.setStyle(TableStyle([
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+         ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Left-align CLO column
+         ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Center-align score column
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+         ('GRID', (0, 0), (-1, -1), 1, colors.black)
+      ]))
+      
+      elements.append(clo_table)
+      # STOP  - CLO Performance Table
+      
+      # Embed Graphs
+      # PLO Performance
+      plo_label = Paragraph("PLO Performance", styles['Normal'])
+      elements.append(plo_label)
+      plo_image = Image(plo_graph, width=4*inch, height=2.5*inch)
+      elements.append(plo_image)
+      # CLO Performance
+      clo_label = Paragraph("CLO Performance", styles['Normal'])
+      elements.append(clo_label)
+      clo_image = Image(clo_graph, width=4*inch, height=2.5*inch)
+      elements.append(clo_image)
+      # Student Grade Box Plot
+      box_plot_label = Paragraph("Student Grade Distribution", styles['Normal'])
+      elements.append(box_plot_label)
+      box_plot_image = Image(box_plot, width=4*inch, height=2.5*inch)
+      elements.append(box_plot_image)
+
+      doc.build(elements)
+      return pdf_path # Return the path to the created PDF
 # STOP - Section
 
 
