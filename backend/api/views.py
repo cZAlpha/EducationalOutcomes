@@ -1576,6 +1576,21 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
          program_learning_objectives[plo.plo_id] = plo
       # STOP  - Get all PLOs
       
+      # START - Get All CLOs and What Types of Evaluation Instruments They Used
+         # Query CLOs and their associated evaluation instrument types
+      clo_evaluation_types = defaultdict(set)
+         # This algorithm right here is O(n^4), quite possibly the worst algorithm I've ever written.
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      for instrument in evaluation_instruments:
+         embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=instrument)
+         for task in embedded_tasks:
+               task_clo_mappings = TaskCLOMapping.objects.filter(task=task)
+               for mapping in task_clo_mappings:
+                  clo_evaluation_types[mapping.clo.designation].add(instrument.evaluation_type)
+      clo_evaluation_types = {clo: list(types) for clo, types in clo_evaluation_types.items()}
+      print(f"CLOs to Types: {clo_evaluation_types}")
+      # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
+      
       # START - Get PLO & CLO Performance with Designations
          # Query CLOs and PLOs to get designations
       clo_designations = {}
@@ -1605,7 +1620,7 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       box_plot_path = self.create_box_plot_for_section(section)
       
       # Generate PDF
-      pdf_path = self.generate_pdf(performance_data, section, clo_plo_mappings, program_learning_objectives, clo_graph_path, plo_graph_path, box_plot_path)
+      pdf_path = self.generate_pdf(performance_data, section, clo_plo_mappings, program_learning_objectives, clo_evaluation_types, clo_graph_path, plo_graph_path, box_plot_path)
       
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Section_Performance.pdf")
    
@@ -1758,7 +1773,7 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       
       return img_path
    
-   def generate_pdf(self, performance_data, section, clo_plo_mappings, program_learning_objectives, clo_graph, plo_graph, box_plot):
+   def generate_pdf(self, performance_data, section, clo_plo_mappings, program_learning_objectives, clo_evaluation_types, clo_graph, plo_graph, box_plot):
       """
       Generate a PDF from the performance data using ReportLab, saving to a file.
       """
@@ -1896,6 +1911,48 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
          # Add the table to the document
       elements.append(table)
       # STOP  - PLOs table
+      
+      # START - CLOs -> Evaluation Types Used
+         # Define section header for the table
+      section_header = Paragraph("Course Learning Objectives (CLOs) and Evaluation Types:", styles['Heading4'])
+      elements.append(section_header)
+         # Create a table for CLOs with 'CLO Designation' and 'Evaluation Types' as headers
+      table_data = []
+      table_data.append(['CLO Designation', 'Evaluation Types'])  # Header row
+         # Iterate through the CLOs to populate the table data
+      for clo, evaluation_types in clo_evaluation_types.items():
+         clo_designation = str(clo)  # Convert designation to string
+         evaluation_text = ', '.join(str(evaluation.type_name) for evaluation in evaluation_types)
+         evaluation_paragraph = Paragraph(evaluation_text, styles['BodyText'])
+         
+         # Add the row to the table data
+         table_data.append([clo_designation, evaluation_paragraph])
+      
+      # Create the table
+      table = Table(table_data, colWidths=[1.5*inch, 5*inch])
+      
+      # Define table styles
+      table_style = TableStyle([
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text initially
+         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Evaluation Types)
+         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+      ])
+      
+      table.setStyle(table_style)
+      
+      # Add the table to the document
+      elements.append(table)
+      # STOP  - CLOs -> Evaluation Types Used
       
       # START - PLO Performance Table w/ Designations
       elements.append(Paragraph("PLO Performance", styles['Heading3']))
