@@ -226,14 +226,14 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
          {isDeleteModalOpen && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
                <div className="bg-white p-6 rounded-lg w-[80%] md:w-1/3">
-                  <h3 className="font-bold text-lg mb-2">Are you sure you want to remove this Course?</h3>
+                  <h3 className="font-bold text-lg mb-2">Are you sure you want to archive this Course?</h3>
                   <p className="text-md italc mb-4">This will de-list the Course as active.</p>
                   <div className="flex justify-between">
                      <button 
                         className="px-4 py-2 bg-red-500 text-white rounded-md" 
                         onClick={handleRemove}
                      >
-                        Yes, Remove
+                        Yes, Archive
                      </button>
                      <button 
                         className="px-4 py-2 bg-gray-300 text-black rounded-md" 
@@ -423,12 +423,12 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                            <div className="flex flex-col justify-center items-center gap-4 mt-4">
                                  {!isDeleteModalOpen && (
                                     <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                                       <p className="text-xl text-black">Remove this Course?</p>
+                                       <p className="text-xl text-black">Archive this Course?</p>
                                        <button
                                           className="px-4 py-2 bg-red-500 text-white rounded-md"
                                           onClick={() => setIsDeleteModalOpen(true)} // Show modal on button click
                                        >
-                                          Remove
+                                          Archive
                                        </button>
                                     </div>
                                  )}

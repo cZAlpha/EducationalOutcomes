@@ -77,7 +77,7 @@ function Courses() {
             case "Active Courses":
                updatedCourses = updatedCourses.filter((course) => !course.dateRemoved);
                break;
-            case "Removed Courses":
+            case "Archived Courses":
                updatedCourses = updatedCourses.filter((course) => course.dateRemoved);
                break;
             case "Current Courses":
