@@ -73,9 +73,10 @@ const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
                label="Course Filter"
             >
                <MenuItem value="All Courses">All Courses</MenuItem>
-               <MenuItem value="Current Courses">Current Courses</MenuItem>
+               {/* This is for courses in the current semester, which I have not implemented yet bc there's no way to really tell what semester it is yet */}
+               {/* <MenuItem value="Current Courses">Current Courses</MenuItem> */}
                <MenuItem value="Active Courses">Active Courses</MenuItem>
-               <MenuItem value="Removed Courses">Removed Courses</MenuItem>
+               <MenuItem value="Archived Courses">Archived Courses</MenuItem>
             </Select>
          </FormControl>
          

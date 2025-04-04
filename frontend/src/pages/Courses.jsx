@@ -75,11 +75,11 @@ function Courses() {
          // Course type filter
          switch (filters.courseType) {
             case "Active Courses":
-               updatedCourses = updatedCourses.filter((course) => !course.dateRemoved);
+               updatedCourses = updatedCourses.filter((course) => course.date_removed === null);
                break;
             case "Archived Courses":
-               updatedCourses = updatedCourses.filter((course) => course.dateRemoved);
-               break;
+               updatedCourses = updatedCourses.filter((course) => course.date_removed !== null);
+               break;               
             case "Current Courses":
                const currentYear = new Date().getFullYear();
                updatedCourses = updatedCourses.filter(
