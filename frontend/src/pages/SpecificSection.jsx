@@ -19,17 +19,6 @@ function SpecificSection() {
    const [instructor, setInstructor] = useState(null); 
    const [loading, setLoading] = useState(true); // State to track loading status
    
-   
-   const getUserData = async () => {
-      try {
-         const userData = JSON.parse(localStorage.getItem(USER));
-         setCurrentUser(userData || null);
-      } catch (error) {
-         console.error("Error loading user from localStorage:", error);
-         setCurrentUser(null);
-      }
-   };
-   
    const getSection = async () => {
       try {
          const res = await api.get(`/api/sections/${sectionId}`);
@@ -53,7 +42,6 @@ function SpecificSection() {
       } else {
          console.log("Course ID is null, cannot fetch!");
       }
-      console.log("Course: ", course);
    };
    
    const getPrograms = async () => {
@@ -94,10 +82,6 @@ function SpecificSection() {
    
    useEffect(() => { // Program <-> Course Mapping Handling
       if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {
-         console.log("Course: ", course);
-         console.log("Programs: ", programs);
-         console.log("Program Course Mappings: ", programCourseMappings);
-         
          const programLookup = programs.reduce((acc, program) => {
             acc[program.program_id] = program.designation;
             return acc;
@@ -112,7 +96,6 @@ function SpecificSection() {
    
    useEffect(() => { // ON COMPONENT MOUNT
       const fetchData = async () => {
-         await getUserData();
          await getSection();
          await getCourse();
          await getProgramCourseMappings();
@@ -123,7 +106,6 @@ function SpecificSection() {
       };
       
       fetchData();
-      console.log("Section: ", section);
    }, []);
    
    
