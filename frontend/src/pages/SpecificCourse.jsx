@@ -7,8 +7,6 @@ import { Button } from "@mui/material"; // MUI Button
 
 function SpecificCourse() {
    const { courseId } = useParams();
-   
-   const [currentUser, setCurrentUser] = useState(null);
    const [course, setCourse] = useState({});
    const [programs, setPrograms] = useState([]);
    const [programCourseMappings, setProgramCourseMappings] = useState([]);

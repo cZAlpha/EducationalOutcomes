@@ -1,5 +1,4 @@
 import LoginForm from "../components/LoginForm"
-import Navbar from "../components/Navbar";
 
 
 function Login() {

@@ -9,7 +9,7 @@ const FilterCoursesBar = ({ onFilterChange, onRefresh }) => {
    const [courseFilter, setCourseFilter] = useState("All Courses");
    const [recordsPerPage, setRecordsPerPage] = useState(5);
    const controls = useAnimation(); // Use framer-motion's useAnimation hook
-   const refreshButtonRef = useRef(null);
+   
    
    const handleSearchChange = (event) => {
       const value = event.target.value;
