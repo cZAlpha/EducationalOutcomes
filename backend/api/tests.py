@@ -96,75 +96,137 @@ def populate_database(): # Function to populate the database with random users a
    
    # Accreditation Version Creation
    print("[+] Creating Accreditation Versions...")
-   year = 2024
    abet_2024_accreditation_version, created = AccreditationVersion.objects.get_or_create(
       a_organization=abet_accreditation_organization,
-      year=year
+      year=2024
    )
-   accreditation_versions_list = [abet_2024_accreditation_version]
+   abet_2025_accreditation_version, created = AccreditationVersion.objects.get_or_create(
+      a_organization=abet_accreditation_organization,
+      year=2025
+   )
+   accreditation_versions_list = [abet_2024_accreditation_version, abet_2025_accreditation_version]
    print(f"[+] Created Accreditation Versions: {accreditation_versions_list}")
    
    
    # Program Learning Objectives
    print("[+] Creating PLOs...")
    print("   [+] Creating CS PLOs...")
-   plo_a_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_a_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='a',
       description='Be able to apply knowledge of computing and mathematics appropriate to the discipline'
    )
-   plo_b_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_b_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='b',
       description='Be able to analyze a problem, and identify and define the computing requirements appropriate to its solution'
    )
-   plo_c_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_c_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='c',
       description='Be able to design, implement, and evaluate a computer-based system, process, component, or program to meet desired needs'
    )
-   plo_d_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_d_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='d',
       description='Be able to function effectively on teams to accomplish a common goal'
    )
-   plo_e_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_e_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='e',
       description='Understand professional, ethical, legal, security, and social issues and responsibilities'
    )
-   plo_f_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_f_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='f',
       description='Be able to communicate effectively with a range of audiences'
    )
-   plo_g_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_g_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='g',
       description='Be able to analyze the local and global impact of computing on individuals, organizations, and society'
    )
-   plo_h_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_h_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='h',
       description='Recognize the need for and an ability to engage in continuing professional development'
    )
-   plo_i_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_i_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='i',
       description='Be able to use current techniques, skills, and tools necessary for computing practice'
    )
-   plo_j_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_j_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='j',
       description='Be able to apply mathematical foundations, algorithmic principles, and computer science theory in the modeling and design of computer‐based systems in a way that demonstrates comprehension of the tradeoffs involved in design choices'
    )
-   plo_k_cs, created = ProgramLearningObjective.objects.get_or_create(
+   plo_k_cs_2024, created = ProgramLearningObjective.objects.get_or_create(
       a_version=abet_2024_accreditation_version,
       designation='k',
       description='Be able to apply design and development principles in the construction of software systems of varying complexity'
    )
-   cs_plo_list = [plo_a_cs, plo_b_cs, plo_c_cs, plo_d_cs, plo_e_cs, plo_f_cs, plo_g_cs, plo_h_cs, plo_i_cs, plo_j_cs, plo_k_cs]
-   print(f"   [+] Created CS PLOs: {cs_plo_list}")
+   cs_plo_list_2024 = [plo_a_cs_2024, plo_b_cs_2024, plo_c_cs_2024, plo_d_cs_2024, plo_e_cs_2024, plo_f_cs_2024, 
+                  plo_g_cs_2024, plo_h_cs_2024, plo_i_cs_2024, plo_j_cs_2024, plo_k_cs_2024]
+   plo_a_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+      a_version=abet_2025_accreditation_version,
+      designation='a',
+      description='Be able to apply knowledge of computing and mathematics appropriate to the discipline'
+   )
+   plo_b_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='b',
+         description='Be able to analyze a problem, and identify and define the computing requirements appropriate to its solution'
+      )
+   plo_c_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='c',
+         description='Be able to design, implement, and evaluate a computer-based system, process, component, or program to meet desired needs'
+      )
+   plo_d_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='d',
+         description='Be able to function effectively on teams to accomplish a common goal'
+      )
+   plo_e_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='e',
+         description='Understand professional, ethical, legal, security, and social issues and responsibilities'
+      )
+   plo_f_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='f',
+         description='Be able to communicate effectively with a range of audiences'
+      )
+   plo_g_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='g',
+         description='Be able to analyze the local and global impact of computing on individuals, organizations, and society'
+      )
+   plo_h_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='h',
+         description='Recognize the need for and an ability to engage in continuing professional development'
+      )
+   plo_i_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='i',
+         description='Be able to use current techniques, skills, and tools necessary for computing practice'
+      )
+   plo_j_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='j',
+         description='Be able to apply mathematical foundations, algorithmic principles, and computer science theory in the modeling and design of computer‐based systems in a way that demonstrates comprehension of the tradeoffs involved in design choices'
+      )
+   plo_k_cs_2025, created = ProgramLearningObjective.objects.get_or_create(
+         a_version=abet_2025_accreditation_version,
+         designation='k',
+         description='Be able to apply design and development principles in the construction of software systems of varying complexity'
+      )
+   cs_plo_list_2025 = [plo_a_cs_2025, plo_b_cs_2025, plo_c_cs_2025, plo_d_cs_2025, plo_e_cs_2025, plo_f_cs_2025, 
+                     plo_g_cs_2025, plo_h_cs_2025, plo_i_cs_2025, plo_j_cs_2025, plo_k_cs_2025]
+   cs_plo_list_all = [cs_plo_list_2024, cs_plo_list_2025]
+   print(f"   [+] Created CS PLOs: {cs_plo_list_all}")
    
    #print("   [+] Creating IT Specific PLOs...")
    # TODO: Instantiate IT PLOs with NON-CONFLICTING DESIGNATIONS!!!
@@ -392,63 +454,63 @@ def populate_database(): # Function to populate the database with random users a
    print("[+] Creating PLO-CLO Mappings...")
    # FOR COMP. THINK. II CLO 1
    plo_clo_mapping_0_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_a_cs, # CS a
+      plo = plo_a_cs_2024, # CS a
       clo = clo_1_comp_think_ii # Comp Think II CLO 1
    )
    plo_clo_mapping_1_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_b_cs, # CS b
+      plo = plo_b_cs_2024, # CS b
       clo = clo_1_comp_think_ii # Comp Think II CLO 1
    )
    plo_clo_mapping_2_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_c_cs, # CS c
+      plo = plo_c_cs_2024, # CS c
       clo = clo_1_comp_think_ii # Comp Think II CLO 1
    )
    # FOR COMP. THINK. II CLO 2
    plo_clo_mapping_3_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_a_cs, # CS a
+      plo = plo_a_cs_2024, # CS a
       clo = clo_2_comp_think_ii # Comp Think II CLO 2
    )
    plo_clo_mapping_4_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_b_cs, # CS b
+      plo = plo_b_cs_2024, # CS b
       clo = clo_2_comp_think_ii # Comp Think II CLO 2
    )
    # FOR COMP. THINK. II CLO 3
    plo_clo_mapping_5_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_b_cs, # CS b
+      plo = plo_b_cs_2024, # CS b
       clo = clo_3_comp_think_ii # Comp Think II CLO 3
    )
    plo_clo_mapping_6_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_c_cs, # CS c
+      plo = plo_c_cs_2024, # CS c
       clo = clo_3_comp_think_ii # Comp Think II CLO 3
    )
    plo_clo_mapping_7_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_i_cs, # CS i
+      plo = plo_i_cs_2024, # CS i
       clo = clo_3_comp_think_ii # Comp Think II CLO 3
    )
    # FOR COMP. THINK. II CLO 4
    plo_clo_mapping_8_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_b_cs, # CS b
+      plo = plo_j_cs_2024, # CS j
       clo = clo_4_comp_think_ii # Comp Think II CLO 4
    )
    plo_clo_mapping_9_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_c_cs, # CS c
+      plo = plo_k_cs_2024, # CS k
       clo = clo_4_comp_think_ii # Comp Think II CLO 4
    )
    plo_clo_mapping_10_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_i_cs, # CS i
+      plo = plo_c_cs_2024, # CS c
       clo = clo_4_comp_think_ii # Comp Think II CLO 4
    )
    # FOR COMP. THINK. II CLO 5
    plo_clo_mapping_11_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_d_cs, # CS d
+      plo = plo_d_cs_2024, # CS d
       clo = clo_5_comp_think_ii # Comp Think II CLO 5
    )
    plo_clo_mapping_12_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_f_cs, # CS f
+      plo = plo_f_cs_2024, # CS f
       clo = clo_5_comp_think_ii # Comp Think II CLO 5
    )
    plo_clo_mapping_13_comp_think_ii, created = PLOCLOMapping.objects.get_or_create(
-      plo = plo_h_cs, # CS h
+      plo = plo_h_cs_2024, # CS h
       clo = clo_5_comp_think_ii # Comp Think II CLO 5
    )
    plo_clo_mappings_list = [plo_clo_mapping_0_comp_think_ii, plo_clo_mapping_1_comp_think_ii, plo_clo_mapping_2_comp_think_ii, plo_clo_mapping_3_comp_think_ii, plo_clo_mapping_4_comp_think_ii, plo_clo_mapping_5_comp_think_ii, plo_clo_mapping_6_comp_think_ii, plo_clo_mapping_7_comp_think_ii, plo_clo_mapping_8_comp_think_ii, plo_clo_mapping_9_comp_think_ii, plo_clo_mapping_10_comp_think_ii, plo_clo_mapping_11_comp_think_ii, plo_clo_mapping_12_comp_think_ii, plo_clo_mapping_13_comp_think_ii]
@@ -724,6 +786,6 @@ def populate_courses(): # Function that only populates courses
 
 
 if __name__ == "__main__": # Main execution
-   #wipe_database()
-   #populate_database()
+   wipe_database()
+   populate_database()
    visualize_database()

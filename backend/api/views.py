@@ -29,12 +29,12 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER 
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from PyPDF2 import PdfReader, PdfWriter
 
 # Misc. imports
+from io import BytesIO
 import numpy as np
-import base64
 import json
-import io
 import os
 
 
@@ -442,7 +442,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       except ValidationError as e:
          raise e  # Return 400 Bad Request if anything fails
       
-      # ✅ Get all a_versions + their course and PLO data
+      # Get all a_versions + their course and PLO data
       a_version_data = self.find_all_plos(program_id, semester_ids)
       if not a_version_data:
          raise ParseError("No course data found for the selected semesters.")
@@ -453,7 +453,6 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       for a_version, version_data in a_version_data.items():
          courses = version_data["courses"]
          plos = version_data["plos"]
-         print("PLOs: ", plos)
          
          # Get sections for the version
          sections = Section.objects.filter(
@@ -464,15 +463,15 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
          if not sections.exists():
             continue  # Skip this version if there are no sections
          
-         # ✅ Compute performance
+         # Compute performance
          plo_performance = self.generate_plo_performance(sections)
          
-         # ✅ Append missing PLOs with a performance of 0.0
+         # Append missing PLOs with a performance of 0.0
          for plo in plos:
             if plo.plo_id not in plo_performance:
                   plo_performance[plo.plo_id] = -1.0  # Set performance to 0.0 for missing PLOs
          
-         # ✅ Add designations
+         # Add designations
          plo_designations = {
             plo.plo_id: plo.designation
             for plo in ProgramLearningObjective.objects.filter(plo_id__in=plo_performance.keys())
@@ -484,7 +483,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
             if plo_id in plo_designations
          }
          
-         # ✅ Get CLOs and used eval types
+         # Get CLOs and used eval types
          course_clos = CourseLearningObjective.objects.filter(course_id__in=courses)
          program_learning_objectives = plos
          
@@ -501,8 +500,6 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
          clo_to_tasks = defaultdict(list)
          for mapping in task_clo_mappings:
             clo_to_tasks[mapping.clo.clo_id].append(mapping.task)
-         
-         print("TaskCLOMappings (filtered):", clo_to_tasks)
          
          # Task → Eval Type
          eval_types_by_task = {
@@ -548,32 +545,21 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       if not final_result_per_version:
          raise ParseError("No PLO performance data found for any academic version.")
       
-      # ✅ Generate final PDF with all versions
-      #pdf_path = self.generate_multi_version_pdf(program, final_result_per_version)
+      final_pdf_path = self.generate_pdf_report(program, final_result_per_version)
       
-      # ✅ Generate PDF for only the first version using self.generate_pdf
-      first_version, first_data = next(iter(final_result_per_version.items()))
-      
-      pdf_path = self.generate_pdf(
-         program,
-         #first_version,
-         first_data["courses"],
-         first_data["program_learning_objectives"],
-         first_data["plo_evaluation_types"],
-         first_data["plo_performance"],
-         first_data["plo_graph_path"]
-      )
-      
-      return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Program_Performance.pdf")
+      # return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Program_Performance.pdf")
+      return FileResponse(open(final_pdf_path, "rb"), as_attachment=True, filename="Program_Performance.pdf")
    
-   def generate_pdf(self, program, courses, program_learning_objectives, plo_evaluation_types, plo_performance, plo_graph):
+   def generate_pdf_report(self, program, final_result_per_version):
       """
-      Generate a PDF report containing the program performance data and graphs.
+      Generate and merge PDFs for each version in final_result_per_version into a single PDF.
       """
-      pdf_path = "/tmp/Program_Performance.pdf"
-      doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+      # Create a memory buffer to store the final merged PDF
+      output_pdf_buffer = BytesIO()
+      writer = PdfWriter()
       
-      elements = []
+      # Create the initial elements for the top of the PDF (logos, title, description)
+      initial_elements = []
       styles = getSampleStyleSheet()
       
       # Create a new style based on Heading1 and center align it.
@@ -596,231 +582,297 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
          
          # Adjust column widths to match image sizes
          logo_table = Table(
-            [[dsu_logo, pemacs_logo_long]], 
-            colWidths=[3.2*inch, 4.2*inch]  # Make the first column wide enough
+               [[dsu_logo, pemacs_logo_long]],
+               colWidths=[3.2*inch, 4.2*inch]  # Make the first column wide enough
          )
          # Apply table styling
          logo_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Center vertically
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),       # Align DSU logo to left
-            ('ALIGN', (1, 0), (1, 0), 'LEFT'),       # Align PEMaCS logo to left
-            ('LEFTPADDING', (0, 0), (0, 0), 0),      # Remove extra left padding
-            ('RIGHTPADDING', (0, 0), (0, 0), 5),     # Add space between logos
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Add spacing
+               ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # Center vertically
+               ('ALIGN', (0, 0), (0, 0), 'LEFT'),       # Align DSU logo to left
+               ('ALIGN', (1, 0), (1, 0), 'LEFT'),       # Align PEMaCS logo to left
+               ('LEFTPADDING', (0, 0), (0, 0), 0),      # Remove extra left padding
+               ('RIGHTPADDING', (0, 0), (0, 0), 5),     # Add space between logos
+               ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Add spacing
          ]))
-         elements.append(logo_table)  # Add table to PDF
+         initial_elements.append(logo_table)  # Add table to PDF
       
       # Document title using centered style
       title = Paragraph(f"Program Performance Report", centered_title_style)
-      elements.append(title)
+      initial_elements.append(title)
       
-      # Header (Course Information)
-      title = Paragraph(f"Program Information", styles['Heading2'])
-      elements.append(title)
-      
-      # Title (Program Name) 
+      # Title (Program Name)
       program_name = Paragraph(f"{program.designation}", styles['Heading3'])
-      elements.append(program_name)
+      initial_elements.append(program_name)
       
-      # Description (Course Description) with wrapping
+      # Description (Program Description) with wrapping
       description = Paragraph(f"{program.description}", styles['Normal'])
-      elements.append(description)
-      
-      # Courses
-      # TODO: List all courses, ensuring that the courses are listed in ascending numerical order using course number
+      initial_elements.append(description)
       
       # Administrator Comment Section
-      elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
-      elements.append(Spacer(1, 12))
-      elements.append(Paragraph(
-         "__________________________________________________________________________________",
-         styles['Normal']
-      ))
-      elements.append(Spacer(1, 12))
-      elements.append(Paragraph(
-         "__________________________________________________________________________________",
-         styles['Normal']
-      ))
-      elements.append(Spacer(1, 12))
-      elements.append(Paragraph(
-         "__________________________________________________________________________________",
-         styles['Normal']
-      ))
-      elements.append(Spacer(1, 12))
-      elements.append(Paragraph(
-         "__________________________________________________________________________________",
-         styles['Normal']
-      ))
-      elements.append(Spacer(1, 12))
+      initial_elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+      for _ in range(6):  # Add 5 lines for comments
+            initial_elements.append(Spacer(1, 12))
+            initial_elements.append(Paragraph(
+               "__________________________________________________________________________________",
+               styles['Normal']
+            ))
+      initial_elements.append(Spacer(1, 12))
       
-      # START - PLOs Table
+      # Create a temporary PDF to hold the initial content
+      initial_pdf_buffer = BytesIO()
+      initial_doc = SimpleDocTemplate(initial_pdf_buffer, pagesize=letter)
+      initial_doc.build(initial_elements)
+      
+      # Read the initial PDF and add its pages to the final writer
+      initial_pdf_reader = PdfReader(initial_pdf_buffer)
+      for page in range(len(initial_pdf_reader.pages)):
+         writer.add_page(initial_pdf_reader.pages[page])
+      
+      # Iterate over each version to generate and append the content to the final PDF
+      for version_obj, data in final_result_per_version.items():
+         courses = data["courses"]
+         program_learning_objectives = data["program_learning_objectives"]
+         plo_evaluation_types = data["plo_evaluation_types"]
+         plo_performance = data["plo_performance"]
+         plo_graph_path = data.get("plo_graph_path") # Use get to handle potential missing key
+         
+         # Generate a PDF for the current version
+         version_pdf_path = "/tmp/Program_Performance_Version.pdf" # Temporary path for each version
+         doc = SimpleDocTemplate(version_pdf_path, pagesize=letter)
+         elements = []
+         styles = getSampleStyleSheet()
+         
+         width, height = letter
+         
+         # TODO
+         # Accreditation Organization and Version Information
+         # List all courses, ensuring that the courses are listed in ascending numerical order using course number
+         accreditation_title = Paragraph(f"{version_obj.a_organization.name} - {version_obj.year}", styles['Title'])
+         elements.append(accreditation_title)
+         # - Add the accreditation organization name + a_version year
+         # - Add the accreditation organziation's description
+         elements.append(Spacer(1, 12))
+         
+         # Courses
+         # List all courses, ensuring that the courses are listed in ascending numerical order using course number
+         courses_section_title = Paragraph(f"Courses", styles['Heading3'])
+         elements.append(courses_section_title)
+         
+         # Sort courses by course number in ascending order
+         sorted_courses = sorted(courses, key=lambda x: x.course_number)
+         
+         for course in sorted_courses:
+               if not course.date_removed:  # If the course is ACTIVE (date_removed is None)
+                  elements.append(Paragraph(f"- {course.name} ({course.course_number}) | Added: {course.date_added}", styles['Normal']))
+               else:  # If the course is INACTIVE (date_removed is not None)
+                  elements.append(Paragraph(f"- {course.name} ({course.course_number}) | Added: {course.date_added} - Removed: {course.date_removed}", styles['Normal']))
+         
+         # Administrator Comment Section
+         elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+         for _ in range(5):  # Add 5 lines for comments
+               elements.append(Spacer(1, 12))
+               elements.append(Paragraph(
+                  "__________________________________________________________________________________",
+                  styles['Normal']
+               ))
+         elements.append(Spacer(1, 12))
+         
+         # START - PLOs Table
          # Define section header for the table
-      section_header = Paragraph(f"Program Learning Objectives (PLOs):", styles['Heading4'])
-      elements.append(section_header)
+         section_header = Paragraph(f"Program Learning Objectives (PLOs):", styles['Heading4'])
+         elements.append(section_header)
          # Create a table for PLOs with 'Designation' and 'Description' as headers
-      table_data = []
-      table_data.append(['Designation', 'Description'])  # Header row
+         table_data = []
+         table_data.append(['Designation', 'Description'])  # Header row
          # Iterate through the PLOs to populate the table data
-      sorted_plos = sorted(program_learning_objectives, key=lambda plo: plo.designation) # Sort them alphabetically      
-      for plo in sorted_plos:
-         # Create a row for each PLO with its designation and description
-         designation = str(plo.designation)  # Convert designation to string if it's not already
-         description = str(plo.description)  # Convert description to string if it's not already
-         
-         # Create a paragraph for the description to ensure text wrapping
-         description_paragraph = Paragraph(description, style=getSampleStyleSheet()['BodyText'])
-         
-         # Add the row to the table data
-         table_data.append([designation, description_paragraph])
+         sorted_plos = sorted(program_learning_objectives, key=lambda plo: plo.designation) # Sort them alphabetically
+         for plo in sorted_plos:
+            # Create a row for each PLO with its designation and description
+            designation = str(plo.designation)  # Convert designation to string if it's not already
+            description = str(plo.description)  # Convert description to string if it's not already
+            
+            # Create a paragraph for the description to ensure text wrapping
+            description_paragraph = Paragraph(description, style=getSampleStyleSheet()['BodyText'])
+            
+            # Add the row to the table data
+            table_data.append([designation, description_paragraph])
          # Create the table
-      table = Table(table_data, colWidths=[1*inch, 5.5*inch])
+         table = Table(table_data, colWidths=[1*inch, 5.5*inch])
          # Define table styles
-      table_style = TableStyle([
-         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
-         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
-         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
-         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text (header, initially)
-         ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Center-align text in the first column (Designations)
-         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Descriptions)
-         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
-         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
-         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
-         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
-         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
-         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
-         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
-         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
-      ])
-      table.setStyle(table_style)
+         table_style = TableStyle([
+               ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+               ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+               ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+               ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text (header, initially)
+               ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Center-align text in the first column (Designations)
+               ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Descriptions)
+               ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+               ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+               ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+               ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+               ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+               ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+               ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+               ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+         ])
+         table.setStyle(table_style)
          # Add the table to the document
-      elements.append(table)
-      # STOP - PLOs Table
-      
-      # START - PLOs -> Evaluation Types Used
-      #Define section header for the table
-      section_header = Paragraph("Program Learning Objectives (PLOs) and Evaluation Types:", styles['Heading4'])
-      elements.append(section_header)
-      
-      # Create a table for PLOs with 'PLO Designation' and 'Evaluation Types' as headers
-      table_data = []
-      table_data.append(['Designation', 'Evaluation Types'])  # Header row
-      
-      # Iterate through the CLOs to populate the table data
-      for plo, evaluation_types in plo_evaluation_types.items():
-         plo_designation = str(plo.designation)  # Convert designation to string
+         elements.append(table)
+         # STOP - PLOs Table
          
-         # Check if evaluation_types contains EvaluationType objects or just strings
-         evaluation_text = []
-         for evaluation in evaluation_types:
-            if isinstance(evaluation, EvaluationType):
+         # START - PLOs -> Evaluation Types Used
+         #Define section header for the table
+         section_header = Paragraph("Program Learning Objectives (PLOs) and Evaluation Types:", styles['Heading4'])
+         elements.append(section_header)
+         
+         # Create a table for PLOs with 'PLO Designation' and 'Evaluation Types' as headers
+         table_data = []
+         table_data.append(['Designation', 'Evaluation Types'])  # Header row
+         
+         # Iterate through the CLOs to populate the table data
+         for plo, evaluation_types in plo_evaluation_types.items():
+            plo_designation = str(plo.designation)  # Convert designation to string
+            
+            # Check if evaluation_types contains EvaluationType objects or just strings
+            evaluation_text = []
+            for evaluation in evaluation_types:
+               if hasattr(evaluation, 'type_name'):
                   # If it's an EvaluationType object, use its type_name attribute
                   evaluation_text.append(str(evaluation.type_name))
-            else:
+               else:
                   # If it's just a string, append it directly
                   evaluation_text.append(str(evaluation))
+            
+            # Join the text and create the paragraph
+            evaluation_paragraph = Paragraph(', '.join(evaluation_text), styles['BodyText'])
+            
+            # Add the row to the table data
+            table_data.append([plo_designation, evaluation_paragraph])
          
-         # Join the text and create the paragraph
-         evaluation_paragraph = Paragraph(', '.join(evaluation_text), styles['BodyText'])
+         # Sort the table data by PLO Designation (first column)
+         table_data.sort(key=lambda x: x[0])  # Sorting by the first column (designation)
          
-         # Add the row to the table data
-         table_data.append([plo_designation, evaluation_paragraph])
-      
-      # Sort the table data by PLO Designation (first column)
-      table_data.sort(key=lambda x: x[0])  # Sorting by the first column (designation)
-      
-      # Create the table
-      table = Table(table_data, colWidths=[1*inch, 5.5*inch])
-      
-      # Define table styles
-      table_style = TableStyle([
-         ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
-         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
-         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
-         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text initially
-         ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Evaluation Types)
-         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
-         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
-         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
-         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
-         ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
-         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
-         ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
-         ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
-      ])
-      
-      table.setStyle(table_style)
-      
-      # Add the table to the document
-      elements.append(table)
-      # STOP  - PLOs -> Evaluation Types Used
-      
-      # START - PLO Performance Table w/ Designations
-      elements.append(Paragraph("PLO Performance", styles['Heading3']))
-      plo_data = [["PLO", "Average Score"]]  # Header row
-      
-      # Define a style for wrapping text at 200 characters
-      plo_style = ParagraphStyle(
-         "PLOStyle",
-         parent=styles["Normal"],
-         wordWrap="CJK",  # Ensures text wraps properly
-         maxLineLength=200  # Helps keep the text contained within the cell
-      )
-      
-      # Create a list to hold PLOs and their performance scores
-      plo_performance_list = []
-      
-      for plo_id, score in plo_performance.items():
-         # Query the ProgramLearningObjective model to get the PLO designation
-         try:
-            plo = ProgramLearningObjective.objects.get(plo_id=plo_id)  # Fetch the PLO by its id
-            plo_designation = plo.designation  # Get designation
-            plo_description = plo.description  # Get description
-         except ProgramLearningObjective.DoesNotExist:
-            plo_designation = "Unknown PLO"
-            plo_description = "No description available"
+         # Create the table
+         table = Table(table_data, colWidths=[1*inch, 5.5*inch])
          
-         # Create a wrapped paragraph for the PLO column
-         plo_text = Paragraph(f"<b>{plo_designation}:</b> {plo_description}", plo_style)
+         # Define table styles
+         table_style = TableStyle([
+               ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Grid for table cells
+               ('BACKGROUND', (0, 0), (-1, 0), colors.grey),  # Header row background color
+               ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header row text color
+               ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center align all text initially
+               ('ALIGN', (1, 1), (-1, -1), 'LEFT'),  # Left-align text in the second column (Evaluation Types)
+               ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Header row font
+               ('BOTTOMPADDING', (0, 0), (-1, 0), 12),  # Padding for header
+               ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),  # Body rows background color
+               ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Body rows text color
+               ('TOPPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+               ('BOTTOMPADDING', (0, 1), (-1, -1), 8),  # Padding for body rows
+               ('LEFTPADDING', (0, 1), (-1, -1), 6),  # Padding for left column text
+               ('RIGHTPADDING', (0, 1), (-1, -1), 6),  # Padding for right column text
+         ])
          
-         # Add PLO and its score to the list, excluding the ones with unused PLO (-1 score)
-         if score != -1:  # Check for unused PLO
-            plo_performance_list.append([plo_text, f"{score:.2f}%"])
+         table.setStyle(table_style)
+         
+         # Add the table to the document
+         elements.append(table)
+         # STOP  - PLOs -> Evaluation Types Used
+         
+         # START - PLO Performance Table w/ Designations
+         elements.append(Paragraph("PLO Performance", styles['Heading3']))
+         plo_data = [["PLO", "Average Score"]]  # Header row
+         
+         # Define a style for wrapping text at 200 characters
+         plo_style = ParagraphStyle(
+               "PLOStyle",
+               parent=styles["Normal"],
+               wordWrap="CJK",  # Ensures text wraps properly
+               maxLineLength=200  # Helps keep the text contained within the cell
+         )
+         
+         # Create a list to hold PLOs and their performance scores
+         plo_performance_list = []
+         
+         for plo_id, score in plo_performance.items():
+            # Query the ProgramLearningObjective model to get the PLO designation
+            try:
+               plo = ProgramLearningObjective.objects.get(plo_id=plo_id)  # Fetch the PLO by its id
+               plo_designation = plo.designation  # Get designation
+               plo_description = plo.description  # Get description
+            except ProgramLearningObjective.DoesNotExist:
+               plo_designation = "Unknown PLO"
+               plo_description = "No description available"
+            
+            # Create a wrapped paragraph for the PLO column
+            plo_text = Paragraph(f"<b>{plo_designation}:</b> {plo_description}", plo_style)
+            
+            # Add PLO and its score to the list, excluding the ones with unused PLO (-1 score)
+            if score != -1:  # Check for unused PLO
+               plo_performance_list.append([plo_text, f"{score:.2f}%"])
+            else:
+               plo_performance_list.append([plo_text, "N/A"])
+         
+         # Sort the list alphabetically based on PLO designation
+         plo_performance_list.sort(key=lambda x: x[0].getPlainText().lower())  # Sorting by designation, case insensitive
+         
+         # Add the sorted data to plo_data
+         for plo_entry in plo_performance_list:
+            plo_data.append(plo_entry)
+         
+         plo_table = Table(plo_data, colWidths=[350, 100])  # Adjust width as needed
+         
+         plo_table.setStyle(TableStyle([
+               ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+               ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+               ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Left-align PLO column
+               ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Center-align score column
+               ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+               ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+               ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+               ('GRID', (0, 0), (-1, -1), 1, colors.black)
+         ]))
+         
+         elements.append(plo_table)
+         # STOP  - PLO Performance Table with designations
+         
+         # Embed Graphs
+         # PLO Performance
+         plo_label = Paragraph("PLO Performance", styles['Normal'])
+         elements.append(plo_label)
+         if plo_graph_path and os.path.exists(plo_graph_path):
+            try:
+               plo_image = Image(plo_graph_path, width=4*inch, height=2.5*inch)
+               elements.append(plo_image)
+            except Exception as e:
+               elements.append(Paragraph(f"Error embedding graph: {e}", styles['Normal']))
          else:
-            plo_performance_list.append([plo_text, "N/A"])
+            elements.append(Paragraph("PLO Performance Graph Not Available", styles['Normal']))
+         
+         doc.build(elements)
+         
+         # Read the generated PDF into a PdfReader object
+         try:
+            with open(version_pdf_path, 'rb') as f:
+               version_pdf_reader = PdfReader(f)
+               # Append all pages of the current version's PDF to the writer
+               for page in range(len(version_pdf_reader.pages)):
+                  writer.add_page(version_pdf_reader.pages[page])
+         except FileNotFoundError:
+            print(f"Error: PDF file not found at {version_pdf_path}")
+         finally:
+            # Clean up the temporary PDF file
+            if os.path.exists(version_pdf_path):
+               os.remove(version_pdf_path)
       
-      # Sort the list alphabetically based on PLO designation
-      plo_performance_list.sort(key=lambda x: x[0].getPlainText().lower())  # Sorting by designation, case insensitive
+      # Write the merged PDF to the output buffer
+      writer.write(output_pdf_buffer)
       
-      # Add the sorted data to plo_data
-      for plo_entry in plo_performance_list:
-         plo_data.append(plo_entry)
+      # Save the final merged PDF to a file
+      final_pdf_path = "/tmp/Program_Performance_Merged.pdf"
+      with open(final_pdf_path, 'wb') as final_pdf_file:
+         final_pdf_file.write(output_pdf_buffer.getvalue())
       
-      plo_table = Table(plo_data, colWidths=[350, 100])  # Adjust width as needed
-      
-      plo_table.setStyle(TableStyle([
-         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-         ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # Left-align PLO column
-         ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Center-align score column
-         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
-         ('GRID', (0, 0), (-1, -1), 1, colors.black)
-      ]))
-      
-      elements.append(plo_table)
-      # STOP  - PLO Performance Table with designations
-      
-      # Embed Graphs
-      # PLO Performance
-      plo_label = Paragraph("PLO Performance", styles['Normal'])
-      elements.append(plo_label)
-      plo_image = Image(plo_graph, width=4*inch, height=2.5*inch)
-      elements.append(plo_image)
-      
-      doc.build(elements)
-      
-      return pdf_path
+      return final_pdf_path
    
    def generate_clo_performance(self, section):
       """

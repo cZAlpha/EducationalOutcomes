@@ -12,3 +12,4 @@ faker
 matplotlib
 reportlab
 numpy
+PyPDF2
