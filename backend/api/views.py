@@ -443,7 +443,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
          raise e  # Return 400 Bad Request if anything fails
       
       # Whitelist filtering (match semester_id)
-      print("Sections left after semester whitelisting: ", sections)
+      print("Program Performance Report | Sections left after semester whitelisting: ", sections)
       
       if len(sections) <= 0: # If there are no sections after filtering
          raise BadRequest("There were no sections left after filtering!")
@@ -452,7 +452,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       overall_plo_performance = self.generate_course_plo_performance(sections)
       print("overall_plo_performance", overall_plo_performance)
       
-      # Query CLOs and PLOs to get designations
+      # Query PLOs to get designations
       plo_designations = {}
       for plo_id in overall_plo_performance.keys():
          plo = ProgramLearningObjective.objects.get(pk=plo_id) 
@@ -463,40 +463,54 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       }
       
       # START - Query all courses that are part of the program
-      # TODO
-      courses = None
+      courses = Course.objects.filter(programcoursemapping__program=program).distinct()
       # STOP  - Query all courses that are part of the program
       
-      # START - PLOs For This Course
-      # TODO: THIS IS NOT SET UP RIGHT
-      program_learning_objectives = ProgramLearningObjective.objects.filter(plo_id__in=[plo.plo_id for clo in clo_plo_mappings.values() for plo in clo] ) # Fetch only PLOs relevant to the class
-      # STOP  - PLOs For This Course
+      # START - PLOs For This Program
+      course_clos = CourseLearningObjective.objects.filter(course__in=courses) # First, get all CLOs for the program's courses
+      program_learning_objectives = ProgramLearningObjective.objects.filter( # Then, get all PLOs that are mapped to those CLOs via PLOCLOMapping
+         ploclomapping__clo__in=course_clos
+      ).distinct()   
+      # STOP  - PLOs For This Program
       
       # START - Finding All Used Evaluation Types for all PLOs
-      # TODO: Find all evaluation types for all plos and put it into a dictionary such that: {PLO: [eval_type_0, eval_type_1, etc.]}
-      plo_evaluation_types = None
+      plo_evaluation_types = defaultdict(set)  # Use set to avoid duplicates per PLO
+      
+      # Step 1: Get all PLO → CLO mappings
+      plo_clo_mappings = PLOCLOMapping.objects.select_related('plo', 'clo')
+      
+      # Step 2: For each CLO, find its associated tasks (via TaskCLOMapping)
+      clo_to_tasks = defaultdict(list)
+      task_clo_mappings = TaskCLOMapping.objects.select_related('clo', 'task')
+      
+      for mapping in task_clo_mappings:
+         clo_to_tasks[mapping.clo.clo_id].append(mapping.task)
+      
+      # Step 3: For each task, find its evaluation instrument and type
+      task_to_eval_type = {}
+      tasks = EmbeddedTask.objects.select_related('evaluation_instrument__evaluation_type')
+      
+      for task in tasks:
+         if task.evaluation_instrument and task.evaluation_instrument.evaluation_type:
+            task_to_eval_type[task.embedded_task_id] = task.evaluation_instrument.evaluation_type
+      
+      # Step 4: Build plo_evaluation_types dict
+      for mapping in plo_clo_mappings:
+         plo = mapping.plo
+         clo = mapping.clo
+         tasks_for_clo = clo_to_tasks.get(clo.clo_id, [])
+         
+         for task in tasks_for_clo:
+            eval_type = task_to_eval_type.get(task.embedded_task_id)
+            if eval_type:
+                  plo_evaluation_types[plo].add(eval_type)
+      
+      # convert sets to lists
+      plo_evaluation_types = {plo: list(eval_types) for plo, eval_types in plo_evaluation_types.items()}
       # STOP  - Finding All Used Evaluation Types for all PLOs
       
-      # NOTE: The following section was copy pasted from another performance report class, this is only here for reference!!!
-      # START - Get All CLOs and What Types of Evaluation Instruments They Used
-         # Query CLOs and their associated evaluation instrument types
-      clo_evaluation_types = defaultdict(set)
-         # This algorithm right here is O(n^4), quite possibly the worst algorithm I've ever written.
-      for section in sections:
-         evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-         for instrument in evaluation_instruments:
-            embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument=instrument)
-            for task in embedded_tasks:
-                  task_clo_mappings = TaskCLOMapping.objects.filter(task=task)
-                  for mapping in task_clo_mappings:
-                     clo_evaluation_types[mapping.clo.designation].add(instrument.evaluation_type)
-      clo_evaluation_types = {clo: list(types) for clo, types in clo_evaluation_types.items()}
-      print(f"CLOs to Types: {clo_evaluation_types}")
-      # STOP  - Get All CLOs and What Types of Evaluation Instruments They Used
-      
       # START - Find Performance for all PLOs
-      # TODO
-      plo_performance = None
+      plo_performance = overall_plo_performance
       # STOP  - Find Performance for all PLOs
       
       # Generate graphs
@@ -559,7 +573,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       elements.append(title)
       
       # Title (Program Name) 
-      program_name = Paragraph(f"{program.name} - {program.course_number}", styles['Heading3'])
+      program_name = Paragraph(f"{program.designation}", styles['Heading3'])
       elements.append(program_name)
       
       # Description (Course Description) with wrapping
@@ -746,6 +760,136 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       doc.build(elements)
       
       return pdf_path
+      
+   def generate_clo_performance(self, section):
+      """
+      Generate the CLO performance for a single section, ensuring normalized scores.
+      """
+      # Step 1: Get all Evaluation Instruments for the given section
+      evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
+      
+      # Step 2: Get all Embedded Tasks from these Evaluation Instruments
+      embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
+      
+      # Step 3: Compute **normalized** average score for each embedded task
+      task_avg_scores = {}
+      for task in embedded_tasks:
+         task_scores = StudentTaskMapping.objects.filter(task=task).values_list("score", "total_possible_score")
+         
+         # Normalize each individual score
+         normalized_scores = [(score / total) * 100 for score, total in task_scores if total > 0]
+         
+         # Compute the average normalized score for the task
+         avg_normalized_score = sum(normalized_scores) / len(normalized_scores) if normalized_scores else 0
+         task_avg_scores[task.embedded_task_id] = avg_normalized_score
+      
+      # Step 4: Get all TaskCLOMapping records for these embedded tasks
+      task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
+      
+      # Step 5: Group normalized task scores by CLO
+      clo_scores = defaultdict(list)
+      for mapping in task_clo_mappings:
+         avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
+         clo_id = mapping.clo.clo_id
+         clo_scores[clo_id].append(avg_score)
+      
+      # Step 6: Calculate the average score per CLO
+      final_clo_performance = {
+         clo_id: sum(scores) / len(scores) if scores else 0
+         for clo_id, scores in clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_course_clo_performance(self, sections):
+      """
+      Generate the CLO performance for all sections in the course.
+      """
+      all_clo_scores = defaultdict(list)
+      
+      for section in sections:
+            # Get CLO performance for the individual section
+            section_clo_performance = self.generate_clo_performance(section)
+            for clo_id, score in section_clo_performance.items():
+               all_clo_scores[clo_id].append(score)
+      
+      # Compute average CLO performance for the entire course
+      final_clo_performance = {
+            clo_id: sum(scores) / len(scores) if scores else 0
+            for clo_id, scores in all_clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_course_clo_performance(self, sections):
+      """
+      Generate the CLO performance for all sections in the course.
+      """
+      all_clo_scores = defaultdict(list)
+      
+      for section in sections:
+            # Get CLO performance for the individual section
+            section_clo_performance = self.generate_clo_performance(section)
+            for clo_id, score in section_clo_performance.items():
+               all_clo_scores[clo_id].append(score)
+      
+      # Compute average CLO performance for the entire course
+      final_clo_performance = {
+            clo_id: sum(scores) / len(scores) if scores else 0
+            for clo_id, scores in all_clo_scores.items()
+      }
+      
+      return final_clo_performance
+   
+   def generate_course_plo_performance(self, sections):
+      """
+      Generate the PLO performance for all sections in the course.
+      """
+      # Get CLO performance for the entire course
+      all_clo_performance = self.generate_course_clo_performance(sections)
+      clo_ids = all_clo_performance.keys()
+      
+      all_plo_scores = defaultdict(list)
+      
+      # Get PLO performance for each CLO
+      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
+      for mapping in clo_plo_mappings:
+            clo_id = mapping.clo.clo_id
+            plo_id = mapping.plo.plo_id
+            clo_score = all_clo_performance.get(clo_id, 0)
+            all_plo_scores[plo_id].append(clo_score)
+      
+      # Compute average PLO performance for the entire course
+      final_plo_performance = {
+            plo_id: sum(scores) / len(scores) if scores else 0
+            for plo_id, scores in all_plo_scores.items()
+      }
+      
+      return final_plo_performance
+   
+   def create_bar_chart_plos(self, data, title, xlabel, ylabel):
+      """
+      Generate a bar chart and save it as an image file.
+      """
+      if data:   
+         plt.figure(figsize=(6, 4))
+         plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
+         plt.xlabel(xlabel)
+         plt.ylabel(ylabel)
+         plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+         plt.title(title)
+         plt.xticks(rotation=0)
+      else:  # If there's no data, create an empty plot with a message
+         plt.text(0.5, 0.5, "No Data Available", fontsize=14, ha='center', va='center', transform=plt.gca().transAxes)
+         plt.xticks([])
+         plt.yticks([])
+         plt.box(False)
+         plt.title("Student Average Grade Distribution by Section")
+         
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      return img_path
 # STOP - Program
 
 
