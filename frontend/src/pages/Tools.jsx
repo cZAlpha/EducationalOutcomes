@@ -485,7 +485,7 @@ function Tools() {
                                     {/* Create a blob from the array buffer to get the size. */}
                                     {/* Calculate file size in KB or MB */}
                                     {(() => {
-                                       const fileSizeInBytes = new Blob([sectionPerformanceData], { type: 'application/pdf' }).size;
+                                       const fileSizeInBytes = new Blob([programPerformanceData], { type: 'application/pdf' }).size;
                                        if (fileSizeInBytes < 1024 * 1024) {
                                           return <p><span className="font-semibold">Size:</span> {(fileSizeInBytes / 1024).toFixed(2)} KB</p>;
                                        } else {

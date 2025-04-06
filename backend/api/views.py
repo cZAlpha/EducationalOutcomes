@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import NotFound
 from django.shortcuts import get_object_or_404
-from django.core.exceptions import BadRequest
+from rest_framework.exceptions import ParseError, NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework import status, generics
 from django.http import FileResponse
@@ -429,7 +429,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
                   semester_obj = json.loads(entry)  # Convert JSON string to dictionary
                   semester_ids.append(int(semester_obj["semester_id"]))
                except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-                  raise BadRequest("Invalid semester format in selectedProgramSemesters")
+                  raise ValidationError("Invalid semester format in selectedProgramSemesters")
             
          # Get all courses for this program via the mapping table
          program_course_ids = ProgramCourseMapping.objects.filter(program=program).values_list("course", flat=True)
@@ -439,85 +439,131 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
             sections = Section.objects.filter(course_id__in=program_course_ids, semester_id__in=semester_ids)
          else:
             sections = Section.objects.filter(course_id__in=program_course_ids)
-      except BadRequest as e:
+      except ValidationError as e:
          raise e  # Return 400 Bad Request if anything fails
       
-      # Whitelist filtering (match semester_id)
-      print("Program Performance Report | Sections left after semester whitelisting: ", sections)
+      # ✅ Get all a_versions + their course and PLO data
+      a_version_data = self.find_all_plos(program_id, semester_ids)
+      if not a_version_data:
+         raise ParseError("No course data found for the selected semesters.")
       
-      if len(sections) <= 0: # If there are no sections after filtering
-         raise BadRequest("There were no sections left after filtering!")
+      # Final result dict to pass to the PDF generator
+      final_result_per_version = {}
       
-      # Compute performance metrics
-      overall_plo_performance = self.generate_course_plo_performance(sections)
-      print("overall_plo_performance", overall_plo_performance)
-      
-      # Query PLOs to get designations
-      plo_designations = {}
-      for plo_id in overall_plo_performance.keys():
-         plo = ProgramLearningObjective.objects.get(pk=plo_id) 
-         plo_designations[plo_id] = plo.designation
-      plo_performance_with_designations = {
-         plo_designations[plo_id]: value
-         for plo_id, value in overall_plo_performance.items()
-      }
-      
-      # START - Query all courses that are part of the program
-      courses = Course.objects.filter(programcoursemapping__program=program).distinct()
-      # STOP  - Query all courses that are part of the program
-      
-      # START - PLOs For This Program
-      course_clos = CourseLearningObjective.objects.filter(course__in=courses) # First, get all CLOs for the program's courses
-      program_learning_objectives = ProgramLearningObjective.objects.filter( # Then, get all PLOs that are mapped to those CLOs via PLOCLOMapping
-         ploclomapping__clo__in=course_clos
-      ).distinct()   
-      # STOP  - PLOs For This Program
-      
-      # START - Finding All Used Evaluation Types for all PLOs
-      plo_evaluation_types = defaultdict(set)  # Use set to avoid duplicates per PLO
-      
-      # Step 1: Get all PLO → CLO mappings
-      plo_clo_mappings = PLOCLOMapping.objects.select_related('plo', 'clo')
-      
-      # Step 2: For each CLO, find its associated tasks (via TaskCLOMapping)
-      clo_to_tasks = defaultdict(list)
-      task_clo_mappings = TaskCLOMapping.objects.select_related('clo', 'task')
-      
-      for mapping in task_clo_mappings:
-         clo_to_tasks[mapping.clo.clo_id].append(mapping.task)
-      
-      # Step 3: For each task, find its evaluation instrument and type
-      task_to_eval_type = {}
-      tasks = EmbeddedTask.objects.select_related('evaluation_instrument__evaluation_type')
-      
-      for task in tasks:
-         if task.evaluation_instrument and task.evaluation_instrument.evaluation_type:
-            task_to_eval_type[task.embedded_task_id] = task.evaluation_instrument.evaluation_type
-      
-      # Step 4: Build plo_evaluation_types dict
-      for mapping in plo_clo_mappings:
-         plo = mapping.plo
-         clo = mapping.clo
-         tasks_for_clo = clo_to_tasks.get(clo.clo_id, [])
+      for a_version, version_data in a_version_data.items():
+         courses = version_data["courses"]
+         plos = version_data["plos"]
+         print("PLOs: ", plos)
          
-         for task in tasks_for_clo:
-            eval_type = task_to_eval_type.get(task.embedded_task_id)
-            if eval_type:
-                  plo_evaluation_types[plo].add(eval_type)
+         # Get sections for the version
+         sections = Section.objects.filter(
+            course__in=courses,
+            semester_id__in=semester_ids if semester_ids else Section.objects.values_list('semester_id', flat=True)
+         ).distinct()
+         
+         if not sections.exists():
+            continue  # Skip this version if there are no sections
+         
+         # ✅ Compute performance
+         plo_performance = self.generate_plo_performance(sections)
+         
+         # ✅ Append missing PLOs with a performance of 0.0
+         for plo in plos:
+            if plo.plo_id not in plo_performance:
+                  plo_performance[plo.plo_id] = -1.0  # Set performance to 0.0 for missing PLOs
+         
+         # ✅ Add designations
+         plo_designations = {
+            plo.plo_id: plo.designation
+            for plo in ProgramLearningObjective.objects.filter(plo_id__in=plo_performance.keys())
+         }
+         
+         plo_performance_with_designations = {
+            plo_designations[plo_id]: value
+            for plo_id, value in plo_performance.items()
+            if plo_id in plo_designations
+         }
+         
+         # ✅ Get CLOs and used eval types
+         course_clos = CourseLearningObjective.objects.filter(course_id__in=courses)
+         program_learning_objectives = plos
+         
+         plo_evaluation_types = defaultdict(set)
+         
+         # CLO → Tasks
+         clo_to_tasks = defaultdict(list)
+         # Filter TaskCLOMappings to only those relevant to the selected CLOs
+         task_clo_mappings = TaskCLOMapping.objects.select_related("clo", "task").filter(
+            clo__in=course_clos
+         )
+         
+         # CLO → Tasks
+         clo_to_tasks = defaultdict(list)
+         for mapping in task_clo_mappings:
+            clo_to_tasks[mapping.clo.clo_id].append(mapping.task)
+         
+         print("TaskCLOMappings (filtered):", clo_to_tasks)
+         
+         # Task → Eval Type
+         eval_types_by_task = {
+            task.embedded_task_id: task.evaluation_instrument.evaluation_type
+            for task in EmbeddedTask.objects.select_related("evaluation_instrument__evaluation_type")
+            if task.evaluation_instrument and task.evaluation_instrument.evaluation_type
+         }
+         
+         # PLO → Eval Types
+         for mapping in PLOCLOMapping.objects.select_related("plo", "clo"):
+            if mapping.plo not in plos:
+               continue  # Only consider PLOs from this version
+            tasks = clo_to_tasks.get(mapping.clo.clo_id, [])
+            for task in tasks:
+               eval_type = eval_types_by_task.get(task.embedded_task_id)
+               if eval_type:
+                  plo_evaluation_types[mapping.plo].add(eval_type)
+         
+         # Convert to lists
+         plo_evaluation_types = {
+            plo: list(types) if types else ["N/A"]
+            for plo in program_learning_objectives
+            for types in [plo_evaluation_types.get(plo, set())]
+         }
+         
+         # Generate performance chart for this version
+         plo_graph_path = self.create_bar_chart_plos(
+            plo_performance_with_designations,
+            f"{a_version.a_organization.name} {a_version.year} PLO Performance",
+            "PLOs",
+            "Average Score"
+         )
+         
+         # Save all version-specific data
+         final_result_per_version[a_version] = {
+            "courses": courses,
+            "program_learning_objectives": program_learning_objectives,
+            "plo_evaluation_types": plo_evaluation_types,
+            "plo_performance": plo_performance,
+            "plo_graph_path": plo_graph_path,
+         }
       
-      # convert sets to lists
-      plo_evaluation_types = {plo: list(eval_types) for plo, eval_types in plo_evaluation_types.items()}
-      # STOP  - Finding All Used Evaluation Types for all PLOs
+      if not final_result_per_version:
+         raise ParseError("No PLO performance data found for any academic version.")
       
-      # START - Find Performance for all PLOs
-      plo_performance = overall_plo_performance
-      # STOP  - Find Performance for all PLOs
+      # ✅ Generate final PDF with all versions
+      #pdf_path = self.generate_multi_version_pdf(program, final_result_per_version)
       
-      # Generate graphs
-      plo_graph_path = self.create_bar_chart_plos(plo_performance_with_designations, "PLO Performance", "PLOs", "Average Score")
+      # ✅ Generate PDF for only the first version using self.generate_pdf
+      first_version, first_data = next(iter(final_result_per_version.items()))
       
-      # Create and return PDF
-      pdf_path = self.generate_pdf(program, courses, program_learning_objectives, plo_evaluation_types, plo_performance, plo_graph_path)
+      pdf_path = self.generate_pdf(
+         program,
+         #first_version,
+         first_data["courses"],
+         first_data["program_learning_objectives"],
+         first_data["plo_evaluation_types"],
+         first_data["plo_performance"],
+         first_data["plo_graph_path"]
+      )
+      
       return FileResponse(open(pdf_path, "rb"), as_attachment=True, filename="Program_Performance.pdf")
    
    def generate_pdf(self, program, courses, program_learning_objectives, plo_evaluation_types, plo_performance, plo_graph):
@@ -615,7 +661,8 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       table_data = []
       table_data.append(['Designation', 'Description'])  # Header row
          # Iterate through the PLOs to populate the table data
-      for plo in program_learning_objectives:
+      sorted_plos = sorted(program_learning_objectives, key=lambda plo: plo.designation) # Sort them alphabetically      
+      for plo in sorted_plos:
          # Create a row for each PLO with its designation and description
          designation = str(plo.designation)  # Convert designation to string if it's not already
          description = str(plo.description)  # Convert description to string if it's not already
@@ -650,25 +697,39 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       # STOP - PLOs Table
       
       # START - PLOs -> Evaluation Types Used
-      # Define section header for the table
+      #Define section header for the table
       section_header = Paragraph("Program Learning Objectives (PLOs) and Evaluation Types:", styles['Heading4'])
       elements.append(section_header)
       
       # Create a table for PLOs with 'PLO Designation' and 'Evaluation Types' as headers
       table_data = []
-      table_data.append(['PLO Designation', 'Evaluation Types'])  # Header row
+      table_data.append(['Designation', 'Evaluation Types'])  # Header row
       
       # Iterate through the CLOs to populate the table data
       for plo, evaluation_types in plo_evaluation_types.items():
-         plo_designation = str(plo)  # Convert designation to string
-         evaluation_text = ', '.join(str(evaluation.type_name) for evaluation in evaluation_types)
-         evaluation_paragraph = Paragraph(evaluation_text, styles['BodyText'])
+         plo_designation = str(plo.designation)  # Convert designation to string
+         
+         # Check if evaluation_types contains EvaluationType objects or just strings
+         evaluation_text = []
+         for evaluation in evaluation_types:
+            if isinstance(evaluation, EvaluationType):
+                  # If it's an EvaluationType object, use its type_name attribute
+                  evaluation_text.append(str(evaluation.type_name))
+            else:
+                  # If it's just a string, append it directly
+                  evaluation_text.append(str(evaluation))
+         
+         # Join the text and create the paragraph
+         evaluation_paragraph = Paragraph(', '.join(evaluation_text), styles['BodyText'])
          
          # Add the row to the table data
          table_data.append([plo_designation, evaluation_paragraph])
       
+      # Sort the table data by PLO Designation (first column)
+      table_data.sort(key=lambda x: x[0])  # Sorting by the first column (designation)
+      
       # Create the table
-      table = Table(table_data, colWidths=[1.5*inch, 5*inch])
+      table = Table(table_data, colWidths=[1*inch, 5.5*inch])
       
       # Define table styles
       table_style = TableStyle([
@@ -691,7 +752,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       
       # Add the table to the document
       elements.append(table)
-      # STOP  - CLOs -> Evaluation Types Used
+      # STOP  - PLOs -> Evaluation Types Used
       
       # START - PLO Performance Table w/ Designations
       elements.append(Paragraph("PLO Performance", styles['Heading3']))
@@ -760,7 +821,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       doc.build(elements)
       
       return pdf_path
-      
+   
    def generate_clo_performance(self, section):
       """
       Generate the CLO performance for a single section, ensuring normalized scores.
@@ -841,7 +902,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       
       return final_clo_performance
    
-   def generate_course_plo_performance(self, sections):
+   def generate_plo_performance(self, sections):
       """
       Generate the PLO performance for all sections in the course.
       """
@@ -854,26 +915,97 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       # Get PLO performance for each CLO
       clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
       for mapping in clo_plo_mappings:
-            clo_id = mapping.clo.clo_id
-            plo_id = mapping.plo.plo_id
-            clo_score = all_clo_performance.get(clo_id, 0)
-            all_plo_scores[plo_id].append(clo_score)
+         clo_id = mapping.clo.clo_id
+         plo_id = mapping.plo.plo_id
+         clo_score = all_clo_performance.get(clo_id, 0)
+         all_plo_scores[plo_id].append(clo_score)
       
       # Compute average PLO performance for the entire course
       final_plo_performance = {
-            plo_id: sum(scores) / len(scores) if scores else 0
-            for plo_id, scores in all_plo_scores.items()
+         plo_id: sum(scores) / len(scores) if scores else 0
+         for plo_id, scores in all_plo_scores.items()
       }
       
       return final_plo_performance
+   
+   def find_all_plos(self, program_id, semester_ids):
+      """
+      Purpose: Finds all PLOs (Program Learning Objectives) for a given program
+               and list of semesters by grouping them under their accreditation version.
+      Args:
+         program_id (int): ID of the program.
+         semester_ids (list[int]): List of semester IDs.
+      Returns:
+         dict: {
+               a_version_0: {
+                  'courses': [course_0, course_1, ...],
+                  'plos': [plo_0, plo_1, ...]
+               },
+               ...
+         }
+      """
+      result = defaultdict(lambda: {'courses': set(), 'plos': set()})
+      
+      # Step 1: Grab all related courses to the current program
+      course_ids = ProgramCourseMapping.objects.filter(
+         program=program_id
+      ).values_list('course_id', flat=True)
+      
+      if not course_ids:
+         print("find_all_plos | ERROR | No courses found for the given program.")
+         return Response({"error": "No courses found for the given program."}, status=404)
+      
+      # Step 2: Grab all related sections to the courses just grabbed
+      if (len(semester_ids) > 0):
+         valid_sections = Section.objects.filter(
+            course__in=course_ids,
+            semester__in=semester_ids
+         )
+      else: # If no semester_ids were passed, grab ALL sections no matter the semester
+         valid_sections = Section.objects.filter(
+            course__in=course_ids,
+         )
+      
+      if not valid_sections:
+         print("find_all_plos | ERROR | No sections found for the given courses and semesters.")
+         return Response({"error": "No sections found for the given courses and semesters."}, status=404)
+      
+      # Step 3: For each valid section, extract the course and its a_version
+      seen_courses = set()
+      for section in valid_sections:
+         course = section.course
+         
+         # Avoid repeating the same course if it appears in multiple sections
+         if course.course_id in seen_courses:
+               continue
+         seen_courses.add(course.course_id)
+         
+         a_version = course.a_version
+         result[a_version]['courses'].add(course)
+         
+         # Step 4: Get all PLOs linked to this accreditation version
+         plos = ProgramLearningObjective.objects.filter(
+               a_version=a_version
+         )
+         result[a_version]['plos'].update(plos)
+      
+      # Convert sets to lists
+      for a_version in result:
+         result[a_version]['courses'] = list(result[a_version]['courses'])
+         result[a_version]['plos'] = list(result[a_version]['plos'])
+      
+      return dict(result)
    
    def create_bar_chart_plos(self, data, title, xlabel, ylabel):
       """
       Generate a bar chart and save it as an image file.
       """
       if data:   
+         # Sort the keys of the data dictionary alphabetically
+         sorted_data = {k: data[k] for k in sorted(data.keys())}
+         
          plt.figure(figsize=(6, 4))
-         plt.bar(data.keys(), data.values(), color='#2b7fff')  # Deeper blue color
+         plt.bar(sorted_data.keys(), sorted_data.values(), color='#2b7fff')  # Deeper blue color
          plt.xlabel(xlabel)
          plt.ylabel(ylabel)
          plt.ylim(0, 100)  # Set y-axis range from 0 to 100
@@ -2282,10 +2414,10 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
    def generate_clo_performance(self, section):
       # Step 1: Get all Evaluation Instruments for the given section
       evaluation_instruments = EvaluationInstrument.objects.filter(section=section)
-
+      
       # Step 2: Get all Embedded Tasks from these Evaluation Instruments
       embedded_tasks = EmbeddedTask.objects.filter(evaluation_instrument__in=evaluation_instruments)
-
+      
       # Step 3: Compute average score for each embedded task
       task_avg_scores = {}
       for task in embedded_tasks:
@@ -2301,19 +2433,19 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
          
          normalized_avg_score = ((avg_score / total_possible_score) * 100) if total_possible_score else 0
          task_avg_scores[task.embedded_task_id] = normalized_avg_score if avg_score is not None else 0
-
+      
       # Step 4: Get all CLOs for the section's course
       all_clos = CourseLearningObjective.objects.filter(course=section.course)
-
+      
       # Step 5: Get all TaskCLOMapping records for these embedded tasks
       task_clo_mappings = TaskCLOMapping.objects.filter(task__in=embedded_tasks)
-
+      
       # Step 6: Group task scores by CLO
       clo_scores = defaultdict(list)
       for mapping in task_clo_mappings:
          avg_score = task_avg_scores.get(mapping.task.embedded_task_id, 0)
          clo_scores[mapping.clo.clo_id].append(avg_score)
-
+      
       # Step 7: Compute average score per CLO
       final_clo_performance = {}
       for clo in all_clos:
@@ -2746,7 +2878,7 @@ class SectionPerformanceReport(generics.RetrieveAPIView):
       elements.append(box_plot_label)
       box_plot_image = Image(box_plot, width=4*inch, height=2.5*inch)
       elements.append(box_plot_image)
-
+      
       doc.build(elements)
       return pdf_path # Return the path to the created PDF
 # STOP - Section
