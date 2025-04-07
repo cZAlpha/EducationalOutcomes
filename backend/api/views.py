@@ -853,7 +853,7 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
             # Generate heatmap data and plot for Courses and their usage of PLOs
          matrix, sorted_courses, sorted_plos = self.generate_heatmap_data(courses, program_learning_objectives)
          heatmap_title = f"Course-PLO Associations - {version_obj.a_organization.name} {version_obj.year}"
-         heatmap_path = self.create_heatmap_plo_courses(matrix, sorted_courses, sorted_plos, heatmap_title)
+         heatmap_path = self.create_heatmap_plo_courses(matrix, sorted_courses, sorted_plos, heatmap_title, program)
          
          # Add Heatmap
          elements.append(Spacer(1, 24))
@@ -1098,64 +1098,93 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
    
    def generate_heatmap_data(self, courses, plos):
       """
-      Prepares a matrix indicating which courses are associated with which PLOs.
+      Prepares a matrix with performance scores for course-PLO pairs.
+      Includes program designation in course labels.
       """
-      # Sort courses and PLOs for consistency
+      # Sort courses and PLOs consistently
       sorted_courses = sorted(courses, key=lambda c: c.course_number)
       sorted_plos = sorted(plos, key=lambda p: p.designation)
       
-      # Get all CLOs for the courses
-      course_ids = [c.course_id for c in sorted_courses]
-      clos = CourseLearningObjective.objects.filter(course_id__in=course_ids)
+      # Get all course-clo-plo mappings
+      course_clos = CourseLearningObjective.objects.filter(
+         course__in=sorted_courses
+      ).prefetch_related('ploclomapping_set')
       
-      # Get all PLO mappings for these CLOs
-      plo_mappings = PLOCLOMapping.objects.filter(clo__in=clos).select_related('plo')
-      
-      # Track which (course, plo) pairs exist
-      course_plo_pairs = set()
-      for mapping in plo_mappings:
-         course_id = mapping.clo.course.course_id
-         plo_id = mapping.plo.plo_id
-         course_plo_pairs.add((course_id, plo_id))
-      
-      # Build matrix: rows=PLOs, columns=courses
+      # Build course-PLO performance matrix
       matrix = []
       for plo in sorted_plos:
-         row = []
+         plo_row = []
          for course in sorted_courses:
-               key = (course.course_id, plo.plo_id)
-               row.append(1 if key in course_plo_pairs else 0)
-         matrix.append(row)
+               # Get all sections for this course in selected semesters
+               sections = Section.objects.filter(course=course)
+               if hasattr(self, 'semester_ids') and self.semester_ids:
+                  sections = sections.filter(semester_id__in=self.semester_ids)
+               
+               # Calculate PLO performance for these sections
+               performance = self.generate_plo_performance(sections)
+               score = performance.get(plo.plo_id, -1.0)  # -1 indicates no association
+               
+               # Convert to percentage and handle missing data
+               final_score = score if score != -1.0 else np.nan
+               plo_row.append(final_score)
+         matrix.append(plo_row)
       
       return matrix, sorted_courses, sorted_plos
    
-   def create_heatmap_plo_courses(self, matrix, courses, plos, title):
+   def create_heatmap_plo_courses(self, matrix, courses, plos, title, program):
       """
-      Generates a heatmap showing course-PLO associations with a blue theme.
+      Generates a blue-themed heatmap with performance gradient.
+      Includes program designation in course labels.
       """
-      plt.figure(figsize=(10, 8))
-      sns.set_theme(style="white")
+      plt.figure(figsize=(12, 8))
+      sns.set_theme(style="whitegrid")
       
-      # Create heatmap using Seaborn
+      # Create course labels with program prefix (e.g., "BSCS-101")
+      course_labels = [f"{program.designation}-{c.course_number}" for c in courses]
+      
+      # Create annotations for values and "N/A" for missing data
+      annotations = []
+      for row in matrix:
+         annotated_row = []
+         for val in row:
+               if np.isnan(val):
+                  annotated_row.append("N/A")
+               else:
+                  annotated_row.append(f"{val:.1f}%")
+         annotations.append(annotated_row)
+      
+      # Create heatmap with enhanced styling
       ax = sns.heatmap(
          matrix,
          cmap="Blues",
-         annot=False,
-         cbar=False,
-         xticklabels=[c.course_number for c in courses],
-         yticklabels=[p.designation for p in plos]
+         annot=annotations,
+         fmt="",
+         cbar=True,
+         cbar_kws={'label': 'Performance Score (%)'},
+         xticklabels=course_labels, 
+         yticklabels=[p.designation for p in plos],
+         vmin=0,
+         vmax=100,
+         linewidths=0.5,
+         linecolor='#cccccc'
       )
       
-      plt.title(title)
-      plt.xlabel("Courses")
-      plt.ylabel("Program Learning Objectives (PLOs)")
-      plt.xticks(rotation=45, ha='right', fontsize=8)
-      plt.yticks(rotation=0, fontsize=8)
+      # Enhance visual styling
+      plt.title(title, fontsize=20, pad=20)
+      plt.xlabel(program.designation + " Courses", fontsize=15)
+      plt.ylabel("Program Learning Objectives", fontsize=18)
+      plt.xticks(rotation=20, ha='right', fontsize=15)
+      plt.yticks(rotation=0, fontsize=15)
+      
+      # Add custom colorbar label
+      cbar = ax.collections[0].colorbar
+      cbar.set_label('Performance Score (%)', rotation=270, labelpad=20)
+      
       plt.tight_layout()
       
-      # Save the plot
-      img_path = f"/tmp/{title.replace(' ', '_')}.png"
-      plt.savefig(img_path, bbox_inches='tight')
+      # Save and return path
+      img_path = f"/tmp/{title.replace(' ', '_')}_heatmap.png"
+      plt.savefig(img_path, bbox_inches='tight', dpi=300)
       plt.close()
       
       return img_path
@@ -1448,7 +1477,7 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
       try:
          excludedSections = [int(section_id) for section_id in excludedSections]
       except ValueError:
-         raise BadRequest("Invalid excluded section ID format")
+         raise ParseError("Invalid excluded section ID format")
       
       # Parse selectedCourseSemesters into semester IDs
       try:
@@ -1460,13 +1489,13 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
                      semester_obj = json.loads(entry)  # Convert JSON string to dictionary
                      semester_ids.append(int(semester_obj["semester_id"]))
                   except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-                     raise BadRequest("Invalid semester format in selectedCourseSemesters")
+                     raise ParseError("Invalid semester format in selectedCourseSemesters")
             
             print("Semester IDs:", semester_ids)
             sections = Section.objects.filter(course=course, semester_id__in=semester_ids)  # Whitelist filter
          else:
             sections = Section.objects.filter(course=course)  # No filtering if no semesters provided
-      except BadRequest as e:
+      except NotFound as e:
          raise e  # Raise a 400 Bad Request error with the message
       
       # Whitelist filtering (match semester_id)
@@ -1478,7 +1507,7 @@ class CoursePerformanceReport(generics.RetrieveAPIView):
       print("Sections left after excludedSections filtering: ", sections)
       
       if len(sections) <= 0: # If there are no sections after filtering
-         raise BadRequest("There were no sections left after filtering!")
+         raise ValidationError("There were no sections left after filtering!")
       
       # Compute performance metrics
       overall_avg_grade = self.calculate_average_student_grade(sections)
