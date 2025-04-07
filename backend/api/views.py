@@ -19,6 +19,7 @@ from .models import * # Import models
 import matplotlib
 matplotlib.use("Agg") # Uses the 'Agg' backend for matplotlib to ensure no GUI instances are spun up, thus avoiding memory leaks and wasted processing power and time
 import matplotlib.pyplot as plt
+import seaborn as sns 
 
 
 # PDF imports
@@ -848,6 +849,26 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
          else:
             elements.append(Paragraph("PLO Performance Graph Not Available", styles['Normal']))
          
+         # START - Courses and PLO Association Heatmap
+            # Generate heatmap data and plot for Courses and their usage of PLOs
+         matrix, sorted_courses, sorted_plos = self.generate_heatmap_data(courses, program_learning_objectives)
+         heatmap_title = f"Course-PLO Associations - {version_obj.a_organization.name} {version_obj.year}"
+         heatmap_path = self.create_heatmap_plo_courses(matrix, sorted_courses, sorted_plos, heatmap_title)
+         
+         # Add Heatmap
+         elements.append(Spacer(1, 24))
+         elements.append(Paragraph("Course-PLO Associations", styles['Heading3']))
+         if heatmap_path and os.path.exists(heatmap_path):
+               try:
+                  heatmap_img = Image(heatmap_path, width=6*inch, height=4*inch)
+                  elements.append(heatmap_img)
+               except Exception as e:
+                  elements.append(Paragraph(f"Error embedding heatmap: {e}", styles['Normal']))
+         else:
+               elements.append(Paragraph("Heatmap Not Available", styles['Normal']))
+         # STOP  - Courses and PLO Association Heatmap
+         
+         # Create the document
          doc.build(elements)
          
          # Read the generated PDF into a PdfReader object
@@ -1073,6 +1094,70 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       img_path = f"/tmp/{title.replace(' ', '_')}.png"
       plt.savefig(img_path, bbox_inches='tight')
       plt.close()
+      return img_path
+   
+   def generate_heatmap_data(self, courses, plos):
+      """
+      Prepares a matrix indicating which courses are associated with which PLOs.
+      """
+      # Sort courses and PLOs for consistency
+      sorted_courses = sorted(courses, key=lambda c: c.course_number)
+      sorted_plos = sorted(plos, key=lambda p: p.designation)
+      
+      # Get all CLOs for the courses
+      course_ids = [c.course_id for c in sorted_courses]
+      clos = CourseLearningObjective.objects.filter(course_id__in=course_ids)
+      
+      # Get all PLO mappings for these CLOs
+      plo_mappings = PLOCLOMapping.objects.filter(clo__in=clos).select_related('plo')
+      
+      # Track which (course, plo) pairs exist
+      course_plo_pairs = set()
+      for mapping in plo_mappings:
+         course_id = mapping.clo.course.course_id
+         plo_id = mapping.plo.plo_id
+         course_plo_pairs.add((course_id, plo_id))
+      
+      # Build matrix: rows=PLOs, columns=courses
+      matrix = []
+      for plo in sorted_plos:
+         row = []
+         for course in sorted_courses:
+               key = (course.course_id, plo.plo_id)
+               row.append(1 if key in course_plo_pairs else 0)
+         matrix.append(row)
+      
+      return matrix, sorted_courses, sorted_plos
+   
+   def create_heatmap_plo_courses(self, matrix, courses, plos, title):
+      """
+      Generates a heatmap showing course-PLO associations with a blue theme.
+      """
+      plt.figure(figsize=(10, 8))
+      sns.set_theme(style="white")
+      
+      # Create heatmap using Seaborn
+      ax = sns.heatmap(
+         matrix,
+         cmap="Blues",
+         annot=False,
+         cbar=False,
+         xticklabels=[c.course_number for c in courses],
+         yticklabels=[p.designation for p in plos]
+      )
+      
+      plt.title(title)
+      plt.xlabel("Courses")
+      plt.ylabel("Program Learning Objectives (PLOs)")
+      plt.xticks(rotation=45, ha='right', fontsize=8)
+      plt.yticks(rotation=0, fontsize=8)
+      plt.tight_layout()
+      
+      # Save the plot
+      img_path = f"/tmp/{title.replace(' ', '_')}.png"
+      plt.savefig(img_path, bbox_inches='tight')
+      plt.close()
+      
       return img_path
 # STOP - Program
 
