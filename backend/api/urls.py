@@ -25,6 +25,7 @@ urlpatterns = [
       # Program routing
    path("programs/", ProgramListCreate.as_view(), name="program-list"),  # Route that returns all programs
    path("programs/<int:pk>/", ProgramDetail.as_view(), name="program-detail"),  # Retrieve, update, or delete a specific program
+   path("programs/<int:pk>/performancereport/", ProgramPerformanceReport.as_view(), name="course-performance"),  # Returns the PDF with all program performance for program performance reports
       # Courses routing
    path("courses/", CourseListCreate.as_view(), name="course-list"), # Route that returns all objects and can be used to create new instances
    path("courses/<int:pk>/", CourseDetail.as_view(), name="course-detail"),  # Retrieve, update, or delete
