@@ -1333,6 +1333,30 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       self.perform_destroy(instance)
       return Response({"message": "Course deleted successfully."}, status=status.HTTP_200_OK)
 
+class CourseSectionsList(generics.ListAPIView):
+   """
+   Returns all section numbers for a given course
+   URL pattern: /courses/<course_id>/sections/
+   """
+   serializer_class = SectionSerializer
+   permission_classes = [IsAuthenticated]
+   
+   def get_queryset(self):
+      course_id = self.kwargs['pk']
+      return Section.objects.filter(course=course_id)
+   
+   def list(self, request, *args, **kwargs):
+      queryset = self.get_queryset()
+      
+      # Debugging output
+      print(f"Looking for sections of course: {self.kwargs['pk']}")
+      print(f"Found {queryset.count()} sections")
+      for section in queryset:
+         print(f"Section ID: {section.section_id}, Number: {section.section_number}")
+      
+      section_numbers = list(queryset.values_list('section_number', flat=True))
+      return Response(section_numbers)
+
 class CoursePerformance(generics.RetrieveAPIView):
    queryset = Course.objects.all()
    serializer_class = SectionSerializer
@@ -2357,7 +2381,7 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    def get_queryset(self):
       return Section.objects.all()
    
-   def perform_update(self, request, serializer):
+   def perform_update(self, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).

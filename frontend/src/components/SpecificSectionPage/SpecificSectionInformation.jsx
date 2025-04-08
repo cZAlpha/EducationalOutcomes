@@ -6,8 +6,9 @@ import AddEvaluationInstrumentButton from "./AddNewEvaluationInstrumentButton";
 import FilterEvaluationInstrumentsBar from "./FilterEvaluationInstrumentsBar";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Accordion, AccordionSummary, AccordionDetails, Typography, Button} from "@mui/material";
+import { Accordion, AccordionSummary, AccordionDetails, Typography, Button, TextField, Select, MenuItem, InputLabel, FormControl} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SettingsIcon from '@mui/icons-material/Settings';
 
 
 function SpecificSectionInformation (section) {
@@ -19,9 +20,17 @@ function SpecificSectionInformation (section) {
    const [CLOs, setCLOs] = useState([]);
    const [PLOs, setPLOs] = useState([]);
    const [sectionPerformance, setSectionPerformance] = useState({}); // Obj to store the performance of a section
-   
+   const [semesters, setSemesters] = useState(null); // To store all semesters grabbed from the backend (used to populate the dropdown menu for the edit modal)
+   const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
+
    // Modal Variables
-   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // To track delete course modal visibility
+      // START - Edit Modal Variables
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false); // To track edit modal visibility
+   const [selectedSectionNumber, setSelectedSectionNumber] = useState('');
+   const [selectedSemester, setSelectedSemester] = useState(null);
+   const [selectedCRN, setSelectedCRN] = useState('');
+      // END - Edit Modal Variables
+   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // To track delete modal visibility
    
    // Filtering Variables
    const [filteredInstruments, setFilteredInstruments] = useState([]);
@@ -89,6 +98,42 @@ function SpecificSectionInformation (section) {
    };
    // STOP  - CLO fetching and filtering
    
+   // START  - Semester fetching
+   const getSemesters = async () => {
+      try {
+         const res = await api.get('/api/semesters/');
+         setSemesters(res.data);
+      } catch (err) {
+         alert(`Error fetching Semesters: ${err.message}`);
+      }
+   };
+   // STOP  - Semester fetching
+   
+   // START - Existing Section Numbers Fetching
+   const getAllSectionsNumbers = async () => {
+      // Step 1: Get the section's course
+      let courseId = section.section.course;
+      let currentSectionNumber = section.section.section_number;
+      // Step 2: Query the backend for all sections of the given courseId, then push them into the existingSectionNumbers array.
+      if (courseId) {
+         try {
+            const res = await api.get(`/api/courses/${courseId}/sections/`);
+            const otherSectionNumbers = [];
+            res.data.forEach(sectionNumber => {
+               if (sectionNumber !== currentSectionNumber) {
+                  otherSectionNumbers.push(sectionNumber);
+               }
+            });
+            setExistingSectionNumbers(otherSectionNumbers);
+         } catch (err) {
+            alert(`Error fetching Semesters: ${err.message}`);
+         }
+      } else {
+         alert("CourseId could not be parsed and therefore, all sections could not be fetched.")
+      }
+   };
+   // STOP  - Existing Section Numbers Fetching
+   
    // START - Section Performance data fetching
    const getSectionPerformance = async () => {
       try {
@@ -134,6 +179,47 @@ function SpecificSectionInformation (section) {
    };   
    // STOP  - Section Performance data fetching
    
+   // START - Section Edit
+   const handleSaveSectionChanges = async () => {
+      // Validate inputs
+      if (selectedCRN.length !== 5) {
+      alert('CRN must be exactly 5 digits');
+      return;
+      }
+      
+      if (existingSectionNumbers.includes(selectedSectionNumber)) {
+      alert('Section number already exists for this course');
+      return;
+      }
+      
+      try {
+      // Prepare the update data
+      const updateData = {
+         section_number: selectedSectionNumber,
+         semester: selectedSemester,
+         crn: selectedCRN
+      };
+      
+      // Send the PATCH request with the update data
+      const response = await api.patch(
+         `/api/sections/${section.section.section_id}/`,
+         updateData
+      );
+      
+      if (response.status === 200) {
+         alert('Section successfully updated.');
+         navigate("/sections/");
+      } else {
+         alert(`Error updating section. Status code: ${response.status}`);
+      }
+      } catch (err) {
+      alert(`Error updating section: ${err.message}`);
+      } finally {
+      setIsEditModalOpen(false);
+      }
+   };
+   // STOP  - Section Edit
+   
    // START - Section Delete 
    const handleRemoveSection = async () => {
       if (section.section.section_id) {
@@ -155,9 +241,20 @@ function SpecificSectionInformation (section) {
    };
    // STOP  - Section Delete 
    
+   // START - Handle Click of an Evaluation Instrument Instance
    const handleEvaluationInstrumentClick = (evaluationInstrumentId) => { // Navigates to the given specific evaluation instrument page
       navigate(`/evaluation-instruments/${evaluationInstrumentId}`);
    };
+   // STOP  - Handle Click of an Evaluation Instrument Instance
+   
+   // START - Handle Opening of the Edit Modal
+   const handleOpenEditModal = () => {
+      setSelectedSectionNumber(section.section.section_number || '');
+      setSelectedSemester(section.section.semester || null); // Set to current semester
+      setSelectedCRN(section.section.crn || '');
+      setIsEditModalOpen(true);
+   };
+   // STOP  - Handle Opening of the Edit Modal
    
    useEffect(() => { // ON COMPONENT MOUNT
       const fetchData = async () => {
@@ -165,6 +262,8 @@ function SpecificSectionInformation (section) {
          await getEvaluationTypes();
          await getCLOs();
          await getPLOs();
+         await getSemesters();
+         await getAllSectionsNumbers();
          setLoading(false); // Set loading to false when all data is fetched
       };
       
@@ -185,6 +284,13 @@ function SpecificSectionInformation (section) {
             .slice(0, perPage)
       );
    }, [filterName, filterType, perPage, evaluationInstruments]); // Depend on filters
+   
+   
+   // TESTING ONLY
+   useEffect(() => {
+      console.log("existingSectionNumbers: ", existingSectionNumbers);
+   }, [existingSectionNumbers])
+   
    
    // HTML STUFF
    return (
@@ -210,9 +316,148 @@ function SpecificSectionInformation (section) {
                   ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
                onClick={() => setSelectedTab("Settings")}
             >
-               Settings
+               <SettingsIcon />
             </button>
          </div>
+         
+         {/* Edit Modal */}
+         {isEditModalOpen && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg w-[60%] md:w-1/4">
+               <h3 className="font-bold text-lg mb-4">Edit Section Details</h3>
+               
+               <div className="flex flex-col gap-4 mb-6">
+                  {/* Section Number */}
+                  <TextField
+                     label="Section Number"
+                     variant="outlined"
+                     type="number"
+                     value={selectedSectionNumber}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string or numbers between 1-20
+                        if (value === '' || (Number(value) >= 1 && Number(value) <= 20)) {
+                           setSelectedSectionNumber(value);
+                        }
+                     }}
+                     onBlur={() => {
+                        // Only validate for duplicates when field loses focus
+                        if (selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))) {
+                           alert(`Section number ${selectedSectionNumber} already exists!`);
+                           setSelectedSectionNumber('');
+                        }
+                     }}
+                     slotProps={{
+                        input: {
+                           min: 1,
+                           max: 20,
+                           step: 1,
+                           inputMode: 'numeric',
+                        },
+                     }}
+                     fullWidth
+                     error={selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))}
+                     helperText={
+                        selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))
+                           ? 'This section number already exists!'
+                           : selectedSectionNumber !== '' && (selectedSectionNumber < 1 || selectedSectionNumber > 20)
+                           ? 'Must be between 1-20'
+                           : ''
+                     }
+                     sx={{
+                        'input[type=number]': {
+                           '-moz-appearance': 'textfield',
+                           '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+                           '-webkit-appearance': 'none',
+                           margin: 0
+                           }
+                        }
+                     }}
+                  />
+                  
+                  {/* Semester Dropdown */}
+                  <FormControl fullWidth>
+                  <InputLabel id="semester-label">Semester</InputLabel>
+                  <Select
+                     labelId="semester-label"
+                     value={selectedSemester || ''}
+                     onChange={(e) => setSelectedSemester(e.target.value)}
+                     label="Semester"
+                  >
+                     {semesters ? (
+                        semesters.map((semester) => (
+                        <MenuItem 
+                           key={semester.semester_id} 
+                           value={semester.semester_id} // Use semester_id as the value
+                        >
+                           {semester.designation}
+                        </MenuItem>
+                        ))
+                     ) : (
+                        <MenuItem disabled>Loading semesters...</MenuItem>
+                     )}
+                  </Select>
+                  </FormControl>
+                  
+                  {/* CRN Input */}
+                  <TextField
+                     label="CRN"
+                     variant="outlined"
+                     value={selectedCRN}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d{0,5}$/.test(value)) setSelectedCRN(value);
+                     }}
+                     fullWidth
+                     error={selectedCRN.length > 0 && selectedCRN.length !== 5}
+                     helperText={
+                        selectedCRN.length > 0 && selectedCRN.length !== 5 ? 'CRN must be exactly 5 digits' : ''
+                     }
+                  />
+                  </div>
+                  
+                  <div className="flex justify-between">
+                  {/* Save Button */}
+                  <Button
+                     color="primary"
+                     variant="outlined"
+                     disabled={selectedCRN.length !== 5}
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        borderColor: 'primary.main',
+                        },
+                     }}
+                     onClick={handleSaveSectionChanges}
+                  >
+                     Save
+                  </Button>
+                  
+                  {/* Cancel Button */}
+                  <Button
+                     variant="contained"
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        backgroundColor: '#757575',
+                        color: 'white',
+                        boxShadow: 'none',
+                        '&:hover': {
+                        backgroundColor: '#616161',
+                        },
+                     }}
+                     onClick={() => setIsEditModalOpen(false)}
+                  >
+                     Cancel
+                  </Button>
+               </div>
+            </div>
+         </div>
+         )}
          
          {/* Delete Modal */}
          {isDeleteModalOpen && (
@@ -260,7 +505,7 @@ function SpecificSectionInformation (section) {
          )}
          
          {/* Display Section */}
-         {!isDeleteModalOpen && (
+         {(!isEditModalOpen && !isDeleteModalOpen) && (
             <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
                {selectedTab === "Evaluation Instruments" ? (
                   <div className="w-full">
@@ -385,27 +630,48 @@ function SpecificSectionInformation (section) {
                      <h3 className="font-bold text-lg mb-4">Settings</h3>
                      <div className="w-full p-4 border bg-white rounded-lg shadow">
                         <div className="flex flex-col justify-center items-center gap-4 mt-4">
-                        <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                           <p className="text-xl text-black">Delete this Section?</p>
-                           {/* Delete Button */}
-                           <Button 
-                              color="error" 
-                              variant="outlined"
-                              sx={{
-                                 minWidth: '40px',
-                                 minHeight: '50px',
-                                 borderColor: 'error.main',
-                                 '&:hover': {
-                                    backgroundColor: 'error.main',
-                                    color: 'white',
+                           <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                              <p className="text-xl text-black">Edit this Section?</p>
+                              {/* Edit Button */}
+                              <Button 
+                                 color="warning" 
+                                 variant="contained"
+                                 sx={{
+                                    minWidth: '40px',
+                                    minHeight: '50px',
+                                    borderColor: 'warning.main',
+                                    '&:hover': {
+                                       backgroundColor: 'warning.main',
+                                       color: 'white',
+                                       borderColor: 'warning.main',
+                                    },
+                                 }}
+                                 onClick={handleOpenEditModal}
+                              >
+                                 Edit
+                              </Button>
+                           </div>
+                           <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                              <p className="text-xl text-black">Delete this Section?</p>
+                              {/* Delete Button */}
+                              <Button 
+                                 color="error" 
+                                 variant="outlined"
+                                 sx={{
+                                    minWidth: '40px',
+                                    minHeight: '50px',
                                     borderColor: 'error.main',
-                                 },
-                              }}
-                              onClick={() => setIsDeleteModalOpen(true)}
-                           >
-                              DELETE
-                           </Button>
-                        </div>
+                                    '&:hover': {
+                                       backgroundColor: 'error.main',
+                                       color: 'white',
+                                       borderColor: 'error.main',
+                                    },
+                                 }}
+                                 onClick={() => setIsDeleteModalOpen(true)}
+                              >
+                                 DELETE
+                              </Button>
+                           </div>
                         </div>
                      </div>
                   </motion.div>

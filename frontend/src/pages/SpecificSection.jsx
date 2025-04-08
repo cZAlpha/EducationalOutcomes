@@ -139,7 +139,7 @@ function SpecificSection() {
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
                >
-                  {loading ? "Loading..." : "Section #: " + section?.section_number}
+                  {loading ? "Loading..." : "Section #: " + section?.section_number + " (" + section?.crn + ")"}
                </motion.h1>
                {/* Desktop Version */}
                <motion.h1
@@ -148,7 +148,7 @@ function SpecificSection() {
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
                >
-                  {loading ? "Loading..." : section?.section_number}
+                  {loading ? "Loading..." : section?.section_number + " (" + section?.crn + ")"}
                </motion.h1>
             </div>
             <motion.h2

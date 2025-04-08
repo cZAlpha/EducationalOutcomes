@@ -29,6 +29,7 @@ urlpatterns = [
       # Courses routing
    path("courses/", CourseListCreate.as_view(), name="course-list"), # Route that returns all objects and can be used to create new instances
    path("courses/<int:pk>/", CourseDetail.as_view(), name="course-detail"),  # Retrieve, update, or delete
+   path("courses/<int:pk>/sections/", CourseSectionsList.as_view(), name="course-sections"),  # Retrieve all sections of a given course
    path("courses/<int:pk>/performance/", CoursePerformance.as_view(), name="course-short-performance"),  # Retrieve, update, or delete
    path("courses/<int:pk>/performancereport/", CoursePerformanceReport.as_view(), name="course-performance"),  # Returns the PDF with all course performance for course performance reports
       # ProgramCourseMapping routing
