@@ -120,7 +120,20 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    
    // START - Delete Course
    const handleRemove = async () => {
-      console.log("SpecificCourse.jsx | SpecificCourseInformation.jsx | handleRemove | Removing a course has not been implemented yet.")
+      try {
+         // Send the DELETE request
+         const response = await api.delete(`/api/courses/${course.course_id}/`);
+         if (response.status == 200) { // If deletion was successful
+            alert('Course successfully deleted.');
+            navigate("/courses/");
+         } else if (response.status == 403) { // Unauthorized failure
+            alert("You do not have authority to delete a course!");
+         } else { // Uncaught failure
+            alert("Error deleting course. Status code not recognized, was not 200 or 403, was: ", response.status);
+         }         
+      } catch (err) {
+         alert(`Error deleting course: ${err.message}`);
+      }
    };
    
    //  START - Reinstate Course
