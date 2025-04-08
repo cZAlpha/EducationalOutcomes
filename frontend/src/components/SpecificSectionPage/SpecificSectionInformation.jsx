@@ -637,7 +637,7 @@ function SpecificSectionInformation (section) {
                                  color="warning" 
                                  variant="contained"
                                  sx={{
-                                    minWidth: '40px',
+                                    width: '80px',
                                     minHeight: '50px',
                                     borderColor: 'warning.main',
                                     '&:hover': {
@@ -658,7 +658,7 @@ function SpecificSectionInformation (section) {
                                  color="error" 
                                  variant="outlined"
                                  sx={{
-                                    minWidth: '40px',
+                                    width: '80px',
                                     minHeight: '50px',
                                     borderColor: 'error.main',
                                     '&:hover': {
