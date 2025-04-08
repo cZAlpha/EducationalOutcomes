@@ -977,26 +977,35 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
    
    def generate_plo_performance(self, sections):
       """
-      Generate the PLO performance for all sections in the course.
+      Generate the PLO performance for all sections, weighted by course contribution.
       """
-      # Get CLO performance for the entire course
-      all_clo_performance = self.generate_course_clo_performance(sections)
-      clo_ids = all_clo_performance.keys()
+      # Group sections by course
+      sections_by_course = defaultdict(list)
+      for section in sections:
+         sections_by_course[section.course].append(section)
       
-      all_plo_scores = defaultdict(list)
+      # Calculate PLO performance per course
+      course_plo_scores = defaultdict(list)
+      for course, course_sections in sections_by_course.items():
+         # Get CLO performance for this course's sections
+         clo_performance = self.generate_course_clo_performance(course_sections)
+         
+         # Get PLO mappings for these CLOs
+         clo_plo_mappings = PLOCLOMapping.objects.filter(
+               clo__clo_id__in=clo_performance.keys()
+         )
+         
+         # Group CLO scores by PLO
+         for mapping in clo_plo_mappings:
+               clo_id = mapping.clo.clo_id
+               plo_id = mapping.plo.plo_id
+               clo_score = clo_performance.get(clo_id, 0)
+               course_plo_scores[plo_id].append(clo_score)
       
-      # Get PLO performance for each CLO
-      clo_plo_mappings = PLOCLOMapping.objects.filter(clo__clo_id__in=clo_ids)
-      for mapping in clo_plo_mappings:
-         clo_id = mapping.clo.clo_id
-         plo_id = mapping.plo.plo_id
-         clo_score = all_clo_performance.get(clo_id, 0)
-         all_plo_scores[plo_id].append(clo_score)
-      
-      # Compute average PLO performance for the entire course
+      # Compute final PLO performance (average of course averages)
       final_plo_performance = {
          plo_id: sum(scores) / len(scores) if scores else 0
-         for plo_id, scores in all_plo_scores.items()
+         for plo_id, scores in course_plo_scores.items()
       }
       
       return final_plo_performance
