@@ -1333,7 +1333,6 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       self.perform_destroy(instance)
       return Response({"message": "Course deleted successfully."}, status=status.HTTP_200_OK)
 
-
 class CoursePerformance(generics.RetrieveAPIView):
    queryset = Course.objects.all()
    serializer_class = SectionSerializer
@@ -2365,12 +2364,10 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
       """
       serializer.save()
    
-   def perform_destroy(self, request, instance):
-      """
-      This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the instance.
-      """
-      instance.delete()
+   def destroy(self, request, *args, **kwargs):
+      instance = self.get_object() # Grab the instance to delete
+      self.perform_destroy(instance) # Delete it
+      return Response({"message": "Course deleted successfully."}, status=status.HTTP_200_OK) # Tell the frontend
 
 class SectionPerformance(generics.RetrieveAPIView):
    """

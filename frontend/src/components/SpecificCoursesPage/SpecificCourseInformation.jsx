@@ -135,6 +135,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
          alert(`Error deleting course: ${err.message}`);
       }
    };
+   // STOP  - Delete Course
    
    //  START - Reinstate Course
    const handleReinstate = async () => {
@@ -245,13 +246,15 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
             >
                Performance
             </button>
-            <button
-               className={`px-4 py-2 rounded-md w-full font-bold 
-                  ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-               onClick={() => setSelectedTab("Settings")}
-            >
-               <SettingsIcon />
-            </button>
+            {isUserAdmin && (
+               <button
+                  className={`px-4 py-2 rounded-md w-full font-bold 
+                     ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  onClick={() => setSelectedTab("Settings")}
+               >
+                  <SettingsIcon />
+               </button>
+            )}
          </div>
          
          {/* Archive Modal */}
@@ -538,64 +541,62 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                         <h3 className="font-bold text-lg mb-4">Settings</h3>
                         <div className="w-full p-4 border bg-white rounded-lg shadow">
                            <div className="flex flex-col justify-center items-center gap-4 mt-4">
-                                 {(!isArchiveModalOpen && !isDeleteModalOpen) && (
-                                    <>
-                                       <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                                          <p className="text-xl text-black">Archive this Course?</p>
-                                          {/* Archive Button */}
-                                          <Button 
-                                             color="error" 
-                                             variant="contained"   // Changed to 'contained' for filled style
-                                             sx={{
-                                                minWidth: '40px',
-                                                minHeight: '50px',
-                                                backgroundColor: 'error.main', // Same red as bg-red-500
-                                                color: 'white',               // Text color white
-                                                borderRadius: '0.375rem',     // Matching rounded corners (rounded-md)
-                                                '&:hover': {
-                                                   backgroundColor: 'error.dark', // Darker red on hover (same as hover state for bg-red-500)
-                                                },
-                                             }}
-                                             onClick={() => setIsArchiveModalOpen(true)} // Show modal on button click
-                                          >
-                                             Archive
-                                          </Button>
-                                       </div>
-                                       
-                                       {/* Horizontal divider */}
-                                       {isUserAdmin && (
-                                       <div className="w-[80%] flex items-center">
-                                          <div className="flex-grow border-t border-gray-300"></div>
-                                          <span className="mx-4 text-gray-400 text-sm">OR</span>
-                                          <div className="flex-grow border-t border-gray-300"></div>
-                                       </div>
-                                       )}
-                                       
-                                       {(isUserAdmin) && (
-                                          <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                                             <p className="text-xl text-black">Delete this Course?</p>
-                                             {/* Delete Button */}
-                                             <Button color="error" variant="outlined" 
-                                                sx={{
-                                                   minWidth: '40px',
-                                                   minHeight: '50px',
-                                                   borderColor: 'error.main', // Border color for the outlined variant
-                                                   '&:hover': {
-                                                      backgroundColor: 'error.main', // Background color when hovered
-                                                      color: 'white', // Text color changes to white on hover
-                                                      borderColor: 'error.main', // Ensure border color stays the same
-                                                   },
-                                                }}
-                                                onClick={() => setIsDeleteModalOpen(true)} // Show modal on button click
-                                             >
-                                                DELETE
-                                             </Button>
-                                          </div>
-                                       )}
-                                    </>
-                                 )}
+                              {(!isArchiveModalOpen && !isDeleteModalOpen) && isUserAdmin && (
+                                 <>
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Archive this Course?</p>
+                                       {/* Archive Button */}
+                                       <Button 
+                                          color="error" 
+                                          variant="contained"
+                                          sx={{
+                                             minWidth: '40px',
+                                             minHeight: '50px',
+                                             backgroundColor: 'error.main',
+                                             color: 'white',
+                                             borderRadius: '0.375rem',
+                                             '&:hover': {
+                                                backgroundColor: 'error.dark',
+                                             },
+                                          }}
+                                          onClick={() => setIsArchiveModalOpen(true)}
+                                       >
+                                          Archive
+                                       </Button>
+                                    </div>
+                                    
+                                    <div className="w-[80%] flex items-center">
+                                       <div className="flex-grow border-t border-gray-300"></div>
+                                       <span className="mx-4 text-gray-400 text-sm">OR</span>
+                                       <div className="flex-grow border-t border-gray-300"></div>
+                                    </div>
+                                    
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Delete this Course?</p>
+                                       {/* Delete Button */}
+                                       <Button 
+                                          color="error" 
+                                          variant="outlined"
+                                          sx={{
+                                             minWidth: '40px',
+                                             minHeight: '50px',
+                                             borderColor: 'error.main',
+                                             '&:hover': {
+                                                backgroundColor: 'error.main',
+                                                color: 'white',
+                                                borderColor: 'error.main',
+                                             },
+                                          }}
+                                          onClick={() => setIsDeleteModalOpen(true)}
+                                       >
+                                          DELETE
+                                       </Button>
+                                    </div>
+                                 </>
+                              )}
                            </div>
                         </div>
+
                      </motion.div>
                   ) : (
                      <motion.div
