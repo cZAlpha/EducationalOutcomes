@@ -1342,20 +1342,13 @@ class CourseSectionsList(generics.ListAPIView):
    permission_classes = [IsAuthenticated]
    
    def get_queryset(self):
-      course_id = self.kwargs['pk']
-      return Section.objects.filter(course=course_id)
+      course_id = self.kwargs['course_id'] # Grab the course id from the url parameters
+      return Section.objects.filter(course=course_id) # Query all sections and then filter them to only include sections that are from the given course
    
    def list(self, request, *args, **kwargs):
-      queryset = self.get_queryset()
-      
-      # Debugging output
-      print(f"Looking for sections of course: {self.kwargs['pk']}")
-      print(f"Found {queryset.count()} sections")
-      for section in queryset:
-         print(f"Section ID: {section.section_id}, Number: {section.section_number}")
-      
-      section_numbers = list(queryset.values_list('section_number', flat=True))
-      return Response(section_numbers)
+      queryset = self.get_queryset() # Define the query set using the function above
+      section_numbers = list(queryset.values_list('section_number', flat=True)) # Query all section numbers for the current course
+      return Response(section_numbers) # Return these section numbers as a list
 
 class CoursePerformance(generics.RetrieveAPIView):
    queryset = Course.objects.all()

@@ -5,7 +5,7 @@ function Home() {
    return (
       <> {/* Singular parent element required by React */}
          <div className="w-full flex justify-center pt-10">
-            <h1 className="text-white text-4xl font-bold">Educational Outcomes</h1>
+            <h1 className="text-white text-4xl font-bold">Lumetric</h1>
          </div>
          
          {/* Hero Section */}
