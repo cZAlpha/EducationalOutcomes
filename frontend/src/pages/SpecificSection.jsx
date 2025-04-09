@@ -173,7 +173,7 @@ function SpecificSection() {
                animate={{ opacity: loading ? 0 : 1 }}
                transition={{ duration: 0.5 }}
             >
-               Instructor: {section?.instructor_details?.last_name}
+               Instructor: {section?.instructor_details?.first_name} {section?.instructor_details?.last_name}
             </motion.h3>
          </div>
          

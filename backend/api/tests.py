@@ -51,7 +51,7 @@ def populate_database(): # Function to populate the database with random users a
       d_number="D10795834",
       role=root_user_role,
       email="drsmolinski@desu.edu",
-      first_name="First Name",
+      first_name="Tomasz",
       last_name="Smolinski",
       employee_id="D10795834"
    )
