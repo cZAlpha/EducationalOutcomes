@@ -331,47 +331,47 @@ function SpecificSectionInformation (section) {
                   <TextField
                      label="Section Number"
                      variant="outlined"
-                     type="number"
                      value={selectedSectionNumber}
                      onChange={(e) => {
                         const value = e.target.value;
-                        // Allow empty string or numbers between 1-20
-                        if (value === '' || (Number(value) >= 1 && Number(value) <= 20)) {
+                        // Allow empty string or alphanumeric strings up to 5 chars
+                        if (value === '' || (value.length <= 5 && /^[a-zA-Z0-9]*$/.test(value))) {
                            setSelectedSectionNumber(value);
                         }
                      }}
+                     error={
+                        selectedSectionNumber === '' || // Empty field error
+                        existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()) || // Duplicate error
+                        !/^[a-zA-Z0-9]{1,5}$/.test(selectedSectionNumber) // Invalid format error
+                     }
                      onBlur={() => {
-                        // Only validate for duplicates when field loses focus
-                        if (selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))) {
-                           alert(`Section number ${selectedSectionNumber} already exists!`);
+                        // Convert to uppercase and validate for duplicates
+                        const upperValue = selectedSectionNumber.toUpperCase();
+                        if (selectedSectionNumber !== '' && existingSectionNumbers.includes(upperValue)) {
+                           alert(`Section number ${upperValue} already exists!`);
                            setSelectedSectionNumber('');
+                        } else if (selectedSectionNumber !== '') {
+                           // Auto-uppercase the value on blur
+                           setSelectedSectionNumber(upperValue);
                         }
-                     }}
-                     slotProps={{
-                        input: {
-                           min: 1,
-                           max: 20,
-                           step: 1,
-                           inputMode: 'numeric',
-                        },
                      }}
                      fullWidth
-                     error={selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))}
                      helperText={
-                        selectedSectionNumber !== '' && existingSectionNumbers.includes(Number(selectedSectionNumber))
-                           ? 'This section number already exists!'
-                           : selectedSectionNumber !== '' && (selectedSectionNumber < 1 || selectedSectionNumber > 20)
-                           ? 'Must be between 1-20'
-                           : ''
+                        selectedSectionNumber === '' // If there's nothing entered, tell the user to enter something
+                           ? "You must have a section number!"
+                           : (existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()))
+                              ? "This section number already exists!"
+                              : "Enter 1-5 alphanumeric characters (e.g., '01' or 'R01')"
                      }
                      sx={{
-                        'input[type=number]': {
-                           '-moz-appearance': 'textfield',
-                           '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
-                           '-webkit-appearance': 'none',
-                           margin: 0
-                           }
-                        }
+                           '& input': {
+                           textTransform: 'uppercase',
+                           },
+                        }}
+                     slotProps={{
+                        input: {
+                        maxLength: 5,
+                        },
                      }}
                   />
                   
@@ -421,7 +421,7 @@ function SpecificSectionInformation (section) {
                   <Button
                      color="primary"
                      variant="outlined"
-                     disabled={selectedCRN.length !== 5}
+                     disabled={selectedCRN.length !== 5 || selectedSectionNumber.length < 1 || existingSectionNumbers.includes(selectedSectionNumber)}
                      sx={{
                         minWidth: '40px',
                         minHeight: '50px',

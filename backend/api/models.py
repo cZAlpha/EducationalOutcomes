@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone # For verifying time validity
 from django.core.exceptions import ValidationError # For throwing validation errors
 from django.contrib.auth.password_validation import validate_password # For validating passwords
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 
 
 # NOTE: This is where API-compatible database tables are defined
@@ -214,7 +214,15 @@ class Semester(models.Model):
 class Section(models.Model):
    section_id = models.BigAutoField(primary_key=True)
    course = models.ForeignKey(Course, on_delete=models.CASCADE) # Associated course for the given section
-   section_number = models.CharField(max_length=5) # The section number may include letters and numbers, hence why it is a char field. It has a maximum character length of 5, but will usually not exceed 3.
+   section_number = models.CharField(
+      max_length=5,
+      validators=[
+         RegexValidator(
+               regex='^[A-Z0-9]{1,5}$',  # Allows uppercase alphanumeric, 1-5 chars
+               message='Section number must be 1-5 alphanumeric characters'
+         )
+      ]
+   ) # The section number may include letters and numbers, hence why it is a char field. It has a maximum character length of 5, but will usually not exceed 3.
    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
    crn = models.CharField(max_length=20)
    instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # Users are instructors, optional (at first)
