@@ -609,8 +609,8 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       description = Paragraph(f"{program.description}", styles['Normal'])
       initial_elements.append(description)
       
-      # Administrator Comment Section
-      initial_elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+      # Comment Section
+      initial_elements.append(Paragraph("Comments:", styles['Heading3']))
       for _ in range(6):  # Add 5 lines for comments
             initial_elements.append(Spacer(1, 12))
             initial_elements.append(Paragraph(
@@ -668,8 +668,8 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
                else:  # If the course is INACTIVE (date_removed is not None)
                   elements.append(Paragraph(f"- {course.name} ({course.course_number}) | Added: {course.date_added} - Removed: {course.date_removed}", styles['Normal']))
          
-         # Administrator Comment Section
-         elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+         # Comment Section
+         elements.append(Paragraph("Comments:", styles['Heading3']))
          for _ in range(5):  # Add 5 lines for comments
                elements.append(Spacer(1, 12))
                elements.append(Paragraph(
