@@ -622,10 +622,10 @@ function SpecificSectionInformation (section) {
                   </motion.div>
                ) : selectedTab === "Settings" ? (
                   <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full"
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ duration: 0.4 }}
+                     className="w-full"
                   >
                      <h3 className="font-bold text-lg mb-4">Settings</h3>
                      <div className="w-full p-4 border bg-white rounded-lg shadow">

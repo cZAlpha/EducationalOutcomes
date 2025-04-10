@@ -395,7 +395,8 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
             <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
                {selectedTab === "Sections" ? (
                   <div>
-                     <div className="flex justify-between items-center mb-4">
+                     {/* Header: Title & Add Icon */}
+                     <div className="flex justify-between items-center mb-4 mx-2">
                         <h3 className="font-bold text-lg">Sections</h3>
                         <IconButton onClick={handleOpenForm} color="primary">
                            <AddIcon />
@@ -436,44 +437,55 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                      )}
                   </div>
                ) : selectedTab === "CLO Mappings" ? (
-                  <div>
+                  <>
                      <h1 className="font-bold text-md mb-6">CLO Mappings</h1>
-                     {CLOs.map((clo) => (
-                     <Accordion key={clo.clo_id}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                           <div className="flex flex-col gap-y-1">
-                              <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
-                              <p className="pl-4">{clo.description}</p>
-                           </div>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                           {cloToPloMap[clo.clo_id]?.length > 0 ? (
-                           <Card variant="outlined">
-                              <CardContent>
-                                 <Typography variant="subtitle1" fontWeight="bold">
-                                 Mapped PLOs:
-                                 </Typography>
-                                 <ul className="flex flex-col gap-y-1 text-left pt-2">
-                                 {cloToPloMap[clo.clo_id].map((plo) => (
-                                    <li key={plo.plo_id}>
-                                       <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
-                                    </li>
-                                 ))}
-                                 </ul>
-                              </CardContent>
-                           </Card>
-                           ) : (
-                           <Typography color="textSecondary">No mapped PLOs.</Typography>
-                           )}
-                        </AccordionDetails>
-                     </Accordion>
-                     ))}
-                  </div>
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                     >
+                        {CLOs.map((clo) => (
+                           <Accordion key={clo.clo_id}>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                 <div className="flex flex-col gap-y-1">
+                                    <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
+                                    <p className="pl-4">{clo.description}</p>
+                                 </div>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                 {cloToPloMap[clo.clo_id]?.length > 0 ? (
+                                 <Card variant="outlined">
+                                    <CardContent>
+                                       <Typography variant="subtitle1" fontWeight="bold">
+                                       Mapped PLOs:
+                                       </Typography>
+                                       <ul className="flex flex-col gap-y-1 text-left pt-2">
+                                       {cloToPloMap[clo.clo_id].map((plo) => (
+                                          <li key={plo.plo_id}>
+                                             <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
+                                          </li>
+                                       ))}
+                                       </ul>
+                                    </CardContent>
+                                 </Card>
+                                 ) : (
+                                 <Typography color="textSecondary">No mapped PLOs.</Typography>
+                                 )}
+                              </AccordionDetails>
+                           </Accordion>
+                        ))}
+                     </motion.div>
+                  </>
                ) : selectedTab === "Performance" ? (
                   coursePerformance ? (
                      <>
                         <h1 className="font-bold text-md mb-6">Performance</h1>
-                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                        <motion.div
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ duration: 0.4 }}
+                           className="w-full p-4 border bg-white rounded-lg shadow"
+                        >
                            {/* CLO Performance */}
                            <Accordion>
                                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -525,7 +537,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                                     )}
                                  </AccordionDetails>
                            </Accordion>
-                        </div>
+                        </motion.div>
                      </>
                   ) : (
                         <div>Loading Performance Data...</div> // Or any loading/placeholder content

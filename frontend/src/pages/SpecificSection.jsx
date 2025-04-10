@@ -115,6 +115,14 @@ function SpecificSection() {
          {/* Header Section*/}
          <div className="flex flex-col items-left text-left w-full md:w-[60%]">
             {/* Course Name - Section Number */}
+            <motion.h1
+               className="italic text-xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Section
+            </motion.h1>
             <div className="flex flex-col md:flex-row gap-x-4">
                <motion.h1
                   className="font-bold text-3xl"
