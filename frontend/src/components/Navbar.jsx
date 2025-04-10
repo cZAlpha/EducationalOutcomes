@@ -11,7 +11,6 @@ import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
 import BuildIcon from "@mui/icons-material/Build";
 import CloseIcon from "@mui/icons-material/Close";
 import { useAuth } from "../components/AuthProvider"; // Import useAuth hook
-import { ForkRight } from "@mui/icons-material";
 
 
 const Navbar = () => {

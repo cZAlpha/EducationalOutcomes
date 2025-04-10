@@ -1,9 +1,14 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 
 function Home() {
    return (
-      <> {/* Singular parent element required by React */}
+      <motion.div
+         initial={{ opacity: 0 }}
+         animate={{ opacity: 1 }}
+         transition={{ duration: 0.75 }}
+      > 
          <div className="w-full flex justify-center pt-10">
             <h1 className="text-white text-4xl font-bold">Lumetric</h1>
          </div>
@@ -58,10 +63,7 @@ function Home() {
                </div>
             </div>
          </div>
-
-
-
-      </>
+      </motion.div>
    );
 }
 

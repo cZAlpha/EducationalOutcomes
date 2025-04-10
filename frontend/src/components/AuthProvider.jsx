@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
          });
          
          setUser(userRes.data);
-         navigate(userRes.data.role.id === 3 ? "/" : "/"); // Send users to differing routes depending on their role id (unused for now)
       } catch (error) {
          console.error("Login error:", error);
          throw error;
