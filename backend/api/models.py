@@ -213,8 +213,8 @@ class Semester(models.Model):
 # Sections
 class Section(models.Model):
    section_id = models.BigAutoField(primary_key=True)
-   course = models.ForeignKey(Course, on_delete=models.CASCADE)  # Associated course for the given section
-   section_number = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])  # Section number can be from 1-10
+   course = models.ForeignKey(Course, on_delete=models.CASCADE) # Associated course for the given section
+   section_number = models.CharField(max_length=5) # The section number may include letters and numbers, hence why it is a char field. It has a maximum character length of 5, but will usually not exceed 3.
    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
    crn = models.CharField(max_length=20)
    instructor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True) # Users are instructors, optional (at first)

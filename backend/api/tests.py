@@ -298,14 +298,14 @@ def populate_database(): # Function to populate the database with random users a
    print("[+] Creating Sections...")
    comp_think_ii_section_01, created = Section.objects.get_or_create(
       course = comp_think_ii,
-      section_number = 1,
+      section_number = "01",
       semester = spring_2024_semester,
       crn = "34324",
       instructor = dr_smolinski,
    )
    comp_think_ii_section_02, created = Section.objects.get_or_create(
       course = comp_think_ii,
-      section_number = 2,
+      section_number = "02",
       semester = spring_2024_semester,
       crn = "34683",
       instructor = dr_smolinski,
@@ -786,6 +786,6 @@ def populate_courses(): # Function that only populates courses
 
 
 if __name__ == "__main__": # Main execution
-   wipe_database()
-   populate_database()
+   #wipe_database()
+   #populate_database()
    visualize_database()
