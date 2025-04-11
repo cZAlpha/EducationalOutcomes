@@ -12,7 +12,7 @@ export const setupInterceptors = (refreshToken) => {
    // Request Interceptor to Attach Access Token
    api.interceptors.request.use(
       async (config) => {
-         let token = sessionStorage.getItem("access_token");
+         let token = localStorage.getItem("access_token");
          
          if (!token) {
             token = await refreshToken(); // Call refreshToken passed from AuthProvider

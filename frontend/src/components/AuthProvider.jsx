@@ -2,7 +2,9 @@ import { createContext, useContext, useState, useEffect } from "react";
 import api, { setupInterceptors } from "../api";
 import { useNavigate } from "react-router-dom";
 
+
 export const AuthContext = createContext();
+
 
 export const AuthProvider = ({ children }) => {
    const [user, setUser] = useState(null);
@@ -98,9 +100,12 @@ export const AuthProvider = ({ children }) => {
       checkAuth();
    }, []);
    
+   // In your first provider, modify the useEffect for interceptors:
    useEffect(() => {
+      if (!loading) {  // Only setup interceptors after initial auth check
       setupInterceptors(refreshToken);
-   }, []);
+      }
+   }, [loading]);
    
    return (
       <AuthContext.Provider value={{ user, login, logout, refreshToken }}>
