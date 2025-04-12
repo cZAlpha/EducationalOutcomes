@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import SpecificCoursesSectionCard from "./SpecificCoursesSectionCard";
-import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Accordion, AccordionSummary, AccordionDetails, Typography, Card, CardContent, Select, MenuItem, InputLabel, FormControl, Autocomplete } from "@mui/material";
+import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Accordion, AccordionSummary, AccordionDetails, Typography, Card, CardContent, Select, MenuItem, InputLabel, FormControl, Autocomplete, FormHelperText } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import api from '../../api';
@@ -54,7 +54,6 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    }, {});
    
    const handleOpenForm = () => {
-      setSelectedInstructor(instructor);
       setOpenForm(true);
    };
    
@@ -62,7 +61,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       setSelectedSectionNumber('');
       setSelectedSemester('');
       setSelectedCRN('');
-      setSelectedInstructor('');
+      setSelectedInstructor(null);
       setError(""); // Remove any error before closing
       setOpenForm(false); // Close the form
    };
@@ -741,7 +740,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                   />
                   
                   {/* Semester */}
-                  <FormControl fullWidth>
+                  <FormControl fullWidth error={!selectedSemester}>
                      <InputLabel id="semester-label">Semester</InputLabel>
                      <Select
                         labelId="semester-label"
@@ -751,10 +750,13 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                      >
                         {semesters.map((sem) => (
                            <MenuItem key={sem.semester_id} value={sem}>
-                           {sem.designation}
+                              {sem.designation}
                            </MenuItem>
                         ))}
                      </Select>
+                     {!selectedSemester && (
+                        <FormHelperText>Semester is required.</FormHelperText>
+                     )}
                   </FormControl>
                   
                   {/* CRN Input */}
@@ -767,26 +769,49 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                         if (/^\d{0,5}$/.test(value)) setSelectedCRN(value);
                      }}
                      fullWidth
-                     error={selectedCRN.length > 0 && selectedCRN.length !== 5}
+                     error={
+                        selectedCRN.length === 0 || (selectedCRN.length > 0 && selectedCRN.length !== 5)
+                     }
                      helperText={
-                        selectedCRN.length > 0 && selectedCRN.length !== 5 ? 'CRN must be exactly 5 digits' : ''
+                        selectedCRN.length === 0
+                           ? 'CRN is required.'
+                           : selectedCRN.length !== 5
+                           ? 'CRN must be exactly 5 digits.'
+                           : ''
                      }
                   />
                   
                   <Autocomplete
                      options={instructors}
-                     getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                     getOptionLabel={(option) => {
+                        if (!option || typeof option !== 'object') return '';
+                        return `${option.first_name ?? ''} ${option.last_name ?? ''}`.trim();
+                     }}                     
                      fullWidth
                      disabled={!isUserAdmin}
                      renderInput={(params) => (
-                        <TextField {...params} label="Instructor" />
+                        <TextField
+                           {...params}
+                           label="Instructor"
+                           error={selectedInstructor === null || selectedInstructor === ''}
+                           helperText={
+                              selectedInstructor === null || selectedInstructor === ''
+                                 ? "Please select an instructor."
+                                 : ""
+                           }
+                        />
                      )}
                      value={selectedInstructor}
                      onChange={(event, newValue) => setSelectedInstructor(newValue)}
                   />
                   
                   <div className="flex gap-x-4 justify-between items-center">
-                     <Button variant="contained" color="primary" onClick={handleAddSection}>
+                     <Button 
+                        variant="contained" 
+                        color="primary" 
+                        onClick={handleAddSection}
+                        disabled={!selectedCRN || !selectedInstructor || !selectedSemester || !selectedSectionNumber}
+                     >
                         Add Section
                      </Button>
                      <Button variant="outlined" color="error" onClick={handleCloseForm}>
