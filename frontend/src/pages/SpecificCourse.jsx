@@ -71,15 +71,6 @@ function SpecificCourse() {
       }
    };
    
-   const getInstructor = async () => {
-      try {
-         const res = await api.get('/api/users/');
-         setInstructor(res.data);
-      } catch (err) {
-         alert(`Error fetching Instructor: ${err.message}`);
-      }
-   };
-   
    // START - CLO fetching and filtering
    const getCLOs = async () => {
       const filterCLOs = (unfilteredCLOs) => {
@@ -94,6 +85,7 @@ function SpecificCourse() {
    };
    // STOP  - CLO fetching and filtering
    
+   // TODO: This is a sloppy way of handling this, should be changed in the future
    const getPLOs = async () => {
       try {
          const res = await api.get('/api/program-learning-objectives/');
@@ -103,6 +95,7 @@ function SpecificCourse() {
       }
    };
    
+   // TODO: This is a sloppy way of handling this, should be changed in the future
    const getPLOCLOMappings = async () => {
       try {
          const res = await api.get('/api/plo-clo-mappings/');
@@ -117,7 +110,6 @@ function SpecificCourse() {
          await getProgramCourseMappings();
          await getCourse();
          await getSemesters();
-         await getInstructor();
          await getPrograms();
          await getSections();
          await getCLOs();
@@ -267,18 +259,15 @@ function SpecificCourse() {
             animate={{ opacity: loading ? 0 : 1 }}
             transition={{ duration: 0.5 }}
          >
-            {!loading && instructor ? (
+            {!loading && (
                <SpecificCourseInformation 
                   course={course} 
                   semesters={semesters} 
-                  instructor={instructor} 
                   sections={sections} 
                   CLOs={CLOs} 
                   PLOs={PLOs} 
                   PLOCLOMappings={PLOCLOMappings} 
                />
-            ) : (
-               <p>Loading instructor data...</p> 
             )}
          </motion.div>
       </div>

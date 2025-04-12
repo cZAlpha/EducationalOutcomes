@@ -7,10 +7,11 @@ import api from '../../api';
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import SettingsIcon from '@mui/icons-material/Settings';
+import LinkIcon from '@mui/icons-material/Link';
 import { useAuth } from "../AuthProvider";
 
 
-function SpecificCourseInformation({ course, semesters, instructor, sections, CLOs, PLOs, PLOCLOMappings }) {
+function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PLOCLOMappings }) {
    const { user } = useAuth();
    const [isUserAdmin, setIsUserAdmin] = useState(false);
    const navigate = useNavigate(); // For navigating to specific section page
@@ -20,9 +21,13 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    const [selectedTab, setSelectedTab] = useState("Sections");
    const [extraSections, setExtraSections] = useState([]); // Keeps track of added sections
    const [instructors, setInstructors] = useState([]);
+   const [aVersions, setAVersions] = useState([]);
+   const [expandedCLO, setExpandedCLO] = useState(null); // State to track which CLO is expanded
+   const [coursePerformance, setCoursePerformance] = useState({}); // Obj to store the performance of the course
+   const [loading, setLoading] = useState(true); // State to track loading status
    
     // Modal Variables
-      // START - Edit Modal Variables
+      // AddNew Section Modal Variables
    const [openForm, setOpenForm] = useState(false);
    const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
    const [selectedSectionNumber, setSelectedSectionNumber] = useState('');
@@ -30,10 +35,17 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    const [selectedCRN, setSelectedCRN] = useState('');
    const [selectedInstructor, setSelectedInstructor] = useState(null);
    const [error, setError] = useState(""); // To gracefully display errors to the user
-   
-   const [expandedCLO, setExpandedCLO] = useState(null); // State to track which CLO is expanded
-   const [coursePerformance, setCoursePerformance] = useState({}); // Obj to store the performance of the course
-   const [loading, setLoading] = useState(true); // State to track loading status
+      // Edit Course Modal Variables
+   const [editModalTab, setEditModalTab] = useState("General");
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+   const [editedCourse, setEditedCourse] = useState({
+      name: course.name,
+      description: course.description,
+      course_number: course.course_number,
+      a_version: course.a_version_details,
+      date_added: course.date_added,
+      date_removed: course.date_removed
+   });
    
    
    const getBackgroundColor = (score) => {
@@ -90,6 +102,18 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       }
    };
    
+   // START - Get all Accreditation Versions (used for editing course)
+   const getAllAVersions = async () => {
+      try {
+         const res = await api.get('api/accreditation-versions/');
+         setAVersions(res.data);
+      } catch(error) {
+         alert("Could not get accreditation versions!");
+         console.error(error);
+      }
+   };
+   // STOP  - Get all Accreditation Versions (used for editing course)
+   
    // START - Existing Section Numbers Fetching
    const getAllSectionsNumbers = async () => {
       // Step 1: Get the section's course
@@ -111,6 +135,60 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    const handleSectionClick = (sectionId) => { // Navigates to the given specific section page
       navigate(`/sections/${sectionId}`);
    };
+   
+   // START - Function to handle input changes for editing course form
+   const handleEditCourseInputChange = (field, value) => {
+      setEditedCourse(prev => ({
+      ...prev,
+      [field]: value
+      }));
+   };
+   // STOP  - Function to handle input changes for editing course form
+   
+   // START - Function that handles closing the edit course modal
+   const handleCloseEditCourseModal = () => {
+      setEditedCourse({
+         name: course.name,
+         description: course.description,
+         course_number: course.course_number,
+         a_version: course.a_version_details.a_version,
+         date_added: course.date_added,
+         date_removed: course.date_removed
+      });
+      setIsEditModalOpen(false);
+   };
+
+   // START - Save Course Changes
+   const handleSaveCourseChanges = async () => {
+      try {
+         const formatDateForBackend = (dateString) => {
+            if (!dateString) return null;
+            // Ensure we only send the date portion (YYYY-MM-DD)
+            return dateString.split('T')[0];
+         };
+         
+         // Prepare the data to send
+         const dataToSend = {
+            ...editedCourse,
+            // Ensure accreditation_version is sent as ID if it's an object
+            a_version: Number(editedCourse.a_version?.a_version_id),
+            date_added: formatDateForBackend(editedCourse.date_added),
+            date_removed: formatDateForBackend(editedCourse.date_removed)
+         };
+         console.log("Updated Course Data Sent to Backend: ", dataToSend);
+         const res = await api.patch(`/api/courses/${course.course_id}/`, dataToSend);
+         if (res.status == 200) {
+            alert("Course data successfully updated.");
+         } else {
+            alert("Course data update failed!")
+         }
+         navigate("/courses");
+         setIsEditModalOpen(false);
+      } catch (err) {
+      alert(`Error updating course: ${err.message}`);
+      }
+   };
+   // STOP  - Save Course Changes
    
    //  START - Archive Course
    const handleArchive = async () => {
@@ -224,7 +302,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
       }
    };
    // STOP  - Fetch all users to populate the autofill on the add new section form
-
+   
    // START - User Role Ascertation
    const findUserRole = () => {
       if (user?.role.role_name == "Admin" || user?.role.role_name == "root") {
@@ -241,10 +319,13 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
          await getCoursePerformance();
          await getAllSectionsNumbers();
          await getAllInstructors();
+         await getAllAVersions();
          setLoading(false); // Set loading to false when all data is fetched
       };
       fetchData();
       findUserRole();
+      console.log("Course AVersion: ", course.a_version_details);
+      console.log("Edited Course on start ", editedCourse);
    }, [])
    
    // HTML STUFF
@@ -283,6 +364,195 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                </button>
             )}
          </div>
+         
+         {/* Edit Modal */}
+         {isEditModalOpen && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg w-[60%] md:w-1/3">
+               <h3 className="font-bold text-lg mb-2">Make Changes to the Current Course</h3>
+               
+               {/* Tab Selector */}
+               <div className="flex border-b mb-4 w-full justify-center">
+               <button
+                  className={`px-4 py-2 font-medium ${editModalTab === 'General' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+                  onClick={() => setEditModalTab('General')}
+               >
+                  General
+               </button>
+               <button
+                  className={`px-4 py-2 font-medium ${editModalTab === 'Mappings' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+                  onClick={() => setEditModalTab('Mappings')}
+               >
+                  Mappings
+               </button>
+               </div>
+               
+               {editModalTab === "General" && (
+                  <>
+                     {/* Course Accreditation Version */}
+                     <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel id="accreditation-label">Accreditation Version</InputLabel>
+                        <Select
+                           labelId="accreditation-label"
+                           label="Accreditation Version"
+                           value={editedCourse.a_version || ''}
+                           onChange={(e) => handleEditCourseInputChange('a_version', e.target.value)}
+                        >
+                           {aVersions.map((version) => (
+                              <MenuItem
+                                 key={version.a_version_id}
+                                 value={version}
+                              >
+                                 {`${version.a_organization_details.name} - ${version.year}`}
+                              </MenuItem>
+                           ))}
+                        </Select>
+                     </FormControl>
+                  
+                     {/* Course Name */}
+                     <TextField
+                     label="Course Name"
+                     variant="outlined"
+                     fullWidth
+                     sx={{ mb: 2 }}
+                     value={editedCourse.name || ''}
+                     onChange={(e) => handleEditCourseInputChange('name', e.target.value)}
+                     />
+                     
+                     {/* Course Description */}
+                     <TextField
+                     label="Course Description"
+                     variant="outlined"
+                     fullWidth
+                     multiline
+                     rows={3}
+                     sx={{ mb: 2 }}
+                     value={editedCourse.description || ''}
+                     onChange={(e) => handleEditCourseInputChange('description', e.target.value)}
+                     />
+                     
+                     {/* Course Number */}
+                     <TextField
+                     label="Course Number"
+                     variant="outlined"
+                     fullWidth
+                     sx={{ mb: 2 }}
+                     value={editedCourse.course_number || ''}
+                     onChange={(e) => {
+                        if (/^[a-zA-Z0-9-]*$/.test(e.target.value)) {
+                           handleEditCourseInputChange('course_number', e.target.value)
+                        }
+                     }}
+                     helperText="Format: ABC-123"
+                     />
+                     
+                     
+                     {/* Date Added */}
+                     <TextField
+                        label="Date Added"
+                        type="date"
+                        fullWidth
+                        sx={{ mb: 2 }}
+                        InputLabelProps={{ shrink: true }}
+                        value={editedCourse.date_added?.split('T')[0] || ''}
+                        onChange={(e) => handleEditCourseInputChange('date_added', e.target.value)}
+                     />
+                     
+                     {/* Date Removed */}
+                     <TextField
+                        label="Date Removed"
+                        type="date"
+                        fullWidth
+                        sx={{ mb: 2 }}
+                        InputLabelProps={{ shrink: true }}
+                        value={editedCourse.date_removed?.split('T')[0] || ''}
+                        onChange={(e) => handleEditCourseInputChange('date_removed', e.target.value)}
+                     />
+                  </>
+               )}
+               
+               
+               {/* Mappings Tab Content */}
+               {editModalTab === 'Mappings' && (
+                  <div className="space-y-4">
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                     >
+                        {CLOs.map((clo) => (
+                           <Accordion key={clo.clo_id}>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                 <div className="flex flex-col gap-y-1">
+                                    <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
+                                    <p className="pl-4">{clo.description}</p>
+                                 </div>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                 {cloToPloMap[clo.clo_id]?.length > 0 ? (
+                                 <Card variant="outlined">
+                                    <CardContent>
+                                       <Typography variant="subtitle1" fontWeight="bold">
+                                       Mapped PLOs:
+                                       </Typography>
+                                       <ul className="flex flex-col gap-y-1 text-left pt-2">
+                                       {cloToPloMap[clo.clo_id].map((plo) => (
+                                          <li key={plo.plo_id}>
+                                             <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
+                                          </li>
+                                       ))}
+                                       </ul>
+                                    </CardContent>
+                                 </Card>
+                                 ) : (
+                                 <Typography color="textSecondary">No mapped PLOs.</Typography>
+                                 )}
+                              </AccordionDetails>
+                           </Accordion>
+                        ))}
+                        </motion.div>
+                  </div>
+               )}
+               
+               <div className="flex justify-between mt-4">
+               {/* Save Button */}
+               <Button 
+                  color="primary" 
+                  variant="outlined" 
+                  sx={{
+                     minWidth: '40px',
+                     minHeight: '50px',
+                     borderColor: 'primary.main',
+                     '&:hover': {
+                     backgroundColor: 'primary.main',
+                     color: 'white',
+                     borderColor: 'primary.main',
+                     },
+                  }}
+                  onClick={handleSaveCourseChanges}
+               >
+                  Save Changes
+               </Button>
+               <Button 
+                  variant="contained" 
+                  sx={{
+                     minWidth: '40px',
+                     minHeight: '50px',
+                     backgroundColor: '#757575',
+                     color: 'white',
+                     boxShadow: 'none',
+                     '&:hover': {
+                     backgroundColor: '#616161',
+                     },
+                  }}
+                  onClick={handleCloseEditCourseModal}
+               >
+                  Cancel
+               </Button>
+               </div>
+            </div>
+         </div>
+         )}
          
          {/* Archive Modal */}
          {isArchiveModalOpen && (
@@ -418,7 +688,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
          )}
          
          {/* Display Section */}
-         {(!isArchiveModalOpen && !isDeleteModalOpen) && (
+         {(!isArchiveModalOpen && !isDeleteModalOpen && !isEditModalOpen) && (
             <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
                {selectedTab === "Sections" ? (
                   <div>
@@ -472,31 +742,102 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                         transition={{ duration: 0.4 }}
                      >
                         {CLOs.map((clo) => (
-                           <Accordion key={clo.clo_id}>
-                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                 <div className="flex flex-col gap-y-1">
-                                    <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
-                                    <p className="pl-4">{clo.description}</p>
+                           <Accordion 
+                              key={clo.clo_id}
+                              sx={{
+                                 mb: 2,
+                                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                 borderRadius: '8px',
+                                 '&:before': { display: 'none' } // Remove default divider
+                              }}
+                           >
+                              <AccordionSummary 
+                                 expandIcon={<ExpandMoreIcon />}
+                                 sx={{
+                                 backgroundColor: '#f8fafc',
+                                 borderRadius: '8px',
+                                 '&:hover': { backgroundColor: '#f1f5f9' },
+                                 '&.Mui-expanded': {
+                                    minHeight: '48px',
+                                    margin: 0,
+                                    backgroundColor: '#e2e8f0'
+                                 }
+                                 }}
+                              >
+                                 <div className="flex flex-row w-full">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                       <span className="font-bold text-blue-600">{clo.designation}</span>
+                                    </div>
+                                    <p className="pl-11 text-gray-600">{clo.description}</p>
                                  </div>
                               </AccordionSummary>
-                              <AccordionDetails>
+                              
+                              <AccordionDetails sx={{ pt: 2, pb: 2 }}>
                                  {cloToPloMap[clo.clo_id]?.length > 0 ? (
-                                 <Card variant="outlined">
-                                    <CardContent>
-                                       <Typography variant="subtitle1" fontWeight="bold">
-                                       Mapped PLOs:
+                                 <Card 
+                                    variant="outlined" 
+                                    sx={{ 
+                                       borderColor: '#e2e8f0',
+                                       boxShadow: 'none',
+                                       borderRadius: '8px'
+                                    }}
+                                 >
+                                    <CardContent sx={{ p: '16px !important' }}>
+                                       <Typography 
+                                       variant="subtitle1" 
+                                       sx={{ 
+                                          fontWeight: 700,
+                                          color: '#394352',
+                                          mb: 1.5,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1
+                                       }}
+                                       >
+                                       <LinkIcon fontSize="small" />
+                                          Mapped PLOs
                                        </Typography>
-                                       <ul className="flex flex-col gap-y-1 text-left pt-2">
+                                       
+                                       <ul className="space-y-3">
                                        {cloToPloMap[clo.clo_id].map((plo) => (
-                                          <li key={plo.plo_id}>
-                                             <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
+                                          <li 
+                                             key={plo.plo_id}
+                                             className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                                          >
+                                             <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mt-0.5 flex-shrink-0">
+                                             <span className="text-xs font-bold text-purple-600">{plo.designation}</span>
+                                             </div>
+                                             <div>
+                                             <Typography 
+                                                variant="body2" 
+                                                sx={{ 
+                                                   textAlign: 'left',                                                   
+                                                   color: '#64748b',
+                                                   fontSize: '0.875rem'
+                                                }}
+                                             >
+                                                {plo.description || "No description available"}
+                                             </Typography>
+                                             </div>
                                           </li>
                                        ))}
                                        </ul>
                                     </CardContent>
                                  </Card>
                                  ) : (
-                                 <Typography color="textSecondary">No mapped PLOs.</Typography>
+                                 <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                       color: '#94a3b8',
+                                       fontStyle: 'italic',
+                                       display: 'flex',
+                                       alignItems: 'center',
+                                       gap: 1
+                                    }}
+                                 >
+                                    <InfoOutlinedIcon fontSize="small" />
+                                    No mapped PLOs
+                                 </Typography>
                                  )}
                               </AccordionDetails>
                            </Accordion>
@@ -580,16 +921,43 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                         <h3 className="font-bold text-lg mb-4">Settings</h3>
                         <div className="w-full p-4 border bg-white rounded-lg shadow">
                            <div className="flex flex-col justify-center items-center gap-4 mt-4">
-                              {(!isArchiveModalOpen && !isDeleteModalOpen) && isUserAdmin && (
+                              {(!isArchiveModalOpen && !isDeleteModalOpen && !isEditModalOpen) && isUserAdmin && (
                                  <>
-                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                                       <p className="text-xl text-black">Archive this Course?</p>
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Edit this course</p>
                                        {/* Archive Button */}
                                        <Button 
                                           color="error" 
                                           variant="contained"
                                           sx={{
-                                             minWidth: '40px',
+                                             width: '100px',
+                                             minHeight: '50px',
+                                             backgroundColor: 'warning.main',
+                                             color: 'white',
+                                             borderRadius: '0.375rem',
+                                             '&:hover': {
+                                                backgroundColor: 'warning.dark',
+                                             },
+                                          }}
+                                          onClick={() => setIsEditModalOpen(true)}
+                                       >
+                                          Edit
+                                       </Button>
+                                    </div>
+                                    
+                                    <div className="w-[80%] flex items-center">
+                                       <div className="flex-grow border-t border-gray-300"></div>
+                                       <div className="flex-grow border-t border-gray-300"></div>
+                                    </div>
+                                    
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Archive this course?</p>
+                                       {/* Archive Button */}
+                                       <Button 
+                                          color="error" 
+                                          variant="contained"
+                                          sx={{
+                                             width: '100px',
                                              minHeight: '50px',
                                              backgroundColor: 'error.main',
                                              color: 'white',
@@ -606,18 +974,17 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                                     
                                     <div className="w-[80%] flex items-center">
                                        <div className="flex-grow border-t border-gray-300"></div>
-                                       <span className="mx-4 text-gray-400 text-sm">OR</span>
                                        <div className="flex-grow border-t border-gray-300"></div>
                                     </div>
                                     
-                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-center w-[80%] px-4 py-2 rounded-md">
-                                       <p className="text-xl text-black">Delete this Course?</p>
+                                    <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                                       <p className="text-xl text-black">Delete this course?</p>
                                        {/* Delete Button */}
                                        <Button 
                                           color="error" 
                                           variant="outlined"
                                           sx={{
-                                             minWidth: '40px',
+                                             width: '100px',
                                              minHeight: '50px',
                                              borderColor: 'error.main',
                                              '&:hover': {
