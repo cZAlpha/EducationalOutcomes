@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import api from '../api';
 import SpecificCourseInformation from "../components/SpecificCoursesPage/SpecificCourseInformation";
 import { Button } from "@mui/material"; // MUI Button
+import { motion } from "framer-motion";
 
 
 function SpecificCourse() {
@@ -70,15 +71,6 @@ function SpecificCourse() {
       }
    };
    
-   const getInstructor = async () => {
-      try {
-         const res = await api.get('/api/users/');
-         setInstructor(res.data);
-      } catch (err) {
-         alert(`Error fetching Instructor: ${err.message}`);
-      }
-   };
-   
    // START - CLO fetching and filtering
    const getCLOs = async () => {
       const filterCLOs = (unfilteredCLOs) => {
@@ -93,6 +85,7 @@ function SpecificCourse() {
    };
    // STOP  - CLO fetching and filtering
    
+   // TODO: This is a sloppy way of handling this, should be changed in the future
    const getPLOs = async () => {
       try {
          const res = await api.get('/api/program-learning-objectives/');
@@ -102,6 +95,7 @@ function SpecificCourse() {
       }
    };
    
+   // TODO: This is a sloppy way of handling this, should be changed in the future
    const getPLOCLOMappings = async () => {
       try {
          const res = await api.get('/api/plo-clo-mappings/');
@@ -116,7 +110,6 @@ function SpecificCourse() {
          await getProgramCourseMappings();
          await getCourse();
          await getSemesters();
-         await getInstructor();
          await getPrograms();
          await getSections();
          await getCLOs();
@@ -129,12 +122,7 @@ function SpecificCourse() {
    }, []);
    
    useEffect(() => { // Program <-> Course Mapping Handling
-      if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {
-         console.log("Course: ", course);
-         console.log("Programs: ", programs);
-         console.log("Program Course Mappings: ", programCourseMappings);
-         console.log("Sections:", sections);
-         
+      if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {         
          const programLookup = programs.reduce((acc, program) => {
             acc[program.program_id] = program.designation;
             return acc;
@@ -148,11 +136,7 @@ function SpecificCourse() {
    }, [loading, programCourseMappings, programs, course.course_id]);
    
    useEffect(() => { // PLO <-> CLO Mapping Handling
-      if (!loading && CLOs.length > 0 && PLOs.length > 0 && PLOCLOMappings.length > 0) {
-         console.log("CLOs: ", CLOs);
-         console.log("PLOs: ", PLOs);
-         console.log("PLO <-> CLO Mappings: ", PLOCLOMappings);
-         
+      if (!loading && CLOs.length > 0 && PLOs.length > 0 && PLOCLOMappings.length > 0) {         
          const mappedCLOs = CLOs.map(clo => ({
             ...clo,
             mappedPLOs: PLOCLOMappings
@@ -160,7 +144,6 @@ function SpecificCourse() {
                .map(mapping => PLOs.find(plo => plo.plo_id === mapping.plo_id))
                .filter(plo => plo) // Remove undefined values
          }));
-         console.log("Mapped CLOs: ", mappedCLOs);
          setCLOs(mappedCLOs);
       }
    }, [loading, PLOs, PLOCLOMappings, CLOs.clo_id]);
@@ -170,29 +153,90 @@ function SpecificCourse() {
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
          {/* Header Section */}
          <div className="flex flex-col items-left text-left w-full md:w-[60%]">
-            {/* Mobile Course Info. Section*/}
-            <h1 className="block md:hidden font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"}</h1>
-            <h2 className="block md:hidden font-bold text-2xl">{loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h2>
-            {/* Desktop Course Info. Section*/}
-            <h1 className="hidden md:block font-bold text-3xl">{loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}</h1>
+            {/* Page Title (Shown on both mobile and desktop) */}
+            <motion.h1
+               className="italic text-xl mb-2"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Course
+            </motion.h1>
             
-            <h2 className="font-semi-bold text-xl">
+            {/* Mobile Course Info. Section*/}
+            <motion.h1
+               className="block md:hidden font-bold text-3xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               {loading ? "Loading..." : course?.name || "N/A"}
+            </motion.h1>
+            <motion.h2
+               className="block md:hidden font-bold text-2xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}
+            </motion.h2>
+            
+            {/* Desktop Course Info. Section*/}
+            <motion.h1
+               className="hidden md:block font-bold text-3xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               {loading ? "Loading..." : course?.name || "N/A"} ｜ {loading ? "Loading..." : `${course?.program_name || "N/A"} ${course?.course_number || ""}`}
+            </motion.h1>
+            <motion.h2
+               className="font-semi-bold text-xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
                Accreditation: {loading ? "Loading..." : `${course.a_version_details?.a_organization.name || ""} (${course.a_version_details?.year || ""})`}
-            </h2>
-            <h3>Date Added: {course.date_added}</h3>
+            </motion.h2>
+            <motion.h3
+               className="font-semi-bold text-md"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Date Added: {course.date_added}
+            </motion.h3>
             {course.date_removed && 
-               <h3 className="text-red-600 italic">Date Removed: {course.date_removed}</h3>
+               <motion.h3
+                  className="text-red-600 italic"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
+                  Date Removed: {course.date_removed}
+               </motion.h3>               
             }
-            <h4>
+            <motion.h4
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+            >
                {loading ? "Loading..." : course?.description ? 
                   showFullDescription ? 
                      course.description : 
-                     `${course.description.slice(0, 200)}...` 
+                     course.description.length > 200 ? 
+                     `${course.description.slice(0, 200)}...` : 
+                     course.description
                   : "N/A"
                }
-            </h4>
+            </motion.h4>
             {course?.description && course.description.length > 200 && (
-               <div className="flex justify-center w-full mt-4"> {/* Centering the button */}
+               <motion.div
+                  className="flex justify-center w-full mt-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: loading ? 0 : 1 }}
+                  transition={{ duration: 0.5 }}
+               >
                   <Button 
                      variant="outlined" 
                      color="black" 
@@ -204,26 +248,28 @@ function SpecificCourse() {
                   >
                      {showFullDescription ? "Show Less" : "Show More"}
                   </Button>
-               </div>
+               </motion.div>
             )}
          </div>
          
          {/* Information Section */}
-         <div className="flex flex-col items-center w-full md:w-[70%]" /* Render SpecificCourseInformation only when data is available */ >
-            {!loading && instructor ? (
+         <motion.div
+            className="flex flex-col items-center w-full md:w-[70%]" /* Render SpecificCourseInformation only when data is available */
+            initial={{ opacity: 0 }}
+            animate={{ opacity: loading ? 0 : 1 }}
+            transition={{ duration: 0.5 }}
+         >
+            {!loading && (
                <SpecificCourseInformation 
                   course={course} 
                   semesters={semesters} 
-                  instructor={instructor} 
                   sections={sections} 
                   CLOs={CLOs} 
                   PLOs={PLOs} 
                   PLOCLOMappings={PLOCLOMappings} 
                />
-            ) : (
-               <p>Loading instructor data...</p> 
             )}
-         </div>
+         </motion.div>
       </div>
    );
 }

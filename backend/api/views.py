@@ -71,7 +71,11 @@ class UserListCreate(generics.ListCreateAPIView):
       Otherwise, return only the requesting user's data.
       """
       user = self.request.user
-      if user.is_superuser:
+      # Get the role IDs where the role name is either 'Admin' or 'root'
+      admin_role_ids = UserRole.objects.filter(role_name__in=["Admin", "root"]).values_list('id', flat=True)
+      
+      # Check if the user's role is in the list of admin role IDs
+      if user.role_id in admin_role_ids:
          return User.objects.all()  # Superusers see all users
       return User.objects.filter(user_id=user.user_id) # only returns the same user
    
@@ -609,8 +613,8 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
       description = Paragraph(f"{program.description}", styles['Normal'])
       initial_elements.append(description)
       
-      # Administrator Comment Section
-      initial_elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+      # Comment Section
+      initial_elements.append(Paragraph("Comments:", styles['Heading3']))
       for _ in range(6):  # Add 5 lines for comments
             initial_elements.append(Spacer(1, 12))
             initial_elements.append(Paragraph(
@@ -668,8 +672,8 @@ class ProgramPerformanceReport(generics.RetrieveAPIView):
                else:  # If the course is INACTIVE (date_removed is not None)
                   elements.append(Paragraph(f"- {course.name} ({course.course_number}) | Added: {course.date_added} - Removed: {course.date_removed}", styles['Normal']))
          
-         # Administrator Comment Section
-         elements.append(Paragraph("Administrator Comments:", styles['Heading3']))
+         # Comment Section
+         elements.append(Paragraph("Comments:", styles['Heading3']))
          for _ in range(5):  # Add 5 lines for comments
                elements.append(Spacer(1, 12))
                elements.append(Paragraph(
@@ -1324,14 +1328,31 @@ class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
       """
       serializer.save()
    
-   def perform_destroy(self, request, instance):
-      """
-      This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the instance.
-      """
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
-      instance.delete()
+   def destroy(self, request, *args, **kwargs):
+      instance = self.get_object()
+      
+      if request.user.role.role_name not in ["Admin", "root"]:
+         return Response({"message": "Only Admin or root users can delete Courses."}, status=status.HTTP_403_FORBIDDEN)
+      
+      self.perform_destroy(instance)
+      return Response({"message": "Course deleted successfully."}, status=status.HTTP_200_OK)
+
+class CourseSectionsList(generics.ListAPIView):
+   """
+   Returns all section numbers for a given course
+   URL pattern: /courses/<course_id>/sections/
+   """
+   serializer_class = SectionSerializer
+   permission_classes = [IsAuthenticated]
+   
+   def get_queryset(self):
+      course_id = self.kwargs['course_id'] # Grab the course id from the url parameters
+      return Section.objects.filter(course=course_id) # Query all sections and then filter them to only include sections that are from the given course
+   
+   def list(self, request, *args, **kwargs):
+      queryset = self.get_queryset() # Define the query set using the function above
+      section_numbers = list(queryset.values_list('section_number', flat=True)) # Query all section numbers for the current course
+      return Response(section_numbers) # Return these section numbers as a list
 
 class CoursePerformance(generics.RetrieveAPIView):
    queryset = Course.objects.all()
@@ -2357,19 +2378,17 @@ class SectionDetail(generics.RetrieveUpdateDestroyAPIView):
    def get_queryset(self):
       return Section.objects.all()
    
-   def perform_update(self, request, serializer):
+   def perform_update(self, serializer):
       """
       This method is called when an update (PUT) request is made.
       It allows us to add custom behavior during the update (e.g., adding more info).
       """
       serializer.save()
    
-   def perform_destroy(self, request, instance):
-      """
-      This method is called when a delete (DELETE) request is made.
-      We can perform any custom logic before actually deleting the instance.
-      """
-      instance.delete()
+   def destroy(self, request, *args, **kwargs):
+      instance = self.get_object() # Grab the instance to delete
+      self.perform_destroy(instance) # Delete it
+      return Response({"message": "Course deleted successfully."}, status=status.HTTP_200_OK) # Tell the frontend
 
 class SectionPerformance(generics.RetrieveAPIView):
    """

@@ -1,6 +1,7 @@
 from rest_framework import serializers # Import the REST framework serializer
 from .models import * # Import models
 from django.core.exceptions import ValidationError
+from django.utils.dateparse import parse_date
 from datetime import datetime
 
 
@@ -81,11 +82,12 @@ class AccreditationOrganizationSerializer(serializers.ModelSerializer):
 
 # Accreditation Version Serializer
 class AccreditationVersionSerializer(serializers.ModelSerializer):
-   a_organization = AccreditationOrganizationSerializer() # Nested serializer to get the actual object instead of just the id
+   a_organization = serializers.PrimaryKeyRelatedField(queryset=AccreditationOrganization.objects.all())
+   a_organization_details = AccreditationOrganizationSerializer(source='a_organization', read_only=True)
    
    class Meta:
       model = AccreditationVersion
-      fields = ['a_version_id', 'a_organization', 'year']
+      fields = ['a_version_id', 'a_organization',  'a_organization_details', 'year']
 
 
 # Program Learning Objective Serializer
@@ -107,7 +109,7 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 # Course Serializer
 class CourseSerializer(serializers.ModelSerializer):
-   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all())
+   a_version = serializers.PrimaryKeyRelatedField(queryset=AccreditationVersion.objects.all(), write_only=True)
    a_version_details = AccreditationVersionSerializer(source='a_version', read_only=True) # Nested, read-only serializer
    
    class Meta:
@@ -115,16 +117,47 @@ class CourseSerializer(serializers.ModelSerializer):
       fields = ['course_id', 'a_version', 'a_version_details', 'course_number', 'name', 'description', 'date_added', 'date_removed']
       depth = 1  # This will automatically expand foreign keys
    
-   # Custom validation for date_added and date_removed
    def validate_date_added(self, value):
-      if value > datetime.now():
-         raise ValidationError(f"The date_added cannot be in the future. Args you passed: {value}")
+      # Handle both string and date objects
+      if isinstance(value, str):
+         parsed_date = parse_date(value)
+         if parsed_date is None:
+               raise ValidationError("Invalid date format for date_added. Use YYYY-MM-DD.")
+         value = parsed_date
+      
+      if value > datetime.now().date():
+         print(f"The date_added cannot be in the future. Date provided: {value}")
+         raise ValidationError(f"The date_added cannot be in the future. Date provided: {value}")
       return value
    
    def validate_date_removed(self, value):
-      # Check if value is provided (not None) and if it is earlier than date_added
-      if value and self.initial_data.get('date_added') and value < self.initial_data.get('date_added'):
-         raise ValidationError("The date_removed cannot be earlier than the date_added.")
+      # Handle null/empty case first
+      if not value:
+         return None
+         
+      # Handle both string and date objects
+      if isinstance(value, str):
+         parsed_date = parse_date(value)
+         if parsed_date is None:
+               print("Invalid date format for date_removed. Use YYYY-MM-DD.")
+               raise ValidationError("Invalid date format for date_removed. Use YYYY-MM-DD.")
+         value = parsed_date
+      
+      # Get date_added from initial data
+      date_added = self.initial_data.get('date_added')
+      if date_added:
+         # Ensure date_added is also parsed if it's a string
+         if isinstance(date_added, str):
+               date_added = parse_date(date_added)
+               if date_added is None:
+                  print("Invalid date format for date_added in comparison.")
+                  raise ValidationError("Invalid date format for date_added in comparison.")
+         
+         if value < date_added:
+               print(f"The date_removed ({value}) cannot be earlier than the date_added ({date_added}).")
+               raise ValidationError(
+                  f"The date_removed ({value}) cannot be earlier than the date_added ({date_added})."
+               )
       return value
 
 
@@ -134,7 +167,7 @@ class ProgramCourseMappingSerializer(serializers.ModelSerializer):
    # Mapping models require double FK validation (at minimum)
    program = serializers.PrimaryKeyRelatedField(queryset=Program.objects.all())  # Explicit FK validation
    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all())  # Explicit FK validation
-
+   
    class Meta:
       model = ProgramCourseMapping
       fields = ['program_course_mapping_id', 'program', 'course']

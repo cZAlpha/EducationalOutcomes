@@ -16,9 +16,10 @@ export const AuthProvider = ({ children }) => {
       try {
          const res = await api.post("/api/token/", { d_number, password });
          
-         // Store tokens securely
-         sessionStorage.setItem("access_token", res.data.access);
-         sessionStorage.setItem("refresh_token", res.data.refresh);
+         // Store tokens and user identifier persistently
+         localStorage.setItem("access_token", res.data.access);
+         localStorage.setItem("refresh_token", res.data.refresh);
+         localStorage.setItem("d_number", d_number);
          
          // Fetch user details
          const userRes = await api.get(`/api/users/${d_number}`, {
@@ -26,7 +27,6 @@ export const AuthProvider = ({ children }) => {
          });
          
          setUser(userRes.data);
-         navigate(userRes.data.role.id === 3 ? "/" : "/"); // Send users to differing routes depending on their role id (unused for now)
       } catch (error) {
          console.error("Login error:", error);
          throw error;
@@ -36,11 +36,11 @@ export const AuthProvider = ({ children }) => {
    // Function to refresh token
    const refreshToken = async () => {
       try {
-         const refresh_token = sessionStorage.getItem("refresh_token");
+         const refresh_token = localStorage.getItem("refresh_token");
          if (!refresh_token) return logout();
          
          const res = await api.post("/api/token/refresh/", { refresh: refresh_token });
-         sessionStorage.setItem("access_token", res.data.access);
+         localStorage.setItem("access_token", res.data.access);
          return res.data.access;
       } catch (error) {
          console.error("Token refresh failed:", error);
@@ -50,8 +50,9 @@ export const AuthProvider = ({ children }) => {
    
    // Function to log out
    const logout = () => {
-      sessionStorage.removeItem("access_token");
-      sessionStorage.removeItem("refresh_token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("d_number");
       setUser(null);
       navigate("/login");
    };
@@ -59,20 +60,38 @@ export const AuthProvider = ({ children }) => {
    // Auto-login (Check token on mount)
    useEffect(() => {
       const checkAuth = async () => {
-         const token = sessionStorage.getItem("access_token");
-         if (!token) return setLoading(false);
+         const token = localStorage.getItem("access_token");
+         if (!token) {
+            setLoading(false);
+            return;
+         }
          
          try {
-            // Assuming you store d_number in sessionStorage when logging in
-            const d_number = sessionStorage.getItem("d_number"); // Adjust as needed
-            if (!d_number) return setLoading(false);
+            const d_number = localStorage.getItem("d_number");
+            if (!d_number) {
+               setLoading(false);
+               return;
+            }
             
             const userRes = await api.get(`/api/users/${d_number}`, {
                headers: { Authorization: `Bearer ${token}` }
             });
             setUser(userRes.data);
-         } catch {
-            await refreshToken();
+         } catch (error) {
+            // If token is expired, try to refresh it
+            try {
+               const newToken = await refreshToken();
+               if (newToken) {
+                  const d_number = localStorage.getItem("d_number");
+                  const userRes = await api.get(`/api/users/${d_number}`, {
+                     headers: { Authorization: `Bearer ${newToken}` }
+                  });
+                  setUser(userRes.data);
+               }
+            } catch (refreshError) {
+               console.error("Auto-login failed:", refreshError);
+               logout();
+            }
          } finally {
             setLoading(false);
          }
@@ -81,10 +100,12 @@ export const AuthProvider = ({ children }) => {
       checkAuth();
    }, []);
    
+   // In your first provider, modify the useEffect for interceptors:
    useEffect(() => {
-      setupInterceptors(refreshToken); // ✅ Pass refreshToken to setupInterceptors
-   }, []);
-   
+      if (!loading) {  // Only setup interceptors after initial auth check
+      setupInterceptors(refreshToken);
+      }
+   }, [loading]);
    
    return (
       <AuthContext.Provider value={{ user, login, logout, refreshToken }}>

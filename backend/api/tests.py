@@ -51,7 +51,7 @@ def populate_database(): # Function to populate the database with random users a
       d_number="D10795834",
       role=root_user_role,
       email="drsmolinski@desu.edu",
-      first_name="First Name",
+      first_name="Tomasz",
       last_name="Smolinski",
       employee_id="D10795834"
    )
@@ -298,14 +298,14 @@ def populate_database(): # Function to populate the database with random users a
    print("[+] Creating Sections...")
    comp_think_ii_section_01, created = Section.objects.get_or_create(
       course = comp_think_ii,
-      section_number = 1,
+      section_number = "01",
       semester = spring_2024_semester,
       crn = "34324",
       instructor = dr_smolinski,
    )
    comp_think_ii_section_02, created = Section.objects.get_or_create(
       course = comp_think_ii,
-      section_number = 2,
+      section_number = "02",
       semester = spring_2024_semester,
       crn = "34683",
       instructor = dr_smolinski,
@@ -784,8 +784,37 @@ def populate_courses(): # Function that only populates courses
    print("[+] Created Program-Course Mappings: ", program_course_mapping_list)
 
 
+def test_student_model():
+   """
+   Function that tests if student records are deleted if any associated records 
+   in higher granularity (like StudentTaskMapping) are deleted. This is to ensure 
+   CASCADE behavior is NOT set on the student FK in StudentTaskMapping.
+   """
+   wipe_database() 
+   populate_database()
+   
+   for _ in range(20):
+      print("")
+   
+   initial_student_count = Student.objects.count()
+   
+   # Delete all student-task mappings
+   StudentTaskMapping.objects.all().delete()
+   
+   # Check if the number of student records remains unchanged
+   final_student_count = Student.objects.count()
+   
+   print("+=============================================")
+   print("| Student <-> Task Mapping Deletion Test:")
+   if (final_student_count == initial_student_count):
+      print("| Test passed!")
+   else:
+      print("| Test failed!")
+   print("+=============================================")
+
+
 
 if __name__ == "__main__": # Main execution
-   wipe_database()
-   populate_database()
+   #wipe_database()
+   #populate_database()
    visualize_database()

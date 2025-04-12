@@ -11,7 +11,6 @@ import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
 import BuildIcon from "@mui/icons-material/Build";
 import CloseIcon from "@mui/icons-material/Close";
 import { useAuth } from "../components/AuthProvider"; // Import useAuth hook
-import { ForkRight } from "@mui/icons-material";
 
 
 const Navbar = () => {
@@ -65,7 +64,7 @@ const Navbar = () => {
       <>
          {/* Mobile Top Bar */}
          <div className="sm:flex md:hidden w-full top-0 sticky z-10 bg-[#122441] text-white px-4 py-3 flex justify-between items-center">
-            <span className="text-lg font-bold">DSU Educational Outcomes</span>
+            <span className="text-lg font-bold">Lumetric</span>
             <IconButton
                onClick={toggleMobileNav}
                className="text-white"
@@ -221,7 +220,7 @@ const Navbar = () => {
             <List>
                <ListItem>
                   <ListItemText
-                     primary={<span className="font-bold text-2xl">DSU Educational Outcomes</span>}
+                     primary={<span className="font-bold text-2xl">Lumetric</span>}
                   />
                </ListItem>
                <Link to="/">

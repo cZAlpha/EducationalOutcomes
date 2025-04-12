@@ -135,6 +135,10 @@ const AddNewCourseManual = () => {
       setCloList([...cloList, { designation: "", description: "", created_by: instructor?.user_id}]);
    };
    
+   const handleRemoveClo = (index) => {
+      setCloList(cloList.filter((_, i) => i !== index));
+   };
+   
    const handleFilterPLOs = () => { 
       setPLOs((prevPlos) => prevPlos.filter(plo => plo.a_version === courseInfo.accreditationVersion));
    };
@@ -194,7 +198,7 @@ const AddNewCourseManual = () => {
          alert(`Error posting Course: ${err.response?.data?.error || err.message}`);
       }
    };
-
+   
    // START - FILTERS PLOs BY CHOSEN ACCREDITATION VERSION
    useEffect(() => {
       const fetchAndFilterPLOs = async () => {
@@ -295,15 +299,22 @@ const AddNewCourseManual = () => {
                   label="Course Number"
                   name="courseNumber"
                   value={courseInfo.courseNumber}
-                  onChange={handleCourseInfoChange}
+                  onChange={(e) => {
+                     const value = e.target.value;
+                     // Only allow numbers (0-9) and enforce max length of 5
+                     if (/^\d{0,5}$/.test(value)) {
+                        handleCourseInfoChange(e);
+                     }
+                  }}
                   margin="normal"
-                  type="number"  // Ensures only numbers can be entered
                   slotProps={{
                      input: {
-                        min: 0,  // Prevents negative numbers (optional)
-                        max: 999,  // Prevents too big of integers being inputted
+                        maxLength: 5,
+                        inputMode: 'numeric', // Shows numeric keyboard on mobile
+                        pattern: '[0-9]*',   // HTML5 pattern for numbers only
                      },
                   }}
+                  helperText="Enter 1-5 digit course number"
                />
                <TextField
                   fullWidth
@@ -332,25 +343,68 @@ const AddNewCourseManual = () => {
                </Typography>
                
                {cloList.map((clo, index) => (
-                  <div className="flex flex-col bg-gray-100 rounded-lg pl-4 pr-4 mb-4">
-                     <Box key={index} sx={{ marginBottom: 2 }}>
+                  <div key={index} className="flex flex-col bg-gray-100 rounded-lg pl-4 pr-4 mb-4 relative">
+                     {/* Add delete button in top-right corner */}
+                     <IconButton
+                        sx={{
+                           position: 'absolute',
+                           right: 26,
+                           top: 20,
+                           color: 'error.main',
+                           zIndex: 1,
+                           width: 40,
+                           height: 40,
+                           padding: 0,
+                           borderRadius: '50%',
+                           '&:hover': {
+                              backgroundColor: 'rgba(244, 67, 54, 0.08)',
+                           },
+                        }}
+                        onClick={() => handleRemoveClo(index)}
+                     >
+                     ×
+                     </IconButton>
+                     
+                     <Box sx={{ marginBottom: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
-                           fullWidth
+                           sx={{ width: '80%' }}
                            label="CLO Designation (1-20)"
-                           type="number"
                            value={clo.designation}
-                           onChange={(e) => handleCloChange(index, "designation", e.target.value)}
-                           error={clo.designation && (clo.designation < 1 || clo.designation > 20 || cloList.some((otherClo, idx) => otherClo.designation === clo.designation && idx !== index))}
-                           helperText={clo.designation && (clo.designation < 1 || clo.designation > 20) ? "Designation must be between 1 and 20" : ""}
+                           onChange={(e) => {
+                              const value = e.target.value;
+                              // Only allow numbers 1-20 (no leading zeros)
+                              if (/^([1-9]|1[0-9]|20)?$/.test(value)) {
+                                 handleCloChange(index, "designation", value);
+                              }
+                           }}
+                           error={clo.designation && (
+                              clo.designation < 1 || 
+                              clo.designation > 20 || 
+                              cloList.some((otherClo, idx) => 
+                                 otherClo.designation === clo.designation && 
+                                 idx !== index
+                              )
+                           )}
+                           helperText={
+                              clo.designation && (clo.designation < 1 || clo.designation > 20) 
+                                 ? "Designation must be between 1 and 20" 
+                                 : ""
+                           }
                            margin="normal"
+                           slotProps={{
+                              input: {
+                                 inputMode: 'numeric',
+                                 pattern: '^([1-9]|1[0-9]|20)$',
+                              },
+                           }}
                         />
                         <TextField
-                           fullWidth
-                           label="Description"
-                           value={clo.description}
-                           onChange={(e) => handleCloChange(index, "description", e.target.value)}
-                           required
-                           margin="normal"
+                        fullWidth
+                        label="Description"
+                        value={clo.description}
+                        onChange={(e) => handleCloChange(index, "description", e.target.value)}
+                        required
+                        margin="normal"
                         />
                      </Box>
                   </div>

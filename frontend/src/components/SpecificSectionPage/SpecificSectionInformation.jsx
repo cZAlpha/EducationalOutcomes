@@ -6,11 +6,15 @@ import AddEvaluationInstrumentButton from "./AddNewEvaluationInstrumentButton";
 import FilterEvaluationInstrumentsBar from "./FilterEvaluationInstrumentsBar";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Accordion, AccordionSummary, AccordionDetails, Typography } from "@mui/material";
+import { Accordion, AccordionSummary, AccordionDetails, Typography, Button, TextField, Select, MenuItem, InputLabel, FormControl} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SettingsIcon from '@mui/icons-material/Settings';
+import { useAuth } from "../AuthProvider";
 
 
 function SpecificSectionInformation (section) {
+   const { user } = useAuth();   
+   const [isUserAdmin, setIsUserAdmin] = useState(false);
    const navigate = useNavigate(); // For navigating to specific section page
    const [loading, setLoading] = useState(true); // State to track loading status
    const [selectedTab, setSelectedTab] = useState("Evaluation Instruments");
@@ -19,6 +23,17 @@ function SpecificSectionInformation (section) {
    const [CLOs, setCLOs] = useState([]);
    const [PLOs, setPLOs] = useState([]);
    const [sectionPerformance, setSectionPerformance] = useState({}); // Obj to store the performance of a section
+   const [semesters, setSemesters] = useState(null); // To store all semesters grabbed from the backend (used to populate the dropdown menu for the edit modal)
+   
+   // Modal Variables
+      // START - Edit Modal Variables
+   const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false); // To track edit modal visibility
+   const [selectedSectionNumber, setSelectedSectionNumber] = useState('');
+   const [selectedSemester, setSelectedSemester] = useState(null);
+   const [selectedCRN, setSelectedCRN] = useState('');
+      // END - Edit Modal Variables
+   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // To track delete modal visibility
    
    // Filtering Variables
    const [filteredInstruments, setFilteredInstruments] = useState([]);
@@ -86,6 +101,42 @@ function SpecificSectionInformation (section) {
    };
    // STOP  - CLO fetching and filtering
    
+   // START  - Semester fetching
+   const getSemesters = async () => {
+      try {
+         const res = await api.get('/api/semesters/');
+         setSemesters(res.data);
+      } catch (err) {
+         alert(`Error fetching Semesters: ${err.message}`);
+      }
+   };
+   // STOP  - Semester fetching
+   
+   // START - Existing Section Numbers Fetching
+   const getAllSectionsNumbers = async () => {
+      // Step 1: Get the section's course
+      let courseId = section.section.course;
+      let currentSectionNumber = section.section.section_number;
+      // Step 2: Query the backend for all sections of the given courseId, then push them into the existingSectionNumbers array.
+      if (courseId) {
+         try {
+            const res = await api.get(`/api/courses/${courseId}/sections/`);
+            const otherSectionNumbers = [];
+            res.data.forEach(sectionNumber => {
+               if (sectionNumber !== currentSectionNumber) {
+                  otherSectionNumbers.push(sectionNumber);
+               }
+            });
+            setExistingSectionNumbers(otherSectionNumbers);
+         } catch (err) {
+            alert(`Error fetching Section Numbers: ${err.message}`);
+         }
+      } else {
+         alert("CourseId could not be parsed and therefore, all sections could not be fetched.")
+      }
+   };
+   // STOP  - Existing Section Numbers Fetching
+   
    // START - Section Performance data fetching
    const getSectionPerformance = async () => {
       try {
@@ -131,9 +182,93 @@ function SpecificSectionInformation (section) {
    };   
    // STOP  - Section Performance data fetching
    
+   // START - Section Edit
+   const handleSaveSectionChanges = async () => {
+      // Validate inputs
+      if (selectedCRN.length !== 5) {
+      alert('CRN must be exactly 5 digits');
+      return;
+      }
+      
+      if (existingSectionNumbers.includes(selectedSectionNumber)) {
+      alert('Section number already exists for this course');
+      return;
+      }
+      
+      try {
+         // Prepare the update data
+         const updateData = {
+            section_number: selectedSectionNumber,
+            semester: selectedSemester,
+            crn: selectedCRN
+         };
+         
+         // Send the PATCH request with the update data
+         const response = await api.patch(
+            `/api/sections/${section.section.section_id}/`,
+            updateData
+         );
+         
+         if (response.status === 200) {
+            alert('Section successfully updated.');
+            navigate("/sections/");
+         } else {
+            alert(`Error updating section. Status code: ${response.status}`);
+         }
+      } catch (err) {
+         alert(`Error updating section: ${err.message}`);
+      } finally {
+         setIsEditModalOpen(false);
+      }
+   };
+   // STOP  - Section Edit
+   
+   // START - Section Delete 
+   const handleRemoveSection = async () => {
+      if (section.section.section_id) {
+         try {
+            // Send the DELETE request
+            const response = await api.delete(`/api/sections/${section.section.section_id}/`);
+            if (response.status == 200) { // If deletion was successful
+               alert('Section successfully deleted.');
+               navigate("/sections/");
+            } else { // Uncaught failure
+               alert("Error deleting section. Status code not recognized, was not 200, was: ", response.status);
+            }         
+         } catch (err) {
+            alert(`Error deleting section: ${err.message}`);
+         }
+      } else {
+         alert("ERROR | No section ID detected. Deletion could not be completed");
+      }
+   };
+   // STOP  - Section Delete 
+   
+   // START - Handle Click of an Evaluation Instrument Instance
    const handleEvaluationInstrumentClick = (evaluationInstrumentId) => { // Navigates to the given specific evaluation instrument page
       navigate(`/evaluation-instruments/${evaluationInstrumentId}`);
    };
+   // STOP  - Handle Click of an Evaluation Instrument Instance
+   
+   // START - Handle Opening of the Edit Modal
+   const handleOpenEditModal = () => {
+      setSelectedSectionNumber(section.section.section_number || '');
+      setSelectedSemester(section.section.semester || null); // Set to current semester
+      setSelectedCRN(section.section.crn || '');
+      setIsEditModalOpen(true);
+   };
+   // STOP  - Handle Opening of the Edit Modal
+   
+   // START - User Role Ascertation
+   const findUserRole = () => {
+      if (user?.role.role_name == "Admin" || user?.role.role_name == "root") {
+         setIsUserAdmin(true);
+         console.log("User is an admin!");
+      } else {
+         console.log("User is NOT an admin! User: ", user);
+      }
+   };
+   // STOP  - User Role Ascertation
    
    useEffect(() => { // ON COMPONENT MOUNT
       const fetchData = async () => {
@@ -141,10 +276,13 @@ function SpecificSectionInformation (section) {
          await getEvaluationTypes();
          await getCLOs();
          await getPLOs();
+         await getSemesters();
+         await getAllSectionsNumbers();
          setLoading(false); // Set loading to false when all data is fetched
       };
       
       fetchData();
+      findUserRole();
    }, []);
    
    useEffect(() => { // Performance Report Call
@@ -161,6 +299,13 @@ function SpecificSectionInformation (section) {
             .slice(0, perPage)
       );
    }, [filterName, filterType, perPage, evaluationInstruments]); // Depend on filters
+   
+   
+   // TESTING ONLY
+   useEffect(() => {
+      console.log("existingSectionNumbers: ", existingSectionNumbers);
+   }, [existingSectionNumbers])
+   
    
    // HTML STUFF
    return (
@@ -181,125 +326,386 @@ function SpecificSectionInformation (section) {
             >
                Performance
             </button>
-         </div>
-         
-         {/* Display Section */}
-         <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
-            {selectedTab === "Evaluation Instruments" ? (
-               <div className="w-full">
-                  <div className="w-full flex flex-col gap-y-4 mb-6">
-                     <div className="w-full flex flex-row items-center justify-between">
-                        <h3 className="font-bold text-lg">Evaluation Instruments</h3>
-                        {section.section && section.section.section_id && (
-                           <AddEvaluationInstrumentButton sectionId={section.section.section_id} />
-                        )}
-                     </div>
-                     
-                     {/* Filter Evaluation Instruments Bar */}
-                     <FilterEvaluationInstrumentsBar
-                        filterName={filterName}
-                        setFilterName={setFilterName}
-                        availableEvalTypes={evaluationTypes || []}
-                        filterType={filterType}
-                        setFilterType={setFilterType}
-                        perPage={perPage}
-                        setPerPage={setPerPage}
-                        types={[...new Set(evaluationInstruments.map(e => e.evaluation_type_details?.type_name).filter(Boolean))]}
-                     />
-                  </div>
-                  
-                  {loading ? (
-                     <LoadingIndicator />
-                  ) : evaluationInstruments.length === 0 ? (
-                     <p className="text-center text-gray-500">No evaluation instruments for this section</p>
-                  ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredInstruments.map((instrument) => (     
-                           <div 
-                              key={instrument.evaluation_instrument_id}
-                              className="w-full"
-                              onClick={(e) => handleEvaluationInstrumentClick(instrument.evaluation_instrument_id)}
-                              style={{ cursor: "pointer", pointerEvents: "auto" }}
-                           >
-                              <EvaluationInstrumentCard 
-                                 name={instrument.name} 
-                                 evaluation_type={instrument.evaluation_type_details?.type_name} 
-                                 description={instrument.description} 
-                              />
-                           </div>
-                        ))}
-                     </div>
-                  )}
-               </div>
-            ) : (
-               <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full"
+            {(user.user_id === section.section.instructor_details.user_id || isUserAdmin) && (
+               <button
+                  className={`px-4 py-2 rounded-md w-full font-bold
+                     ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  onClick={() => setSelectedTab("Settings")}
                >
-                  <h3 className="font-bold text-lg mb-4">Performance</h3>
-                  {/* Content specific to Performance */}
-                  {sectionPerformance ? (
-                     <div className="w-full p-4 border bg-white rounded-lg shadow">
-                        {/* CLO Performance */}
-                        <Accordion>
-                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography className="font-bold text-lg">CLO Performance</Typography>
-                           </AccordionSummary>
-                           <AccordionDetails>
-                              {sectionPerformance.CLOs?.length > 0 ? (
-                                 <ul className="space-y-2">
-                                    {sectionPerformance.CLOs.map(({ designation, description, score }) => (
-                                       <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                          <div className="flex flex-col gap-y-2">
-                                             <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                                <h1 className="font-xl font-bold">{designation}</h1>
-                                                <h1 className="font-xl font-bold">{score}%</h1>
-                                             </div>
-                                             <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                          </div>
-                                       </li>
-                                    ))}
-                                 </ul>
-                              ) : (
-                                 <p className="text-gray-500">No CLO data available.</p>
-                              )}
-                           </AccordionDetails>
-                        </Accordion>
-                        
-                        {/* PLO Performance */}
-                        <Accordion>
-                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography className="font-bold text-lg">PLO Performance</Typography>
-                           </AccordionSummary>
-                           <AccordionDetails>
-                              {sectionPerformance.PLOs?.length > 0 ? (
-                                 <ul className="space-y-2">
-                                    {sectionPerformance.PLOs.map(({ designation, description, score }) => (
-                                       <li key={designation} className="bg-gray-100 p-2 rounded-lg">
-                                          <div className="flex flex-col gap-y-2">
-                                             <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
-                                                <h1 className="font-xl font-bold">{designation}</h1>
-                                                <h1 className="font-xl font-bold">{score}%</h1>
-                                             </div>
-                                             <p className="text-left pl-4 pr-4 pb-2">{description}</p>
-                                          </div>
-                                       </li>
-                                    ))}
-                                 </ul>
-                              ) : (
-                                 <p className="text-gray-500">No PLO data available.</p>
-                              )}
-                           </AccordionDetails>
-                        </Accordion>
-                     </div>
-                  ) : (
-                     <p className="text-center text-gray-500">No performance data available</p>
-                  )}
-               </motion.div>
+                  <SettingsIcon />
+               </button>
             )}
          </div>
+         
+         {/* Edit Modal */}
+         {isEditModalOpen && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg w-[60%] md:w-1/4">
+               <h3 className="font-bold text-lg mb-4">Edit Section Details</h3>
+               
+               <div className="flex flex-col gap-4 mb-6">
+                  {/* Section Number */}
+                  <TextField
+                     label="Section Number"
+                     variant="outlined"
+                     value={selectedSectionNumber}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string or alphanumeric strings up to 5 chars
+                        if (value === '' || (value.length <= 5 && /^[a-zA-Z0-9]*$/.test(value))) {
+                           setSelectedSectionNumber(value);
+                        }
+                     }}
+                     error={
+                        selectedSectionNumber === '' || // Empty field error
+                        existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()) || // Duplicate error
+                        !/^[a-zA-Z0-9]{1,5}$/.test(selectedSectionNumber) // Invalid format error
+                     }
+                     onBlur={() => {
+                        // Convert to uppercase and validate for duplicates
+                        const upperValue = selectedSectionNumber.toUpperCase();
+                        if (selectedSectionNumber !== '' && existingSectionNumbers.includes(upperValue)) {
+                           alert(`Section number ${upperValue} already exists!`);
+                           setSelectedSectionNumber('');
+                        } else if (selectedSectionNumber !== '') {
+                           // Auto-uppercase the value on blur
+                           setSelectedSectionNumber(upperValue);
+                        }
+                     }}
+                     fullWidth
+                     helperText={
+                        selectedSectionNumber === '' // If there's nothing entered, tell the user to enter something
+                           ? "You must have a section number!"
+                           : (existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()))
+                              ? "This section number already exists!"
+                              : "Enter 1-5 alphanumeric characters (e.g., '01' or 'R01')"
+                     }
+                     sx={{
+                           '& input': {
+                           textTransform: 'uppercase',
+                           },
+                        }}
+                     slotProps={{
+                        input: {
+                        maxLength: 5,
+                        },
+                     }}
+                  />
+                  
+                  {/* Semester Dropdown */}
+                  <FormControl fullWidth>
+                  <InputLabel id="semester-label">Semester</InputLabel>
+                  <Select
+                     labelId="semester-label"
+                     value={selectedSemester || ''}
+                     onChange={(e) => setSelectedSemester(e.target.value)}
+                     label="Semester"
+                  >
+                     {semesters ? (
+                        semesters.map((semester) => (
+                        <MenuItem 
+                           key={semester.semester_id} 
+                           value={semester.semester_id} // Use semester_id as the value
+                        >
+                           {semester.designation}
+                        </MenuItem>
+                        ))
+                     ) : (
+                        <MenuItem disabled>Loading semesters...</MenuItem>
+                     )}
+                  </Select>
+                  </FormControl>
+                  
+                  {/* CRN Input */}
+                  <TextField
+                     label="CRN"
+                     variant="outlined"
+                     value={selectedCRN}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d{0,5}$/.test(value)) setSelectedCRN(value);
+                     }}
+                     fullWidth
+                     error={selectedCRN.length > 0 && selectedCRN.length !== 5}
+                     helperText={
+                        selectedCRN.length > 0 && selectedCRN.length !== 5 ? 'CRN must be exactly 5 digits' : ''
+                     }
+                  />
+                  </div>
+                  
+                  <div className="flex justify-between">
+                  {/* Save Button */}
+                  <Button
+                     color="primary"
+                     variant="outlined"
+                     disabled={selectedCRN.length !== 5 || selectedSectionNumber.length < 1 || existingSectionNumbers.includes(selectedSectionNumber)}
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        borderColor: 'primary.main',
+                        },
+                     }}
+                     onClick={handleSaveSectionChanges}
+                  >
+                     Save
+                  </Button>
+                  
+                  {/* Cancel Button */}
+                  <Button
+                     variant="contained"
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        backgroundColor: '#757575',
+                        color: 'white',
+                        boxShadow: 'none',
+                        '&:hover': {
+                        backgroundColor: '#616161',
+                        },
+                     }}
+                     onClick={() => setIsEditModalOpen(false)}
+                  >
+                     Cancel
+                  </Button>
+               </div>
+            </div>
+         </div>
+         )}
+         
+         {/* Delete Modal */}
+         {isDeleteModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+               <div className="bg-white p-6 rounded-lg w-[60%] md:w-1/4">
+                  <h3 className="font-bold text-lg mb-2">Are you sure you want to delete this Section?</h3>
+                  <p className="text-md italic mb-4 text-left pb-4">This will permanently delete this Section AND ALL OF ITS ASSOCIATED OBJECTS. All Evaluation Instruments and associated grades will be LOST FOREVER.</p>
+                  <div className="flex justify-between">
+                     {/* Delete Button */}
+                     <Button color="error" variant="outlined" 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                           borderColor: 'error.main', // Border color for the outlined variant
+                           '&:hover': {
+                              backgroundColor: 'error.main', // Background color when hovered
+                              color: 'white', // Text color changes to white on hover
+                              borderColor: 'error.main', // Ensure border color stays the same
+                           },
+                        }}
+                        onClick={handleRemoveSection}
+                     >
+                        Yes, Delete
+                     </Button>
+                     {/* Cancel Button */}
+                     <Button 
+                        variant="contained" 
+                        sx={{
+                           minWidth: '40px',
+                           minHeight: '50px',
+                           backgroundColor: '#757575', // Darker gray fill
+                           color: 'white',              // White text
+                           boxShadow: 'none',           // Remove drop shadow
+                           '&:hover': {
+                              backgroundColor: '#616161', // Even darker gray on hover
+                           },
+                        }}
+                        onClick={() => setIsDeleteModalOpen(false)}
+                     >
+                        Cancel
+                     </Button>
+                  </div>
+               </div>
+            </div>
+         )}
+         
+         {/* Display Section */}
+         {(!isEditModalOpen && !isDeleteModalOpen) && (
+            <div className="w-full p-4 border rounded-md bg-gray-100 min-h-[200px]">
+               {selectedTab === "Evaluation Instruments" ? (
+                  <div className="w-full">
+                     <div className="w-full flex flex-col gap-y-4 mb-6">
+                        <div className="w-full flex flex-row items-center justify-between">
+                           <h3 className="font-bold text-lg">Evaluation Instruments</h3>
+                           {section.section && section.section.section_id && (
+                              <AddEvaluationInstrumentButton sectionId={section.section.section_id} />
+                           )}
+                        </div>
+                        
+                        {/* Filter Evaluation Instruments Bar */}
+                        <FilterEvaluationInstrumentsBar
+                           filterName={filterName}
+                           setFilterName={setFilterName}
+                           availableEvalTypes={evaluationTypes || []}
+                           filterType={filterType}
+                           setFilterType={setFilterType}
+                           perPage={perPage}
+                           setPerPage={setPerPage}
+                           types={[...new Set(evaluationInstruments.map(e => e.evaluation_type_details?.type_name).filter(Boolean))]}
+                        />
+                     </div>
+                     
+                     {loading ? (
+                        <LoadingIndicator />
+                     ) : evaluationInstruments.length === 0 ? (
+                        <p className="text-center text-gray-500">No evaluation instruments for this section</p>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {filteredInstruments.map((instrument) => (     
+                              <div 
+                                 key={instrument.evaluation_instrument_id}
+                                 className="w-full"
+                                 onClick={(e) => handleEvaluationInstrumentClick(instrument.evaluation_instrument_id)}
+                                 style={{ cursor: "pointer", pointerEvents: "auto" }}
+                              >
+                                 <EvaluationInstrumentCard 
+                                    name={instrument.name} 
+                                    evaluation_type={instrument.evaluation_type_details?.type_name} 
+                                    description={instrument.description} 
+                                 />
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+               ) : selectedTab === "Performance" ? (
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ duration: 0.4 }}
+                     className="w-full"
+                  >
+                     <h3 className="font-bold text-lg mb-4">Performance</h3>
+                     {/* Content specific to Performance */}
+                     {sectionPerformance ? (
+                        <div className="w-full p-4 border bg-white rounded-lg shadow">
+                           {/* CLO Performance */}
+                           <Accordion>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                 <Typography className="font-bold text-lg">CLO Performance</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                 {sectionPerformance.CLOs?.length > 0 ? (
+                                    <ul className="space-y-2">
+                                       {sectionPerformance.CLOs.map(({ designation, description, score }) => (
+                                          <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                             <div className="flex flex-col gap-y-2">
+                                                <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                                   <h1 className="font-xl font-bold">{designation}</h1>
+                                                   <h1 className="font-xl font-bold">{score}%</h1>
+                                                </div>
+                                                <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                             </div>
+                                          </li>
+                                       ))}
+                                    </ul>
+                                 ) : (
+                                    <p className="text-gray-500">No CLO data available.</p>
+                                 )}
+                              </AccordionDetails>
+                           </Accordion>
+                           
+                           {/* PLO Performance */}
+                           <Accordion>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                 <Typography className="font-bold text-lg">PLO Performance</Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                 {sectionPerformance.PLOs?.length > 0 ? (
+                                    <ul className="space-y-2">
+                                       {sectionPerformance.PLOs.map(({ designation, description, score }) => (
+                                          <li key={designation} className="bg-gray-100 p-2 rounded-lg">
+                                             <div className="flex flex-col gap-y-2">
+                                                <div className={`flex flex-row gap-x-4 pl-4 rounded-md ${getBackgroundColor(score)}`}>
+                                                   <h1 className="font-xl font-bold">{designation}</h1>
+                                                   <h1 className="font-xl font-bold">{score}%</h1>
+                                                </div>
+                                                <p className="text-left pl-4 pr-4 pb-2">{description}</p>
+                                             </div>
+                                          </li>
+                                       ))}
+                                    </ul>
+                                 ) : (
+                                    <p className="text-gray-500">No PLO data available.</p>
+                                 )}
+                              </AccordionDetails>
+                           </Accordion>
+                        </div>
+                     ) : (
+                        <p className="text-center text-gray-500">No performance data available</p>
+                     )}
+                  </motion.div>
+               ) : selectedTab === "Settings" ? (
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ duration: 0.4 }}
+                     className="w-full"
+                  >
+                     <h3 className="font-bold text-lg mb-4">Settings</h3>
+                     <div className="w-full p-4 border bg-white rounded-lg shadow">
+                        <div className="flex flex-col justify-center items-center gap-4 mt-4">
+                           <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                              <p className="text-xl text-black">Edit this Section?</p>
+                              {/* Edit Button */}
+                              <Button 
+                                 color="warning" 
+                                 variant="contained"
+                                 sx={{
+                                    width: '80px',
+                                    minHeight: '50px',
+                                    borderColor: 'warning.main',
+                                    '&:hover': {
+                                       backgroundColor: 'warning.main',
+                                       color: 'white',
+                                       borderColor: 'warning.main',
+                                    },
+                                 }}
+                                 onClick={handleOpenEditModal}
+                              >
+                                 Edit
+                              </Button>
+                           </div>
+                           <div className="flex flex-col md:flex-row gap-8 items-center justify-between w-[60%] px-4 py-2 rounded-md">
+                              <p className="text-xl text-black">Delete this Section?</p>
+                              {/* Delete Button */}
+                              <Button 
+                                 color="error" 
+                                 variant="outlined"
+                                 sx={{
+                                    width: '80px',
+                                    minHeight: '50px',
+                                    borderColor: 'error.main',
+                                    '&:hover': {
+                                       backgroundColor: 'error.main',
+                                       color: 'white',
+                                       borderColor: 'error.main',
+                                    },
+                                 }}
+                                 onClick={() => setIsDeleteModalOpen(true)}
+                              >
+                                 DELETE
+                              </Button>
+                           </div>
+                        </div>
+                     </div>
+                  </motion.div>
+               ) :
+               (
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     transition={{ duration: 0.4 }}
+                     className="w-full"
+                  >
+                     <div>Please select a tab, no tab selected.</div>
+                  </motion.div>
+               )
+               }
+            </div>
+         )}
       </div>
    );
 }

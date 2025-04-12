@@ -115,6 +115,14 @@ function SpecificSection() {
          {/* Header Section*/}
          <div className="flex flex-col items-left text-left w-full md:w-[60%]">
             {/* Course Name - Section Number */}
+            <motion.h1
+               className="italic text-xl"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: loading ? 0 : 1 }}
+               transition={{ duration: 0.5 }}
+            >
+               Section
+            </motion.h1>
             <div className="flex flex-col md:flex-row gap-x-4">
                <motion.h1
                   className="font-bold text-3xl"
@@ -139,7 +147,7 @@ function SpecificSection() {
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
                >
-                  {loading ? "Loading..." : "Section #: " + section?.section_number}
+                  {loading ? "Loading..." : "Section #: " + section?.section_number + " (" + section?.crn + ")"}
                </motion.h1>
                {/* Desktop Version */}
                <motion.h1
@@ -148,7 +156,7 @@ function SpecificSection() {
                   animate={{ opacity: loading ? 0 : 1 }}
                   transition={{ duration: 0.5 }}
                >
-                  {loading ? "Loading..." : section?.section_number}
+                  {loading ? "Loading..." : section?.section_number + " (" + section?.crn + ")"}
                </motion.h1>
             </div>
             <motion.h2
@@ -173,7 +181,7 @@ function SpecificSection() {
                animate={{ opacity: loading ? 0 : 1 }}
                transition={{ duration: 0.5 }}
             >
-               Instructor: {section?.instructor_details?.last_name}
+               Instructor: {section?.instructor_details?.first_name} {section?.instructor_details?.last_name}
             </motion.h3>
          </div>
          
