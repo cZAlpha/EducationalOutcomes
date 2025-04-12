@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import SpecificCoursesSectionCard from "./SpecificCoursesSectionCard";
-import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Accordion, AccordionSummary, AccordionDetails, Typography, Card, CardContent, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
+import { IconButton, Dialog, DialogTitle, DialogContent, TextField, Button, Accordion, AccordionSummary, AccordionDetails, Typography, Card, CardContent, Select, MenuItem, InputLabel, FormControl, Autocomplete } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import api from '../../api';
@@ -19,14 +19,16 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    const [isReinstateModalOpen, setIsReinstateModalOpen] = useState(false); // Tracks if the reinstate course model is open
    const [selectedTab, setSelectedTab] = useState("Sections");
    const [extraSections, setExtraSections] = useState([]); // Keeps track of added sections
+   const [instructors, setInstructors] = useState([]);
+   
+    // Modal Variables
+      // START - Edit Modal Variables
    const [openForm, setOpenForm] = useState(false);
-   const [formData, setFormData] = useState({
-      // NOTE: Course is omitted here due to being auto-set //
-      section_number: "",
-      semester: "", // This should be an object
-      crn: "",
-      instructor: "", // Autofill instructor
-   });
+   const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
+   const [selectedSectionNumber, setSelectedSectionNumber] = useState('');
+   const [selectedSemester, setSelectedSemester] = useState('');
+   const [selectedCRN, setSelectedCRN] = useState('');
+   const [selectedInstructor, setSelectedInstructor] = useState(null);
    const [error, setError] = useState(""); // To gracefully display errors to the user
    
    const [expandedCLO, setExpandedCLO] = useState(null); // State to track which CLO is expanded
@@ -52,49 +54,60 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    }, {});
    
    const handleOpenForm = () => {
-      setFormData({
-         section_number: "",
-         semester: "",
-         crn: "",
-         instructor: instructor.length > 0 ? instructor[0] : null, // Autofill instructor object
-      });
+      setSelectedInstructor(instructor);
       setOpenForm(true);
    };
    
    const handleCloseForm = () => {
-      setFormData({ section_number: "", semester: "", crn: "", instructor: "" }); // Remove all inputted data
+      setSelectedSectionNumber('');
+      setSelectedSemester('');
+      setSelectedCRN('');
+      setSelectedInstructor('');
       setError(""); // Remove any error before closing
       setOpenForm(false); // Close the form
    };
    
-   const handleInputChange = (e) => {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
-   };
-   
    const handleAddSection = async () => {
-      if (!formData.section_number || !formData.semester || !formData.crn || !formData.instructor) {
-         setError("All fields are required.");
+      if (!selectedSectionNumber || !selectedSemester || !selectedCRN || !selectedInstructor) {
+         alert("All fields are required.");
          return;
       }
       
       const newSection = {
          course: course.course_id,
-         section_number: formData.section_number,
-         semester: formData.semester.semester_id,
-         crn: formData.crn,
-         instructor: formData.instructor.user_id,
+         section_number: selectedSectionNumber,
+         semester: Number(selectedSemester.semester_id),
+         crn: selectedCRN,
+         instructor: selectedInstructor.user_id,
       };
       
       try {
          const res = await api.post('/api/sections/', newSection);
          setExtraSections([...extraSections, res.data]);
-         setFormData({ section_number: "", semester: "", crn: "", instructor: "" });
          setError(""); // Clear error if successful
          handleCloseForm();
       } catch (err) {
-         setError(err.response?.data?.message || "An error occurred while adding the section. Your input is incorrect. Section number must be an integer from 1-10. CRN can be no more than 20 characters.");
+         setError(err.response?.data?.message || "An error occurred while adding the section. Your input is incorrect.");
       }
    };
+   
+   // START - Existing Section Numbers Fetching
+   const getAllSectionsNumbers = async () => {
+      // Step 1: Get the section's course
+      let courseId = course.course_id;
+      // Step 2: Query the backend for all sections of the given courseId, then push them into the existingSectionNumbers array.
+      if (courseId) {
+         try {
+            const res = await api.get(`/api/courses/${courseId}/sections/`);
+            setExistingSectionNumbers(res.data);
+         } catch (err) {
+            alert(`Error fetching Section Numbers: ${err.message}`);
+         }
+      } else {
+         alert("CourseId could not be parsed and therefore, all sections could not be fetched.")
+      }
+   };
+   // STOP  - Existing Section Numbers Fetching
    
    const handleSectionClick = (sectionId) => { // Navigates to the given specific section page
       navigate(`/sections/${sectionId}`);
@@ -200,6 +213,19 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    };   
    // STOP - Course Performance data fetching
    
+   // START - Fetch all users to populate the autofill on the add new section form
+   const getAllInstructors = async () => {
+      try {
+         const res = await api.get("/api/users/");
+         console.log("Instructors: ", res.data);
+         setInstructors(res.data);
+      } catch(error) {
+         console.error(error);
+         alert("There was an error grabbing instructors.")
+      }
+   };
+   // STOP  - Fetch all users to populate the autofill on the add new section form
+
    // START - User Role Ascertation
    const findUserRole = () => {
       if (user?.role.role_name == "Admin" || user?.role.role_name == "root") {
@@ -214,6 +240,8 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
    useEffect(() => {
       const fetchData = async () => {
          await getCoursePerformance();
+         await getAllSectionsNumbers();
+         await getAllInstructors();
          setLoading(false); // Set loading to false when all data is fetched
       };
       fetchData();
@@ -608,7 +636,7 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                               )}
                            </div>
                         </div>
-
+                     
                      </motion.div>
                   ) : (
                      <motion.div
@@ -663,14 +691,63 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
             <DialogContent>
                <div className="flex flex-col gap-6 p-4">
                   {error && <Typography color="error">{error}</Typography>}
-                  <TextField label="Section Number" name="section_number" value={formData.section_number} onChange={handleInputChange} fullWidth />
+                  
+                  {/* Section Number */}
+                  <TextField
+                     label="Section Number"
+                     variant="outlined"
+                     value={selectedSectionNumber}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string or alphanumeric strings up to 5 chars
+                        if (value === '' || (value.length <= 5 && /^[a-zA-Z0-9]*$/.test(value))) {
+                           setSelectedSectionNumber(value);
+                        }
+                     }}
+                     error={
+                        selectedSectionNumber === '' || // Empty field error
+                        existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()) || // Duplicate error
+                        !/^[a-zA-Z0-9]{1,5}$/.test(selectedSectionNumber) // Invalid format error
+                     }
+                     onBlur={() => {
+                        // Convert to uppercase and validate for duplicates
+                        const upperValue = selectedSectionNumber.toUpperCase();
+                        if (selectedSectionNumber !== '' && existingSectionNumbers.includes(upperValue)) {
+                           alert(`Section number ${upperValue} already exists!`);
+                           setSelectedSectionNumber('');
+                        } else if (selectedSectionNumber !== '') {
+                           // Auto-uppercase the value on blur
+                           setSelectedSectionNumber(upperValue);
+                        }
+                     }}
+                     fullWidth
+                     helperText={
+                        selectedSectionNumber === '' // If there's nothing entered, tell the user to enter something
+                           ? "You must have a section number!"
+                           : (existingSectionNumbers.includes(selectedSectionNumber.toUpperCase()))
+                              ? "This section number already exists!"
+                              : "Enter 1-5 alphanumeric characters (e.g., '01' or 'R01')"
+                     }
+                     sx={{
+                           '& input': {
+                           textTransform: 'uppercase',
+                           },
+                        }}
+                     slotProps={{
+                        input: {
+                        maxLength: 5,
+                        },
+                     }}
+                  />
+                  
+                  {/* Semester */}
                   <FormControl fullWidth>
                      <InputLabel id="semester-label">Semester</InputLabel>
                      <Select
                         labelId="semester-label"
                         name="semester"
-                        value={formData.semester}
-                        onChange={handleInputChange}
+                        value={selectedSemester}
+                        onChange={(e) => setSelectedSemester(e.target.value)}
                      >
                         {semesters.map((sem) => (
                            <MenuItem key={sem.semester_id} value={sem}>
@@ -679,13 +756,35 @@ function SpecificCourseInformation({ course, semesters, instructor, sections, CL
                         ))}
                      </Select>
                   </FormControl>
-                  <TextField label="CRN" name="crn" value={formData.crn} onChange={handleInputChange} fullWidth />
+                  
+                  {/* CRN Input */}
                   <TextField
-                     label="Instructor"
+                     label="CRN"
+                     variant="outlined"
+                     value={selectedCRN}
+                     onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d{0,5}$/.test(value)) setSelectedCRN(value);
+                     }}
                      fullWidth
-                     disabled
-                     value={instructor.length > 0 ? instructor[0].last_name : "N/A"}
+                     error={selectedCRN.length > 0 && selectedCRN.length !== 5}
+                     helperText={
+                        selectedCRN.length > 0 && selectedCRN.length !== 5 ? 'CRN must be exactly 5 digits' : ''
+                     }
                   />
+                  
+                  <Autocomplete
+                     options={instructors}
+                     getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                     fullWidth
+                     disabled={!isUserAdmin}
+                     renderInput={(params) => (
+                        <TextField {...params} label="Instructor" />
+                     )}
+                     value={selectedInstructor}
+                     onChange={(event, newValue) => setSelectedInstructor(newValue)}
+                  />
+                  
                   <div className="flex gap-x-4 justify-between items-center">
                      <Button variant="contained" color="primary" onClick={handleAddSection}>
                         Add Section

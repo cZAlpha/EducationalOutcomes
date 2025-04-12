@@ -71,7 +71,10 @@ class UserListCreate(generics.ListCreateAPIView):
       Otherwise, return only the requesting user's data.
       """
       user = self.request.user
-      if user.is_superuser:
+      # Get the role IDs where the role name is either 'Admin' or 'root'
+      admin_role_ids = UserRole.objects.filter(role_name__in=["Admin", "root"]).values_list('id', flat=True)
+      # Check if the user's role is in the list of admin role IDs
+      if user.role_id in admin_role_ids:
          return User.objects.all()  # Superusers see all users
       return User.objects.filter(user_id=user.user_id) # only returns the same user
    

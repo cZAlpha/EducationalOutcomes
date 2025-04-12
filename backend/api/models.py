@@ -324,7 +324,7 @@ class Student(models.Model):
 # Student Task Mapping
 class StudentTaskMapping(models.Model):  # This is basically just a gradebook disguised as a mapping model
    student_task_mapping_id = models.BigAutoField(primary_key=True)
-   student = models.ForeignKey(Student, on_delete=models.CASCADE, to_field='email')
+   student = models.ForeignKey(Student, on_delete=models.PROTECT, to_field='email')
    task = models.ForeignKey(EmbeddedTask, on_delete=models.CASCADE)  # When the associated task is deleted, delete all grades associated with it
    score = models.FloatField()  # The student's score on the given task
    total_possible_score = models.FloatField()  # The total possible points attainable on the task (this allows us to do calculations later and lets us easily handle non-normalized scores)

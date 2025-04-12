@@ -9,9 +9,12 @@ import { motion } from "framer-motion";
 import { Accordion, AccordionSummary, AccordionDetails, Typography, Button, TextField, Select, MenuItem, InputLabel, FormControl} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useAuth } from "../AuthProvider";
 
 
 function SpecificSectionInformation (section) {
+   const { user } = useAuth();   
+   const [isUserAdmin, setIsUserAdmin] = useState(false);
    const navigate = useNavigate(); // For navigating to specific section page
    const [loading, setLoading] = useState(true); // State to track loading status
    const [selectedTab, setSelectedTab] = useState("Evaluation Instruments");
@@ -21,10 +24,10 @@ function SpecificSectionInformation (section) {
    const [PLOs, setPLOs] = useState([]);
    const [sectionPerformance, setSectionPerformance] = useState({}); // Obj to store the performance of a section
    const [semesters, setSemesters] = useState(null); // To store all semesters grabbed from the backend (used to populate the dropdown menu for the edit modal)
-   const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
-
+   
    // Modal Variables
       // START - Edit Modal Variables
+   const [existingSectionNumbers, setExistingSectionNumbers] = useState([]); // To store all existing section numbers, as to not allow the user to repeat a section number
    const [isEditModalOpen, setIsEditModalOpen] = useState(false); // To track edit modal visibility
    const [selectedSectionNumber, setSelectedSectionNumber] = useState('');
    const [selectedSemester, setSelectedSemester] = useState(null);
@@ -126,7 +129,7 @@ function SpecificSectionInformation (section) {
             });
             setExistingSectionNumbers(otherSectionNumbers);
          } catch (err) {
-            alert(`Error fetching Semesters: ${err.message}`);
+            alert(`Error fetching Section Numbers: ${err.message}`);
          }
       } else {
          alert("CourseId could not be parsed and therefore, all sections could not be fetched.")
@@ -193,29 +196,29 @@ function SpecificSectionInformation (section) {
       }
       
       try {
-      // Prepare the update data
-      const updateData = {
-         section_number: selectedSectionNumber,
-         semester: selectedSemester,
-         crn: selectedCRN
-      };
-      
-      // Send the PATCH request with the update data
-      const response = await api.patch(
-         `/api/sections/${section.section.section_id}/`,
-         updateData
-      );
-      
-      if (response.status === 200) {
-         alert('Section successfully updated.');
-         navigate("/sections/");
-      } else {
-         alert(`Error updating section. Status code: ${response.status}`);
-      }
+         // Prepare the update data
+         const updateData = {
+            section_number: selectedSectionNumber,
+            semester: selectedSemester,
+            crn: selectedCRN
+         };
+         
+         // Send the PATCH request with the update data
+         const response = await api.patch(
+            `/api/sections/${section.section.section_id}/`,
+            updateData
+         );
+         
+         if (response.status === 200) {
+            alert('Section successfully updated.');
+            navigate("/sections/");
+         } else {
+            alert(`Error updating section. Status code: ${response.status}`);
+         }
       } catch (err) {
-      alert(`Error updating section: ${err.message}`);
+         alert(`Error updating section: ${err.message}`);
       } finally {
-      setIsEditModalOpen(false);
+         setIsEditModalOpen(false);
       }
    };
    // STOP  - Section Edit
@@ -256,6 +259,17 @@ function SpecificSectionInformation (section) {
    };
    // STOP  - Handle Opening of the Edit Modal
    
+   // START - User Role Ascertation
+   const findUserRole = () => {
+      if (user?.role.role_name == "Admin" || user?.role.role_name == "root") {
+         setIsUserAdmin(true);
+         console.log("User is an admin!");
+      } else {
+         console.log("User is NOT an admin! User: ", user);
+      }
+   };
+   // STOP  - User Role Ascertation
+   
    useEffect(() => { // ON COMPONENT MOUNT
       const fetchData = async () => {
          await getEvaluationInstruments();
@@ -268,6 +282,7 @@ function SpecificSectionInformation (section) {
       };
       
       fetchData();
+      findUserRole();
    }, []);
    
    useEffect(() => { // Performance Report Call
@@ -311,13 +326,15 @@ function SpecificSectionInformation (section) {
             >
                Performance
             </button>
-            <button
-               className={`px-4 py-2 rounded-md w-full font-bold
-                  ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-               onClick={() => setSelectedTab("Settings")}
-            >
-               <SettingsIcon />
-            </button>
+            {(user.user_id === section.section.instructor_details.user_id || isUserAdmin) && (
+               <button
+                  className={`px-4 py-2 rounded-md w-full font-bold
+                     ${selectedTab === "Settings" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  onClick={() => setSelectedTab("Settings")}
+               >
+                  <SettingsIcon />
+               </button>
+            )}
          </div>
          
          {/* Edit Modal */}

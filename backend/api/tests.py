@@ -784,6 +784,35 @@ def populate_courses(): # Function that only populates courses
    print("[+] Created Program-Course Mappings: ", program_course_mapping_list)
 
 
+def test_student_model():
+   """
+   Function that tests if student records are deleted if any associated records 
+   in higher granularity (like StudentTaskMapping) are deleted. This is to ensure 
+   CASCADE behavior is NOT set on the student FK in StudentTaskMapping.
+   """
+   wipe_database() 
+   populate_database()
+   
+   for _ in range(20):
+      print("")
+   
+   initial_student_count = Student.objects.count()
+   
+   # Delete all student-task mappings
+   StudentTaskMapping.objects.all().delete()
+   
+   # Check if the number of student records remains unchanged
+   final_student_count = Student.objects.count()
+   
+   print("+=============================================")
+   print("| Student <-> Task Mapping Deletion Test:")
+   if (final_student_count == initial_student_count):
+      print("| Test passed!")
+   else:
+      print("| Test failed!")
+   print("+=============================================")
+
+
 
 if __name__ == "__main__": # Main execution
    #wipe_database()

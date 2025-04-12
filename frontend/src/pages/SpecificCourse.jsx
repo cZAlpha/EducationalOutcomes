@@ -130,12 +130,7 @@ function SpecificCourse() {
    }, []);
    
    useEffect(() => { // Program <-> Course Mapping Handling
-      if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {
-         console.log("Course: ", course);
-         console.log("Programs: ", programs);
-         console.log("Program Course Mappings: ", programCourseMappings);
-         console.log("Sections:", sections);
-         
+      if (!loading && course.course_id && programs.length > 0 && programCourseMappings.length > 0) {         
          const programLookup = programs.reduce((acc, program) => {
             acc[program.program_id] = program.designation;
             return acc;
@@ -149,11 +144,7 @@ function SpecificCourse() {
    }, [loading, programCourseMappings, programs, course.course_id]);
    
    useEffect(() => { // PLO <-> CLO Mapping Handling
-      if (!loading && CLOs.length > 0 && PLOs.length > 0 && PLOCLOMappings.length > 0) {
-         console.log("CLOs: ", CLOs);
-         console.log("PLOs: ", PLOs);
-         console.log("PLO <-> CLO Mappings: ", PLOCLOMappings);
-         
+      if (!loading && CLOs.length > 0 && PLOs.length > 0 && PLOCLOMappings.length > 0) {         
          const mappedCLOs = CLOs.map(clo => ({
             ...clo,
             mappedPLOs: PLOCLOMappings
@@ -161,7 +152,6 @@ function SpecificCourse() {
                .map(mapping => PLOs.find(plo => plo.plo_id === mapping.plo_id))
                .filter(plo => plo) // Remove undefined values
          }));
-         console.log("Mapped CLOs: ", mappedCLOs);
          setCLOs(mappedCLOs);
       }
    }, [loading, PLOs, PLOCLOMappings, CLOs.clo_id]);
