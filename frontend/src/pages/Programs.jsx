@@ -114,7 +114,7 @@ function Programs() {
    
    return (
       <div className="flex flex-col items-center justify-start w-full text-center p-12 min-h-screen bg-gray-100 backdrop-blur-md bg-opacity-[80%] gap-y-8">
-         <div /* HeaderContent: Title, Tooltip*/ className="flex justify-between items-center w-[70%] pt-8">
+         <div /* HeaderContent: Title, Tooltip*/ className="flex justify-between items-center w-[90%] md:w-[70%] pt-8">
             <h1 className="text-3xl font-bold">Programs</h1>
             {/* Help Button with Tooltip */}
             <Tooltip
