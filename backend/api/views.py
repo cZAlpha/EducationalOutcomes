@@ -363,12 +363,21 @@ class ProgramListCreate(generics.ListCreateAPIView):
    
    def get(self, request):
       programs = Program.objects.all()
+      for _ in range(20):
+         print("")
+      print("Programs: ", programs)
       serializer = ProgramSerializer(programs, many=True)
+      print("Serialized data:", serializer.data)  # Add this debug line
       return Response(serializer.data)
    
    def post(self, request):
-      if not request.user.is_superuser:  # Checks for superuser status
-            return Response({"error": "Only superusers can create new Programs."}, status=status.HTTP_403_FORBIDDEN)
+      user = self.request.user
+      # Get the role IDs where the role name is either 'Admin' or 'root'
+      admin_role_ids = UserRole.objects.filter(role_name__in=["Admin", "root"]).values_list('id', flat=True)
+      
+      # Check if the user's role is in the list of admin role IDs
+      if user.role_id in admin_role_ids:
+         return Response({"error": "Only superusers can create new Programs."}, status=status.HTTP_403_FORBIDDEN)
       serializer = ProgramSerializer(data=request.data)
       if serializer.is_valid():  # Checks for valid serializer
          serializer.save()

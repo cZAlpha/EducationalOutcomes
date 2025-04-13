@@ -10,6 +10,7 @@ import SubjectIcon from "@mui/icons-material/Subject"; // Courses
 import ViewAgendaIcon from "@mui/icons-material/ViewAgenda"; // Sections
 import BuildIcon from "@mui/icons-material/Build";
 import CloseIcon from "@mui/icons-material/Close";
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import { useAuth } from "../components/AuthProvider"; // Import useAuth hook
 
 
@@ -139,6 +140,16 @@ const Navbar = () => {
                            />
                         </ListItem>
                      </Link>
+                     
+                     <Link to="/programs">
+                        <ListItem button sx={getActiveStyle("/programs")}>
+                           <ListItemIcon>
+                              <DashboardIcon />
+                           </ListItemIcon>
+                           <ListItemText primary="Programs" />
+                        </ListItem>
+                     </Link>
+                     
                      <Link to="/courses">
                         <ListItem button sx={getActiveStyle("/courses")}>
                            <ListItemIcon>
@@ -245,6 +256,16 @@ const Navbar = () => {
                            />
                         </ListItem>
                      </Link>
+                     
+                     <Link to="/programs">
+                        <ListItem button sx={getActiveStyle("/programs")}>
+                           <ListItemIcon>
+                              <DashboardIcon />
+                           </ListItemIcon>
+                           <ListItemText primary="Programs" />
+                        </ListItem>
+                     </Link>
+                     
                      <Link to="/courses">
                         <ListItem button sx={getActiveStyle("/courses")}>
                            <ListItemIcon>

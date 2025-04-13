@@ -8,7 +8,6 @@ import LoadingIndicator from "../components/LoadingIndicator";
 
 function Courses() {
    // START - Variables
-   const [currentUser, setCurrentUser] = useState(null); // Stores the user object
    const [loading, setLoading] = useState(true);
    const [courses, setCourses] = useState([]); // Used to store the courses fetched from the api call
    const [filteredCourses, setFilteredCourses] = useState([]); // Used to store filtered courses

@@ -107,7 +107,7 @@ const Sections = () => {
                      sx: {
                      backgroundColor: 'white',
                      color: 'black',
-                     fontSize: '1rem',
+                     fontSize: '0.9rem',
                      borderRadius: '16px',  // Increased border radius for rounder corners
                      p: 1.5,
                      boxShadow: 3,
