@@ -170,7 +170,7 @@ function Programs() {
                         {groupedCourses[program.designation]?.activeCourses.length > 0 ? (
                            <List>
                               {groupedCourses[program.designation].activeCourses.map((course) => (
-                                 <ListItem button style={{ cursor: 'pointer' }} key={course.course_id} onClick={() => handleCourseClick(course.course_id)}>
+                                 <ListItem key={course.course_id} button style={{ cursor: 'pointer' }} onClick={() => handleCourseClick(course.course_id)}>
                                     <ListItemText
                                        primary={`${course.course_number}: ${course.name}`}
                                        secondary={course.description.slice(0,100) + "..."}
@@ -196,7 +196,7 @@ function Programs() {
                         {groupedCourses[program.designation]?.archivedCourses.length > 0 ? (
                            <List>
                            {groupedCourses[program.designation].archivedCourses.map((course) => (
-                              <ListItem key={course.course_id}>
+                              <ListItem key={course.course_id} button style={{ cursor: 'pointer' }}  onClick={() => handleCourseClick(course.course_id)}>
                                  <ListItemText
                                  primary={`${course.course_number}: ${course.name}`}
                                  secondary={
