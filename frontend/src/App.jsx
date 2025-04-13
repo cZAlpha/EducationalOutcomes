@@ -10,6 +10,8 @@ import Sections from "./pages/Sections"
 import SpecificSection from "./pages/SpecificSection"
 import SpecificEvaluationInstrument from "./pages/SpecificEvaluationInstrument"
 import AddEvaluationInstrument from "./pages/AddNewEvaluationInstrument"
+import Programs from "./pages/Programs"
+import SpecificProgram from "./pages/SpecificProgram"
 import Tools from "./pages/Tools"
 import Navbar from "./components/Navbar"
 import NotFound from "./pages/NotFound"
@@ -76,6 +78,18 @@ function App() {
           <Route path="/account" element={                             /* Account page (Protected) */
             <ProtectedRoute>
               <Account/>
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/programs" element={                             /* Programs page (Protected) */
+            <ProtectedRoute>
+              <Programs/>
+            </ProtectedRoute>
+          }
+          />
+          <Route path="/programs/:programId" element={                             /* Programs page (Protected) */
+            <ProtectedRoute>
+              <SpecificProgram/>
             </ProtectedRoute>
           }
           />
