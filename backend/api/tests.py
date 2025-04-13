@@ -813,8 +813,16 @@ def test_student_model():
    print("+=============================================")
 
 
+def view_all_users_with_ids():
+   print("====================================================")
+   print("Visualizing all users in the DB with their IDs: ")
+   print("====================================================")
+   for user in User.objects.all():
+      print("User", user.user_id)
+
 
 if __name__ == "__main__": # Main execution
-   #wipe_database()
-   #populate_database()
+   wipe_database()
+   populate_database()
    visualize_database()
+   #view_all_users_with_ids()

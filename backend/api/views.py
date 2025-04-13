@@ -1224,7 +1224,7 @@ class CourseListCreate(generics.ListCreateAPIView):
       #    return Response({"error": "Only superusers can create new Courses."}, status=status.HTTP_403_FORBIDDEN)
       
       data = request.data
-      print(data)  # use a logger
+      # print(data)  # use a logger
       
       # Extract relevant information
       program_id = data.get("course", {}).get("program")
@@ -1310,23 +1310,118 @@ class CourseListCreate(generics.ListCreateAPIView):
          return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CourseDetail(generics.RetrieveUpdateDestroyAPIView):
-   """
-   A view for retrieving, updating, and deleting a specific Course instance.
-   """
-   queryset = Course.objects.all()  # Define queryset for the view
+   queryset = Course.objects.all()
    serializer_class = CourseSerializer
-   permission_classes = [IsAuthenticated]  # Only authenticated users can access this view
-   lookup_field = "pk"  # Use the primary key to find the instance
+   permission_classes = [IsAuthenticated]
+   lookup_field = "pk"
    
    def get_queryset(self):
       return Course.objects.all()
    
-   def perform_update(self, serializer):
-      """
-      This method is called when an update (PUT or PATCH) request is made.
-      It allows us to add custom behavior during the update.
-      """
-      serializer.save()
+   def update(self, request, *args, **kwargs):
+      course_instance = self.get_object()
+      data = request.data
+      
+      #print("Data: ", data)
+      
+      # Extract simple fields
+      accreditation_version = data.get("a_version")
+      course_number = data.get("course_number")
+      course_name = data.get("name")
+      course_description = data.get("description")
+      date_added = data.get("date_added")
+      date_removed = data.get("date_removed")
+      
+      # Extract complex fields only if they exist in request
+      clos_data = data.get("clos", [])
+      mappings_data = data.get("plo_clo_mappings", [])
+      
+      try:
+         with transaction.atomic():
+            # Step 1: Update Course basic info (only update fields that were provided)
+            course_data = {
+               "a_version": accreditation_version if accreditation_version is not None else course_instance.a_version,
+               "course_number": int(course_number) if course_number is not None else course_instance.course_number,
+               "name": course_name if course_name is not None else course_instance.name,
+               "description": course_description if course_description is not None else course_instance.description,
+               "date_added": date_added if date_added is not None else course_instance.date_added,
+               "date_removed": date_removed if date_removed is not None else course_instance.date_removed
+            }
+            
+            course_serializer = self.get_serializer(
+               course_instance, 
+               data=course_data, 
+               partial=True  # Always partial to allow single-field updates
+            )
+            
+            if not course_serializer.is_valid():
+               transaction.set_rollback(True)
+               return Response(course_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            course = course_serializer.save()
+            
+            # Step 2: Only process CLOs and mappings if they were provided in request
+            if 'clos' in data or 'plo_clo_mappings' in data:
+               # Delete existing CLOs and mappings for this course
+               existing_clos = CourseLearningObjective.objects.filter(course=course) # get all existing CLOs for the given course
+               existing_clo_ids = list(existing_clos.values_list('clo_id', flat=True)) # Get the ids of all CLOs for the given course in a list
+               
+               PLOCLOMapping.objects.filter(clo__in=existing_clo_ids).delete() # Delete all PLOCLO mappings that are related to the given course
+               existing_clos.delete() # Delete all existing CLOs
+               
+               # Create new CLOs and store their IDs for mapping
+               clo_id_map = {}
+               for clo in clos_data:
+                  clo_data = {
+                     "course": course.course_id,
+                     "designation": clo.get("designation"),
+                     "description": clo.get("description"),
+                     "created_by": clo.get("created_by", request.user.user_id) 
+                  }
+                  clo_serializer = CourseLearningObjectiveSerializer(data=clo_data)
+                  if clo_serializer.is_valid():
+                     saved_clo = clo_serializer.save()
+                     clo_id_map[str(clo.get("designation"))] = saved_clo.clo_id
+                  else:
+                     transaction.set_rollback(True)
+                     return Response(clo_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+               
+               # Create new CLO-PLO Mappings if provided
+               if 'plo_clo_mappings' in data:
+                  for mapping in mappings_data:
+                     # Get the CLO designation from mapping
+                     clo_designation = str(mapping.get("clo"))  # Convert to string to ensure match
+                     plo_id = mapping.get("plo")
+                     
+                     # Debug prints to help diagnose issues
+                     print(f"Processing mapping - CLO Designation: {clo_designation}, PLO ID: {plo_id}")
+                     print(f"Available CLO designations in map: {list(clo_id_map.keys())}")
+                     
+                     # Verify the designation exists in our newly created CLOs
+                     if clo_designation not in clo_id_map or not plo_id:
+                           transaction.set_rollback(True)
+                           return Response(
+                              {"error": f"CLO designation '{clo_designation}' not found in newly created CLOs or PLO ID missing."},
+                              status=status.HTTP_400_BAD_REQUEST
+                           )
+                     
+                     mapping_data = {
+                           "clo": clo_id_map[clo_designation],  # Get ID from our designation map
+                           "plo": plo_id
+                     }
+                     mapping_serializer = PLOCLOMappingSerializer(data=mapping_data)
+                     if mapping_serializer.is_valid():
+                           mapping_serializer.save()
+                     else:
+                           transaction.set_rollback(True)
+                           return Response(
+                              mapping_serializer.errors, 
+                              status=status.HTTP_400_BAD_REQUEST
+                           )
+            return Response(course_serializer.data, status=status.HTTP_200_OK)
+      
+      except Exception as e:
+         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
    
    def destroy(self, request, *args, **kwargs):
       instance = self.get_object()

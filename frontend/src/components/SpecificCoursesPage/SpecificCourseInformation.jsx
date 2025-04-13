@@ -9,6 +9,9 @@ import { useNavigate } from "react-router-dom";
 import SettingsIcon from '@mui/icons-material/Settings';
 import LinkIcon from '@mui/icons-material/Link';
 import { useAuth } from "../AuthProvider";
+import DeleteIcon from '@mui/icons-material/Delete';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import InfoIcon from '@mui/icons-material/Info';
 
 
 function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PLOCLOMappings }) {
@@ -44,7 +47,16 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
       course_number: course.course_number,
       a_version: course.a_version_details,
       date_added: course.date_added,
-      date_removed: course.date_removed
+      date_removed: course.date_removed,
+      clos: [],
+      plo_clo_mappings: []
+   });
+   const [editedCLOs, setEditedCLOs] = useState([]);
+   const [editedMappings, setEditedMappings] = useState([]);
+   const [newCLO, setNewCLO] = useState({
+      designation: '',
+      description: '',
+      mappings: []
    });
    
    
@@ -136,14 +148,58 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
       navigate(`/sections/${sectionId}`);
    };
    
-   // START - Function to handle input changes for editing course form
+   // START - Functions to handle input changes for editing course form
    const handleEditCourseInputChange = (field, value) => {
       setEditedCourse(prev => ({
       ...prev,
       [field]: value
       }));
    };
-   // STOP  - Function to handle input changes for editing course form
+   
+   const handleAddCLO = () => {
+      if (!newCLO.designation || !newCLO.description) {
+         alert('Designation and description are required');
+         return;
+      }
+      
+      const cloToAdd = {
+         course: course.course_id,
+         designation: newCLO.designation,
+         description: newCLO.description,
+         created_by: user.user_id
+      };
+      
+      setEditedCLOs([...editedCLOs, cloToAdd]);
+      setNewCLO({ designation: '', description: '', mappings: [] });
+   };
+   
+   const handleDeleteCLO = (cloId) => {
+      setEditedCLOs(editedCLOs.filter(clo => clo.clo_id !== cloId));
+      setEditedMappings(editedMappings.filter(mapping => mapping.clo !== cloId));
+   };
+   
+   const handleAddMapping = (cloId) => {
+      const ploToAdd = prompt('Enter PLO designation to map (e.g., "1", "2")');
+      if (!ploToAdd) return;
+      
+      const plo = PLOs.find(p => p.designation === ploToAdd);
+      if (!plo) {
+         alert(`PLO ${ploToAdd} not found`);
+         return;
+      }
+      
+      const newMapping = {
+         clo: cloId,
+         plo: plo.plo_id
+      };
+      
+      setEditedMappings([...editedMappings, newMapping]);
+   };
+   
+   const handleDeleteMapping = (mappingId) => {
+      setEditedMappings(editedMappings.filter(m => m.mapping_id !== mappingId));
+   };
+   // STOP  - Functions to handle input changes for editing course form
    
    // START - Function that handles closing the edit course modal
    const handleCloseEditCourseModal = () => {
@@ -157,7 +213,8 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
       });
       setIsEditModalOpen(false);
    };
-
+   // STOP  - Function that handles closing the edit course modal
+   
    // START - Save Course Changes
    const handleSaveCourseChanges = async () => {
       try {
@@ -167,14 +224,44 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
             return dateString.split('T')[0];
          };
          
+         console.log("Non-normalized Course Data: ", editedCourse);
+         
+         // Prepare CLO data without IDs
+         const normalizedCLOs = editedCLOs.map(clo => ({
+            course: course.course_id,
+            designation: clo.designation,
+            description: clo.description,
+            created_by: user.user_id
+         }));
+         
+         // Create a map of CLO IDs to their designations (for existing CLOs)
+         const cloDesignationMap = {};
+         CLOs.forEach(clo => {
+            cloDesignationMap[clo.clo_id] = clo.designation;
+         });
+         
+         // Normalize mappings using CLO designations instead of IDs
+         const normalizedMappings = editedMappings.map(mapping => {
+            // Use designation if available, otherwise fall back to ID mapping
+            const cloIdentifier = cloDesignationMap[mapping.clo] || mapping.clo;
+            
+            return {
+            clo: cloIdentifier,  // Using designation instead of ID
+            plo: mapping.plo     // PLO ID
+            };
+         });
+         
          // Prepare the data to send
          const dataToSend = {
             ...editedCourse,
             // Ensure accreditation_version is sent as ID if it's an object
             a_version: Number(editedCourse.a_version?.a_version_id),
             date_added: formatDateForBackend(editedCourse.date_added),
-            date_removed: formatDateForBackend(editedCourse.date_removed)
+            date_removed: formatDateForBackend(editedCourse.date_removed),
+            clos: normalizedCLOs,
+            plo_clo_mappings: normalizedMappings
          };
+         
          console.log("Updated Course Data Sent to Backend: ", dataToSend);
          const res = await api.patch(`/api/courses/${course.course_id}/`, dataToSend);
          if (res.status == 200) {
@@ -314,7 +401,15 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
    };
    // STOP  - User Role Ascertation
    
+   // useEffect to initialize CLOs and mappings when course data loads
    useEffect(() => {
+      if (course && CLOs && PLOCLOMappings) {
+         setEditedCLOs(CLOs);
+         setEditedMappings(PLOCLOMappings);
+      }
+   }, [course, CLOs, PLOCLOMappings]);
+   
+   useEffect(() => { // ON MOUNT FUNCTION CALLS
       const fetchData = async () => {
          await getCoursePerformance();
          await getAllSectionsNumbers();
@@ -324,8 +419,7 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
       };
       fetchData();
       findUserRole();
-      console.log("Course AVersion: ", course.a_version_details);
-      console.log("Edited Course on start ", editedCourse);
+      console.log("CLOs", CLOs);
    }, [])
    
    // HTML STUFF
@@ -475,80 +569,128 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
                {/* Mappings Tab Content */}
                {editModalTab === 'Mappings' && (
                   <div className="space-y-4">
-                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                     >
-                        {CLOs.map((clo) => (
-                           <Accordion key={clo.clo_id}>
+                     <div className="border p-4 rounded-lg">
+                        <h4 className="font-bold mb-2">Add New CLO</h4>
+                        <div className="flex gap-2 mb-4">
+                           <TextField
+                              label="Designation"
+                              value={newCLO.designation}
+                              onChange={(e) => setNewCLO({...newCLO, designation: e.target.value})}
+                              size="small"
+                           />
+                           <TextField
+                              label="Description"
+                              value={newCLO.description}
+                              onChange={(e) => setNewCLO({...newCLO, description: e.target.value})}
+                              size="small"
+                              fullWidth
+                           />
+                           <Button 
+                              variant="contained" 
+                              onClick={handleAddCLO}
+                              disabled={!newCLO.designation || !newCLO.description}
+                           >
+                              Add
+                           </Button>
+                        </div>
+                     </div>
+                     
+                     <div className="space-y-2">
+                        {editedCLOs.map((clo) => (
+                           <Accordion key={clo.clo_id || clo.designation}>
                               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                 <div className="flex flex-col gap-y-1">
-                                    <h4 className="font-bold text-lg">{`CLO ${clo.designation}`}</h4>
-                                    <p className="pl-4">{clo.description}</p>
+                              <div className="flex items-center justify-between w-full">
+                                 <div>
+                                    <span className="font-bold">CLO {clo.designation}</span>
+                                    <span className="ml-2 text-gray-600">{clo.description}</span>
                                  </div>
+                                 <IconButton 
+                                    onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCLO(clo.clo_id || clo.designation);
+                                    }}
+                                    size="small"
+                                    color="error"
+                                 >
+                                    <DeleteIcon fontSize="small" />
+                                 </IconButton>
+                              </div>
                               </AccordionSummary>
                               <AccordionDetails>
-                                 {cloToPloMap[clo.clo_id]?.length > 0 ? (
-                                 <Card variant="outlined">
-                                    <CardContent>
-                                       <Typography variant="subtitle1" fontWeight="bold">
-                                       Mapped PLOs:
-                                       </Typography>
-                                       <ul className="flex flex-col gap-y-1 text-left pt-2">
-                                       {cloToPloMap[clo.clo_id].map((plo) => (
-                                          <li key={plo.plo_id}>
-                                             <Typography variant="body2">{`PLO ${plo.designation}: ${plo.description || "No description available"}`}</Typography>
-                                          </li>
-                                       ))}
-                                       </ul>
-                                    </CardContent>
-                                 </Card>
-                                 ) : (
-                                 <Typography color="textSecondary">No mapped PLOs.</Typography>
-                                 )}
+                              <div className="space-y-2">
+                                 <div className="flex justify-between items-center">
+                                    <Typography variant="subtitle2">Mapped PLOs:</Typography>
+                                    <Button 
+                                    size="small" 
+                                    variant="outlined"
+                                    onClick={() => handleAddMapping(clo.clo_id || clo.designation)}
+                                    >
+                                    Add PLO Mapping
+                                    </Button>
+                                 </div>
+                                 
+                                 {editedMappings
+                                    .filter(m => m.clo === (clo.clo_id || clo.designation))
+                                    .map(mapping => {
+                                    const plo = PLOs.find(p => p.plo_id === mapping.plo);
+                                    return (
+                                       <div key={`${mapping.clo}-${mapping.plo}`} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                          <span>
+                                          {plo ? `PLO ${plo.designation}: ${plo.description}` : 'PLO not found'}
+                                          </span>
+                                          <IconButton 
+                                          size="small" 
+                                          color="error"
+                                          onClick={() => handleDeleteMapping(mapping.mapping_id)}
+                                          >
+                                          <DeleteIcon fontSize="small" />
+                                          </IconButton>
+                                       </div>
+                                    );
+                                    })}
+                              </div>
                               </AccordionDetails>
                            </Accordion>
                         ))}
-                        </motion.div>
+                     </div>
                   </div>
                )}
                
                <div className="flex justify-between mt-4">
-               {/* Save Button */}
-               <Button 
-                  color="primary" 
-                  variant="outlined" 
-                  sx={{
-                     minWidth: '40px',
-                     minHeight: '50px',
-                     borderColor: 'primary.main',
-                     '&:hover': {
-                     backgroundColor: 'primary.main',
-                     color: 'white',
-                     borderColor: 'primary.main',
-                     },
-                  }}
-                  onClick={handleSaveCourseChanges}
-               >
-                  Save Changes
-               </Button>
-               <Button 
-                  variant="contained" 
-                  sx={{
-                     minWidth: '40px',
-                     minHeight: '50px',
-                     backgroundColor: '#757575',
-                     color: 'white',
-                     boxShadow: 'none',
-                     '&:hover': {
-                     backgroundColor: '#616161',
-                     },
-                  }}
-                  onClick={handleCloseEditCourseModal}
-               >
-                  Cancel
-               </Button>
+                  {/* Save Button */}
+                  <Button 
+                     color="primary" 
+                     variant="outlined" 
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        borderColor: 'primary.main',
+                        },
+                     }}
+                     onClick={handleSaveCourseChanges}
+                  >
+                     Save Changes
+                  </Button>
+                  <Button 
+                     variant="contained" 
+                     sx={{
+                        minWidth: '40px',
+                        minHeight: '50px',
+                        backgroundColor: '#757575',
+                        color: 'white',
+                        boxShadow: 'none',
+                        '&:hover': {
+                        backgroundColor: '#616161',
+                        },
+                     }}
+                     onClick={handleCloseEditCourseModal}
+                  >
+                     Cancel
+                  </Button>
                </div>
             </div>
          </div>
