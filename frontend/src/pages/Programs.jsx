@@ -70,20 +70,29 @@ function Programs() {
          
          programs.forEach(program => {
             grouped[program.designation] = {
-            programData: program,
-            activeCourses: [],
-            archivedCourses: []
+               programData: program,
+               coursesByAccreditation: {} // New structure to group by accreditation
             };
          });
          
          courses.forEach(course => {
             if (course.program_name && grouped[course.program_name]) {
-            // Corrected logic: course is archived if date_removed IS NOT null
-            if (course.date_removed !== null) {
-               grouped[course.program_name].archivedCourses.push(course);
-            } else {
-               grouped[course.program_name].activeCourses.push(course);
-            }
+               const accreditationKey = course.a_version_details 
+               ? `${course.a_version_details.a_organization_details.name} (${course.a_version_details.year})`
+               : 'No Accreditation';
+               
+               if (!grouped[course.program_name].coursesByAccreditation[accreditationKey]) {
+               grouped[course.program_name].coursesByAccreditation[accreditationKey] = {
+                  activeCourses: [],
+                  archivedCourses: []
+               };
+               }
+               
+               if (course.date_removed !== null) {
+               grouped[course.program_name].coursesByAccreditation[accreditationKey].archivedCourses.push(course);
+               } else {
+               grouped[course.program_name].coursesByAccreditation[accreditationKey].activeCourses.push(course);
+               }
             }
          });
          
@@ -160,65 +169,82 @@ function Programs() {
                      </p>
                   </button>
                   
-                  <Accordion className="mt-4">
-                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="subtitle1" className="font-medium">
-                           Active Courses ({groupedCourses[program.designation]?.activeCourses.length || 0})
-                        </Typography>
-                     </AccordionSummary>
-                     <AccordionDetails>
-                        {groupedCourses[program.designation]?.activeCourses.length > 0 ? (
+                  {Object.entries(groupedCourses[program.designation]?.coursesByAccreditation || {}).map(
+                     ([accreditation, {activeCourses, archivedCourses}]) => (
+                     <div key={accreditation} className="mb-6">
+                     <Typography variant="subtitle2" className="font-medium text-gray-600 mb-2">
+                        {accreditation}
+                     </Typography>
+                     
+                     <Accordion className="mt-2">
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                           <Typography variant="subtitle1" className="font-medium">
+                           Active Courses ({activeCourses.length || 0})
+                           </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                           {activeCourses.length > 0 ? (
                            <List>
-                              {groupedCourses[program.designation].activeCourses.map((course) => (
-                                 <ListItem key={course.course_id} button style={{ cursor: 'pointer' }} onClick={() => handleCourseClick(course.course_id)}>
-                                    <ListItemText
-                                       primary={`${course.course_number}: ${course.name}`}
-                                       secondary={course.description.slice(0,100) + "..."}
-                                    />
+                              {activeCourses.map((course) => (
+                                 <ListItem 
+                                 key={course.course_id} 
+                                 button 
+                                 onClick={() => handleCourseClick(course.course_id)}
+                                 >
+                                 <ListItemText
+                                    primary={`${course.course_number}: ${course.name}`}
+                                    secondary={course.description.slice(0,100) + "..."}
+                                 />
                                  </ListItem>
                               ))}
                            </List>
-                        ) : (
+                           ) : (
                            <Typography variant="body2" color="textSecondary">
-                           No active courses in this program
+                              No active courses for this accreditation
                            </Typography>
-                        )}
-                     </AccordionDetails>
-                  </Accordion>
-                  
-                  <Accordion className="mt-2">
-                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography variant="subtitle1" className="font-medium">
-                           Archived Courses ({groupedCourses[program.designation]?.archivedCourses.length || 0})
-                        </Typography>
-                     </AccordionSummary>
-                     <AccordionDetails>
-                        {groupedCourses[program.designation]?.archivedCourses.length > 0 ? (
+                           )}
+                        </AccordionDetails>
+                     </Accordion>
+
+                     <Accordion className="mt-2">
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                           <Typography variant="subtitle1" className="font-medium">
+                           Archived Courses ({archivedCourses.length || 0})
+                           </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                           {archivedCourses.length > 0 ? (
                            <List>
-                           {groupedCourses[program.designation].archivedCourses.map((course) => (
-                              <ListItem key={course.course_id} button style={{ cursor: 'pointer' }}  onClick={() => handleCourseClick(course.course_id)}>
+                              {archivedCourses.map((course) => (
+                                 <ListItem 
+                                 key={course.course_id} 
+                                 button 
+                                 onClick={() => handleCourseClick(course.course_id)}
+                                 >
                                  <ListItemText
-                                 primary={`${course.course_number}: ${course.name}`}
-                                 secondary={
-                                    <>
-                                       {course.description}
+                                    primary={`${course.course_number}: ${course.name}`}
+                                    secondary={
+                                       <>
+                                       {course.description.slice(0,100)}...
                                        <br />
                                        <span className="text-red-500">
-                                       Archived on: {new Date(course.date_removed).toLocaleDateString()}
+                                          Archived on: {new Date(course.date_removed).toLocaleDateString()}
                                        </span>
-                                    </>
-                                 }
+                                       </>
+                                    }
                                  />
-                              </ListItem>
-                           ))}
+                                 </ListItem>
+                              ))}
                            </List>
-                        ) : (
+                           ) : (
                            <Typography variant="body2" color="textSecondary">
-                           No archived courses in this program
+                              No archived courses for this accreditation
                            </Typography>
-                        )}
-                     </AccordionDetails>
-                  </Accordion>
+                           )}
+                        </AccordionDetails>
+                     </Accordion>
+                     </div>
+                  ))}
                </div>
             ))}
          </div>

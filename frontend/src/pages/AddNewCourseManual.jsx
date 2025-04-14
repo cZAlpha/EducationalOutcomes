@@ -284,7 +284,7 @@ const AddNewCourseManual = () => {
                      sx={{ textAlign: 'left' }}  // Align selected value to the left
                   >
                      {accreditationVersions
-                        .filter(version => version.a_organization.a_organization_id === courseInfo.accreditationOrganization) // Filter by organization
+                        .filter(version => version.a_organization_details.a_organization_id === courseInfo.accreditationOrganization) // Filter by organization
                         .map((version) => (
                            <MenuItem key={version.a_version_id} value={version.a_version_id}>
                               {version.year} {/* Display year and version ID */}
