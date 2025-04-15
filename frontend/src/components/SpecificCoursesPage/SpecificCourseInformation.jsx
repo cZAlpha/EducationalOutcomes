@@ -157,7 +157,7 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
       });
       setIsEditModalOpen(false);
    };
-
+   
    // START - Save Course Changes
    const handleSaveCourseChanges = async () => {
       try {
@@ -309,6 +309,7 @@ function SpecificCourseInformation({ course, semesters, sections, CLOs, PLOs, PL
          setIsUserAdmin(true);
          console.log("User is an admin!");
       } else {
+         setSelectedInstructor(user);
          console.log("User is NOT an admin! User: ", user);
       }
    };
