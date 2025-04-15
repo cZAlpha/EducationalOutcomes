@@ -170,7 +170,7 @@ function Programs() {
                   </button>
                   
                   {Object.entries(groupedCourses[program.designation]?.coursesByAccreditation || {}).map(
-                     ([accreditation, {activeCourses, archivedCourses}]) => (
+                  ([accreditation, {activeCourses, archivedCourses}]) => (
                      <div key={accreditation} className="mb-6">
                      <Typography variant="subtitle2" className="font-medium text-gray-600 mb-2">
                         {accreditation}
@@ -205,7 +205,7 @@ function Programs() {
                            )}
                         </AccordionDetails>
                      </Accordion>
-
+                     
                      <Accordion className="mt-2">
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                            <Typography variant="subtitle1" className="font-medium">
